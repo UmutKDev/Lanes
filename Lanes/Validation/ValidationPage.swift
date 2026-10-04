@@ -11,19 +11,21 @@ struct ValidationPage: View {
     var body: some View {
         let validation = model.validation
         HStack(spacing: 0) {
-            List(selection: checkBinding) {
-                Section {
-                    ForEach(ValidationCheck.all) { check in
-                        CheckRow(check: check, outcome: validation.result(for: check.id).outcome)
-                            .tag(check.id)
+            // The report button sits below the list, not in its bottom safe
+            // area inset: with the inset the list asks for its full height and
+            // the page grows taller than the window (856 pt at any size).
+            VStack(spacing: 0) {
+                List(selection: checkBinding) {
+                    Section {
+                        ForEach(ValidationCheck.all) { check in
+                            CheckRow(check: check, outcome: validation.result(for: check.id).outcome)
+                                .tag(check.id)
+                        }
+                    } header: {
+                        Text("\(validation.completedCount)/\(ValidationCheck.all.count) deneme kaydedildi")
                     }
-                } header: {
-                    Text("\(validation.completedCount)/\(ValidationCheck.all.count) deneme kaydedildi")
                 }
-            }
-            .listStyle(.sidebar)
-            .frame(minWidth: 220, idealWidth: 290, maxWidth: 290)
-            .safeAreaInset(edge: .bottom) {
+                .listStyle(.sidebar)
                 VStack(alignment: .leading, spacing: 6) {
                     Button {
                         validation.copyReport(claude: model.claude)
@@ -42,6 +44,7 @@ struct ValidationPage: View {
                 }
                 .padding(12)
             }
+            .frame(minWidth: 220, idealWidth: 290, maxWidth: 290)
             Divider()
             ScrollView {
                 CheckDetail(check: ValidationCheck.check(validation.selectedCheck))
