@@ -87,7 +87,8 @@ public struct ValidationCheck: Sendable, Identifiable, Equatable {
             mode: .assisted, isDeferred: false,
             steps: [
                 "Lanes Claude.app'in bir klonunu oluşturur ve simgesini değiştirir.",
-                "codesign ve spctl çıktısı otomatik kaydedilir.",
+                "codesign ve spctl çıktısı otomatik kaydedilir. İkisi de klonu kabul ederse imza korunmuş sayılır.",
+                "codesign'ın katı modu, simge dosyası yüzünden klonu her zaman reddeder. Bu çıktı raporda not olarak kalır.",
                 "Klonu açınca Dock'ta ve Cmd-Tab'da gördüğünü seç.",
             ]
         ),

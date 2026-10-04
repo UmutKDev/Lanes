@@ -299,10 +299,15 @@ struct CloneAssistant: View {
             )
             lines.append("Kopyalama \(Int(result.copySeconds * 1000)) ms sürdü.")
             lines.append(result.iconApplied ? "Simge uygulandı." : "Simge uygulanamadı.")
-            let codesign = await ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", cloneURL.path])
-            signatureValid = codesign.status == 0
-            lines.append(contentsOf: ["$ codesign --verify --deep --strict --verbose=2", codesign.text, "çıkış kodu: \(codesign.status)"])
-            lines.append(contentsOf: await ShellRunner.transcript("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=4", cloneURL.path]))
+            let codesign = await ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", "--verbose=2", cloneURL.path])
+            lines.append(contentsOf: ["$ codesign --verify --deep --verbose=2", codesign.text, "çıkış kodu: \(codesign.status)"])
+            let gatekeeper = await ShellRunner.run("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=4", cloneURL.path])
+            lines.append(contentsOf: ["$ spctl --assess --type execute --verbose=4", gatekeeper.text, "çıkış kodu: \(gatekeeper.status)"])
+            signatureValid = codesign.status == 0 && gatekeeper.status == 0
+            // The custom icon adds an Icon\r file and Finder info to the bundle
+            // root. Only strict mode rejects that, so it is kept as a note and
+            // does not decide the outcome.
+            lines.append(contentsOf: await ShellRunner.transcript("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", cloneURL.path]))
             lines.append(contentsOf: await ShellRunner.transcript("/usr/bin/codesign", ["-dv", cloneURL.path]))
             status = String(localized: "Klon hazır. Şimdi aç ve Dock'a bak.")
         } catch {
@@ -346,7 +351,7 @@ struct CloneAssistant: View {
             "Dock simgesi: \(dockIcon == true ? "evet" : "hayır")",
             "Dock adı: \(dockName == true ? "evet" : "hayır")",
             "Cmd-Tab simgesi: \(switcherIcon == true ? "evet" : "hayır")",
-            "İmza doğrulaması: \(signatureValid.map { $0 ? "geçerli" : "geçersiz" } ?? "çalıştırılmadı")",
+            "İmza ve Gatekeeper: \(signatureValid.map { $0 ? "geçerli" : "geçersiz" } ?? "çalıştırılmadı")",
         ], for: .signedCloneIdentity)
         let outcome: ValidationOutcome
         if yesCount == answers.count, signatureValid == true {
