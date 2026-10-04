@@ -128,7 +128,10 @@ final class AppModel {
         )
         switch action {
         case let .activate(pid):
-            await InstanceLauncher.activate(pid: pid)
+            let inFront = await InstanceLauncher.activate(pid: pid)
+            if !inFront {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi. Cmd-Tab ile geçebilirsin."))
+            }
         case let .launch(plan):
             do {
                 try await InstanceLauncher.launch(plan)

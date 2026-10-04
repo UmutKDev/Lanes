@@ -7,6 +7,11 @@ import SwiftUI
 ///
 /// A left click opens the panel. A right click opens a short menu with the
 /// main window, settings and Quit, as menu bar apps usually do.
+///
+/// On macOS 27 the menu bar shows the icon as pressed only while an expanded
+/// interface session is open, and AppKit uses that session for keyboard
+/// focus. A left click starts one; Lanes shows the panel for it and ends it
+/// when the panel closes.
 @MainActor
 final class StatusItemController: NSObject, NSWindowDelegate {
     private let model: AppModel
@@ -16,6 +21,11 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     /// When the panel closed because the user clicked the icon, that same click
     /// must not reopen it.
     private var lastClosed = Date.distantPast
+    /// On macOS 27 one click can reach Lanes twice, as a session and as the
+    /// button action. The second must not close the panel the first opened.
+    private var lastShown = Date.distantPast
+    /// A right click starts a session too while its menu is tracking.
+    private var isShowingContextMenu = false
 
     init(model: AppModel, router: WindowRouter) {
         self.model = model
@@ -34,6 +44,11 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             button.toolTip = "Lanes"
         }
         statusItem.autosaveName = "LanesStatusItem"
+        #if compiler(>=6.4)
+        if #available(macOS 27, *) {
+            statusItem.expandedInterfaceDelegate = self
+        }
+        #endif
         observeRunningCount()
     }
 
@@ -64,6 +79,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     func togglePanel() {
         if panel?.isVisible == true {
+            guard Date().timeIntervalSince(lastShown) > 0.25 else { return }
             closePanel()
         } else if Date().timeIntervalSince(lastClosed) > 0.25 {
             showPanel()
@@ -76,6 +92,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         model.refreshInstances()
         position(panel)
         panel.makeKeyAndOrderFront(nil)
+        lastShown = Date()
         statusItem.button?.highlight(true)
     }
 
@@ -84,6 +101,18 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         panel.orderOut(nil)
         lastClosed = Date()
         statusItem.button?.highlight(false)
+        cancelExpandedSession()
+    }
+
+    /// Ends the macOS 27 session, if one is open. Its end callback calls
+    /// `closePanel()` again, which returns early because the panel is hidden.
+    private func cancelExpandedSession() {
+        guard !isShowingContextMenu else { return }
+        #if compiler(>=6.4)
+        if #available(macOS 27, *) {
+            statusItem.expandedInterfaceSession?.cancel()
+        }
+        #endif
     }
 
     private func makePanel() -> CommandPanel {
@@ -122,7 +151,12 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let quit = NSMenuItem(title: String(localized: "Lanes'ten Çık"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         if let button = statusItem.button {
+            // Cancelling the session while the menu tracks would dismiss the
+            // menu, so it is ended only after the menu closes.
+            isShowingContextMenu = true
             _ = menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+            isShowingContextMenu = false
+            cancelExpandedSession()
         }
     }
 
@@ -140,6 +174,33 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         closePanel()
     }
 }
+
+#if compiler(>=6.4)
+@available(macOS 27, *)
+extension StatusItemController: NSStatusItemExpandedInterfaceDelegate {
+    func statusItem(_ item: NSStatusItem, didBegin session: NSStatusItemExpandedInterfaceSession) {
+        guard !isShowingContextMenu else { return }
+        if panel?.isVisible == true {
+            // Opened a moment ago by this click's button action: keep it open
+            // and let the session show the pressed icon. Otherwise the click
+            // closes the panel.
+            if Date().timeIntervalSince(lastShown) <= 0.25 { return }
+            session.cancel()
+            closePanel()
+            return
+        }
+        guard Date().timeIntervalSince(lastClosed) > 0.25 else {
+            session.cancel()
+            return
+        }
+        showPanel()
+    }
+
+    func statusItemDidEndExpandedInterfaceSession(_ item: NSStatusItem, animated: Bool) {
+        closePanel()
+    }
+}
+#endif
 
 /// A borderless panel that takes keyboard focus without activating Lanes, so
 /// the app the user was in stays in front behind it.

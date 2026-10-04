@@ -22,13 +22,20 @@ enum InstanceLauncher {
 
     /// Brings one specific instance forward. When it has no window on screen,
     /// a reopen event asks Claude to show one, like clicking its Dock icon.
-    static func activate(pid: pid_t) async {
-        guard let app = NSRunningApplication(processIdentifier: pid) else { return }
+    ///
+    /// Since macOS 14 activation is only a request, and Lanes is usually not
+    /// the active app when the panel asks, so the system may refuse it.
+    /// Returns whether the instance is in front shortly afterwards.
+    @discardableResult
+    static func activate(pid: pid_t) async -> Bool {
+        guard let app = NSRunningApplication(processIdentifier: pid) else { return false }
         NSApp.yieldActivation(to: app)
         _ = app.activate(options: [.activateAllWindows])
         if !hasWindowOnScreen(pid: pid) {
             try? await AppleEvents.sendReopen(to: pid)
         }
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        return NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
     }
 
     /// Uses the window list, which needs no permission for owner and layer.
