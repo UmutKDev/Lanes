@@ -23,7 +23,9 @@ enum DockPresence {
 /// An app that lives in the menu bar does not always become active when asked,
 /// especially right after it switches to a regular app (FB12399363,
 /// FB7743313). So it tries the polite way first and escalates only when the
-/// window is still not in front. Faz 0 check 9 measures which step works.
+/// window is still not in front. Faz 0 check 9 measures which step works: on
+/// macOS 27 plain `activate()` never worked on its own and `activate(from:)`
+/// always did, so that comes first.
 @MainActor
 enum WindowActivator {
     enum Method: String, Codable {
@@ -47,18 +49,18 @@ enum WindowActivator {
         let previous = NSWorkspace.shared.frontmostApplication
         DockPresence.windowWillShow()
 
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
-        if await waitUntilInFront(window, timeout: 0.15) {
-            return outcome(.activate, window, start)
-        }
-
         if let previous, previous != NSRunningApplication.current {
             _ = NSRunningApplication.current.activate(from: previous, options: [])
             window.makeKeyAndOrderFront(nil)
             if await waitUntilInFront(window, timeout: 0.15) {
                 return outcome(.activateFrom, window, start)
             }
+        }
+
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+        if await waitUntilInFront(window, timeout: 0.15) {
+            return outcome(.activate, window, start)
         }
 
         window.orderFrontRegardless()
