@@ -13,7 +13,7 @@ Bu ilk sürüm iki şey içeriyor:
 
 ## Derleme
 
-Gerekenler: macOS 14 ya da üstü, Xcode 26 ve XcodeGen.
+Gerekenler: macOS 14 ya da üstü, Xcode 26 ya da 27 ve XcodeGen. CI her değişikliği Xcode 27.0, 27.1 ve 26.6 ile derliyor.
 
 ```sh
 brew install xcodegen

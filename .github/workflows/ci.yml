@@ -18,18 +18,33 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.2-noble
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Test
         run: swift test --package-path Packages/LanesCore
 
   app:
-    name: Build Lanes (macOS)
-    runs-on: macos-26
+    name: Build Lanes (Xcode ${{ matrix.xcode }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: xcode-27
+            xcode: "27.0"
+          - runner: xcode-27
+            xcode: "27.1"
+          - runner: macos-26
+            xcode: "26.6"
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Xcode version
-        run: xcodebuild -version
+        run: |
+          xcodebuild -version
+          swift --version
+          sw_vers
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate project
