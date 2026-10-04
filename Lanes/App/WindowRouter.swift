@@ -84,7 +84,18 @@ final class WindowRouter {
         }
 
         let summary = ActivationTrials(trials: trials)
-        validation.appendEvidence(summary.evidenceLines, for: .mainWindowActivation)
+        validation.appendEvidence(summary.evidenceLines + (trials.isEmpty ? [] : panelSessionNote), for: .mainWindowActivation)
         validation.setOutcome(summary.suggestedOutcome, for: .mainWindowActivation)
+    }
+
+    /// On macOS 27 the trials open the panel from code, which starts no menu
+    /// bar session, so the report says which path they did not measure.
+    private var panelSessionNote: [String] {
+        #if compiler(>=6.4)
+        if #available(macOS 27, *) {
+            return ["Panel koddan açıldı, macOS 27'nin menü çubuğu oturumu yoktu. Simgeye tıklanınca açılan ve pencere öne gelmeden önce oturumu kapatan yol ölçülmedi."]
+        }
+        #endif
+        return []
     }
 }

@@ -177,7 +177,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
 #if compiler(>=6.4)
 @available(macOS 27, *)
-extension StatusItemController: NSStatusItemExpandedInterfaceDelegate {
+extension StatusItemController: @MainActor NSStatusItemExpandedInterfaceDelegate {
     func statusItem(_ item: NSStatusItem, didBegin session: NSStatusItemExpandedInterfaceSession) {
         guard !isShowingContextMenu else { return }
         if panel?.isVisible == true {

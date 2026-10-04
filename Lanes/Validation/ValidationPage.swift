@@ -22,7 +22,7 @@ struct ValidationPage: View {
                 }
             }
             .listStyle(.sidebar)
-            .frame(width: 290)
+            .frame(minWidth: 220, idealWidth: 290, maxWidth: 290)
             .safeAreaInset(edge: .bottom) {
                 VStack(alignment: .leading, spacing: 6) {
                     Button {
@@ -155,13 +155,15 @@ private struct CheckDetail: View {
 
             GroupBox("Sonuç") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Picker("Sonuç", selection: outcomeBinding) {
-                        ForEach(ValidationOutcome.allCases, id: \.self) { outcome in
-                            Text(outcome.reportLabel).tag(outcome)
-                        }
+                    // Five segments need about 510 pt, more than the page has
+                    // in a default-sized window, so a narrow page gets a menu.
+                    ViewThatFits(in: .horizontal) {
+                        outcomePicker
+                            .pickerStyle(.segmented)
+                        outcomePicker
+                            .pickerStyle(.menu)
+                            .fixedSize()
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
                     Text("Gördüklerin")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -205,6 +207,15 @@ private struct CheckDetail: View {
             get: { model.validation.result(for: check.id).outcome },
             set: { model.validation.setOutcome($0, for: check.id) }
         )
+    }
+
+    private var outcomePicker: some View {
+        Picker("Sonuç", selection: outcomeBinding) {
+            ForEach(ValidationOutcome.allCases, id: \.self) { outcome in
+                Text(outcome.reportLabel).tag(outcome)
+            }
+        }
+        .labelsHidden()
     }
 
     @ViewBuilder

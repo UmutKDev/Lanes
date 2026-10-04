@@ -32,6 +32,9 @@ final class AppModel {
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
     var notice: Notice?
+    /// The "could not bring forward" warning describes one attempt only, so
+    /// the next attempt clears it.
+    @ObservationIgnored private var activationWarningID: Notice.ID?
 
     let validation: ValidationModel
 
@@ -114,6 +117,10 @@ final class AppModel {
     }
 
     func openAndWait(_ profile: Profile) async {
+        if let id = activationWarningID, notice?.id == id {
+            notice = nil
+        }
+        activationWarningID = nil
         guard let claude else {
             notice = Notice(kind: .error, message: String(localized: "Claude bulunamadı. Claude'u Uygulamalar klasörüne kurduktan sonra yeniden dene."))
             return
@@ -126,11 +133,12 @@ final class AppModel {
             cloneApp: cloneURLIfPresent(for: profile),
             paths: paths
         )
+        var stayedBehind: pid_t?
         switch action {
         case let .activate(pid):
             let inFront = await InstanceLauncher.activate(pid: pid)
             if !inFront {
-                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi. Cmd-Tab ile geçebilirsin."))
+                stayedBehind = pid
             }
         case let .launch(plan):
             do {
@@ -141,6 +149,15 @@ final class AppModel {
         }
         try? await Task.sleep(nanoseconds: 700_000_000)
         refreshInstances()
+        // Cmd-Tab only helps while the instance still runs and is still
+        // behind. One that quit meanwhile has nothing to switch to.
+        if let pid = stayedBehind,
+           instance(for: profile)?.pid == pid,
+           NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
+            let warning = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi. Cmd-Tab ile geçebilirsin."))
+            notice = warning
+            activationWarningID = warning.id
+        }
     }
 
     func quit(_ profile: Profile) {

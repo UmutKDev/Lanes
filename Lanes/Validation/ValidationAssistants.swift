@@ -19,7 +19,7 @@ struct LinkDeliveryAssistant: View {
                     Text("Bu deneme için en az iki hesap açık olmalı. Şu an \(model.instances.count) Claude penceresi açık.")
                         .foregroundStyle(.secondary)
                 }
-                HStack {
+                ButtonRow {
                     Picker("Hedef pencere", selection: $targetPID) {
                         Text("Seç").tag(Int32?.none)
                         ForEach(model.instances) { instance in
@@ -137,7 +137,7 @@ struct LinkHandlerAssistant: View {
                     Text("Soru Claude açıkken soruluyor. Önce bir hesabı aç.")
                         .foregroundStyle(.secondary)
                 }
-                HStack {
+                ButtonRow {
                     Button("Lanes'i Varsayılan Yap") {
                         Task { await takeOver() }
                     }
@@ -250,7 +250,7 @@ struct CloneAssistant: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                HStack {
+                ButtonRow {
                     Button("Klonu Oluştur") {
                         Task { await makeClone() }
                     }
@@ -363,6 +363,22 @@ struct CloneAssistant: View {
         }
         model.validation.setOutcome(outcome, for: .signedCloneIdentity)
         status = String(localized: "Kaydedildi.")
+    }
+}
+
+/// Buttons side by side, or stacked when the page is too narrow for one line.
+struct ButtonRow<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack { content }
+            VStack(alignment: .leading) { content }
+        }
     }
 }
 
@@ -510,7 +526,7 @@ struct AppManagementAssistant: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Üçüncü denemede klonu oluştururken macOS bir izin penceresi gösterdi mi? Pencere \"Lanes başka uygulamaları değiştirmek istiyor\" gibi bir şey söyler.")
                     .fixedSize(horizontal: false, vertical: true)
-                HStack {
+                ButtonRow {
                     Button("İzin istenmedi") { record(.passed, "İzin istenmedi.") }
                     Button("İzin istendi") { record(.partial, "İzin istendi, verilince klon oluştu.") }
                     Button("Klon izin yüzünden oluşmadı") { record(.failed, "Klon izin yüzünden oluşmadı.") }
@@ -549,7 +565,7 @@ struct InstanceTable: View {
                             .textSelection(.enabled)
                     }
                 }
-                HStack {
+                ButtonRow {
                     Button("Yenile") {
                         model.refreshInstances()
                     }
@@ -572,14 +588,31 @@ struct InstanceTable: View {
 struct MenuBarAssistant: View {
     @Environment(WindowRouter.self) private var router
 
+    /// On macOS 27 only a click on the icon starts the menu bar session. A
+    /// panel opened from code has none, so the icon does not look pressed.
+    private var panelNeedsIconClick: Bool {
+        #if compiler(>=6.4)
+        if #available(macOS 27, *) {
+            return true
+        }
+        #endif
+        return false
+    }
+
     var body: some View {
         GroupBox("Deneme") {
             VStack(alignment: .leading, spacing: 10) {
                 let version = ProcessInfo.processInfo.operatingSystemVersion
                 Text("Bu Mac'te macOS \(version.majorVersion).\(version.minorVersion) çalışıyor. Deneme asıl olarak macOS 27'de anlamlı.")
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Paneli Aç") {
-                    router.togglePanel()
+                if panelNeedsIconClick {
+                    Text("Paneli menü çubuğundaki Lanes simgesine tıklayarak aç. Buradan açılan panelde simge basılı görünmez, bu yüzden bu deneme için sayılmaz.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Button("Paneli Aç") {
+                        router.togglePanel()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
