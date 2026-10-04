@@ -1,0 +1,74 @@
+# Lanes Xcode project. Generate it with `make project` (needs XcodeGen:
+# `brew install xcodegen`). The .xcodeproj is not committed; this file is the
+# source of truth.
+name: Lanes
+options:
+  bundleIdPrefix: com.umutkdev
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: tr
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  LanesCore:
+    path: Packages/LanesCore
+targets:
+  Lanes:
+    type: application
+    platform: macOS
+    configFiles:
+      Debug: Config/Lanes.xcconfig
+      Release: Config/Lanes.xcconfig
+    sources:
+      - path: Lanes
+    dependencies:
+      - package: LanesCore
+    info:
+      path: Lanes/Info.plist
+      properties:
+        CFBundleDisplayName: Lanes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        # Lives in the menu bar; the Dock icon appears only while the main
+        # window is open.
+        LSUIElement: true
+        NSHumanReadableCopyright: "© 2026 Umut. Tüm hakları saklıdır."
+        NSAppleEventsUsageDescription: "Lanes, claude:// bağlantılarını seçtiğin hesabın Claude penceresine teslim etmek ve o pencereyi öne getirmek için Claude'a komut gönderir."
+        # Declared so Faz 0 can test taking over claude:// links. Lanes hands
+        # the default back to Claude on launch unless link routing is on.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.umutkdev.Lanes.claude
+            CFBundleURLSchemes: [claude]
+            LSHandlerRank: Alternate
+    entitlements:
+      path: Lanes/Lanes.entitlements
+      properties:
+        # Needed under the hardened runtime to send Apple Events to Claude.
+        com.apple.security.automation.apple-events: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes
+        PRODUCT_NAME: Lanes
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        DEAD_CODE_STRIPPING: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+schemes:
+  Lanes:
+    build:
+      targets:
+        Lanes: all
+    run:
+      config: Debug
+    archive:
+      config: Release
