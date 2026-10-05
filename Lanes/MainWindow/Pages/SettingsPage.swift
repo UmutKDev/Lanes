@@ -14,7 +14,9 @@ struct SettingsPage: View {
                         .tag(pane)
                 }
             }
-            .listStyle(.sidebar)
+            // Like the Faz 0 checks: a pane list, not a second sidebar.
+            .listStyle(.inset)
+            .scrollContentBackground(.hidden)
             .frame(width: 210)
             Divider()
             paneContent

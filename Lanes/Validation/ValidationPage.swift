@@ -25,7 +25,12 @@ struct ValidationPage: View {
                         Text("\(validation.completedCount)/\(ValidationCheck.all.count) deneme kaydedildi")
                     }
                 }
-                .listStyle(.sidebar)
+                // A list of checks next to the detail, not a second sidebar:
+                // no sidebar material, so the list, the footer and the page
+                // share the window background.
+                .listStyle(.inset)
+                .scrollContentBackground(.hidden)
+                Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     Button {
                         validation.copyReport(claude: model.claude)
