@@ -232,16 +232,13 @@ struct LinkHandlerAssistant: View {
 struct CloneAssistant: View {
     @Environment(AppModel.self) private var model
     @State private var isWorking = false
-    @State private var signatureValid: Bool?
-    @State private var dockIcon: Bool?
-    @State private var dockName: Bool?
-    @State private var switcherIcon: Bool?
     @State private var status: String?
 
     private var profile: Profile { ValidationModel.cloneTestProfile }
     private var cloneURL: URL { model.paths.cloneBundle(for: profile) }
 
     var body: some View {
+        @Bindable var validation = model.validation
         GroupBox("Deneme") {
             VStack(alignment: .leading, spacing: 12) {
                 LabeledContent("Deneme klonu") {
@@ -265,13 +262,13 @@ struct CloneAssistant: View {
                 .disabled(isWorking)
 
                 Text("Klonu açınca şunlara bak:")
-                YesNoRow(title: String(localized: "Dock'ta klonun kendi simgesi görünüyor"), answer: $dockIcon)
-                YesNoRow(title: String(localized: "Dock'ta fareyle üstüne gelince \"Claude – Lanes Deneme\" yazıyor"), answer: $dockName)
-                YesNoRow(title: String(localized: "Cmd-Tab'da klonun kendi simgesi görünüyor"), answer: $switcherIcon)
+                YesNoRow(title: String(localized: "Dock'ta klonun kendi simgesi görünüyor"), answer: $validation.cloneProgress.dockIcon)
+                YesNoRow(title: String(localized: "Dock'ta fareyle üstüne gelince \"Claude – Lanes Deneme\" yazıyor"), answer: $validation.cloneProgress.dockName)
+                YesNoRow(title: String(localized: "Cmd-Tab'da klonun kendi simgesi görünüyor"), answer: $validation.cloneProgress.switcherIcon)
                 Button("Sonucu Kaydet") {
                     save()
                 }
-                .disabled(dockIcon == nil || dockName == nil || switcherIcon == nil)
+                .disabled(validation.cloneProgress.dockIcon == nil || validation.cloneProgress.dockName == nil || validation.cloneProgress.switcherIcon == nil)
 
                 if let status {
                     Text(status)
@@ -303,7 +300,7 @@ struct CloneAssistant: View {
             lines.append(contentsOf: ["$ codesign --verify --deep --verbose=2", codesign.text, "çıkış kodu: \(codesign.status)"])
             let gatekeeper = await ShellRunner.run("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=4", cloneURL.path])
             lines.append(contentsOf: ["$ spctl --assess --type execute --verbose=4", gatekeeper.text, "çıkış kodu: \(gatekeeper.status)"])
-            signatureValid = codesign.status == 0 && gatekeeper.status == 0
+            model.validation.cloneProgress.signatureValid = codesign.status == 0 && gatekeeper.status == 0
             // The custom icon adds an Icon\r file and Finder info to the bundle
             // root. Only strict mode rejects that, so it is kept as a note and
             // does not decide the outcome.
@@ -345,16 +342,17 @@ struct CloneAssistant: View {
     }
 
     private func save() {
-        let answers = [dockIcon, dockName, switcherIcon].compactMap { $0 }
+        let progress = model.validation.cloneProgress
+        let answers = [progress.dockIcon, progress.dockName, progress.switcherIcon].compactMap { $0 }
         let yesCount = answers.filter { $0 }.count
         model.validation.appendEvidence([
-            "Dock simgesi: \(dockIcon == true ? "evet" : "hayır")",
-            "Dock adı: \(dockName == true ? "evet" : "hayır")",
-            "Cmd-Tab simgesi: \(switcherIcon == true ? "evet" : "hayır")",
-            "İmza ve Gatekeeper: \(signatureValid.map { $0 ? "geçerli" : "geçersiz" } ?? "çalıştırılmadı")",
+            "Dock simgesi: \(progress.dockIcon == true ? "evet" : "hayır")",
+            "Dock adı: \(progress.dockName == true ? "evet" : "hayır")",
+            "Cmd-Tab simgesi: \(progress.switcherIcon == true ? "evet" : "hayır")",
+            "İmza ve Gatekeeper: \(progress.signatureValid.map { $0 ? "geçerli" : "geçersiz" } ?? "çalıştırılmadı")",
         ], for: .signedCloneIdentity)
         let outcome: ValidationOutcome
-        if yesCount == answers.count, signatureValid == true {
+        if yesCount == answers.count, progress.signatureValid == true {
             outcome = .passed
         } else if yesCount == 0 {
             outcome = .failed

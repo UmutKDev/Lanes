@@ -16,10 +16,20 @@ final class ValidationModel {
         mode: .signedClone
     )
 
+    /// What check 3 has found so far. It lives here, not in the page, so
+    /// looking at check 5 on the way does not lose it.
+    struct CloneCheckProgress {
+        var signatureValid: Bool?
+        var dockIcon: Bool?
+        var dockName: Bool?
+        var switcherIcon: Bool?
+    }
+
     @ObservationIgnored private let paths: ProfilePaths
     private(set) var results: [ValidationCheckID: ValidationResult] = [:]
     var selectedCheck: ValidationCheckID = .linkToSpecificInstance
     var isRunningActivationTrials = false
+    var cloneProgress = CloneCheckProgress()
 
     init(paths: ProfilePaths) {
         self.paths = paths
