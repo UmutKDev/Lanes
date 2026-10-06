@@ -53,7 +53,7 @@ final class AppModel {
         self.library = loaded
 
         if let loadError {
-            notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription)"))
+            notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
         } else if library.profiles.isEmpty {
             isFirstLaunch = true
             // The account the user is already signed in to keeps using
@@ -207,8 +207,9 @@ final class AppModel {
         }
     }
 
-    /// Removes the profile from Lanes. Its folders stay on disk, so signing
-    /// back in is never needed if the user changes their mind.
+    /// Removes the profile from Lanes. Its folders stay on disk, but adding
+    /// the account again creates a new, empty folder, so the user signs in
+    /// again.
     func removeProfile(_ profile: Profile) {
         guard !profile.isDefault else { return }
         do {
@@ -237,7 +238,9 @@ final class AppModel {
 
     private func save() {
         do {
-            try store.save(library)
+            if let setAside = try store.save(library) {
+                notice = Notice(kind: .warning, message: String(localized: "Okunamayan profil listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
+            }
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Profil listesi kaydedilemedi: \(error.localizedDescription)"))
         }

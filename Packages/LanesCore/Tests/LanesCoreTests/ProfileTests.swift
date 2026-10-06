@@ -97,6 +97,50 @@ final class ProfileStoreTests: XCTestCase {
         }
     }
 
+    func testSaveMovesUnreadableFileAside() throws {
+        let url = directory.appendingPathComponent("profiles.json")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let unreadable = Data(#"{"version": 99, "profiles": []}"#.utf8)
+        try unreadable.write(to: url)
+        let store = ProfileStore(fileURL: url)
+        var library = ProfileLibrary()
+        try library.add(Profile(name: "Yeni", color: .blue, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+
+        let setAside = try XCTUnwrap(try store.save(library))
+
+        XCTAssertEqual(try Data(contentsOf: setAside), unreadable)
+        XCTAssertTrue(setAside.lastPathComponent.hasPrefix("profiles-unreadable-"))
+        XCTAssertEqual(setAside.pathExtension, "json")
+        XCTAssertEqual(setAside.deletingLastPathComponent().standardizedFileURL, directory.standardizedFileURL)
+        XCTAssertEqual(try store.load(), library)
+    }
+
+    func testSaveKeepsEachUnreadableCopy() throws {
+        let url = directory.appendingPathComponent("profiles.json")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let store = ProfileStore(fileURL: url)
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+        try Data("first".utf8).write(to: url)
+        let first = try XCTUnwrap(try store.save(ProfileLibrary(), now: now))
+        try Data("second".utf8).write(to: url)
+        let second = try XCTUnwrap(try store.save(ProfileLibrary(), now: now))
+
+        XCTAssertNotEqual(first, second)
+        XCTAssertEqual(try Data(contentsOf: first), Data("first".utf8))
+        XCTAssertEqual(try Data(contentsOf: second), Data("second".utf8))
+    }
+
+    func testSaveOverReadableFileMovesNothing() throws {
+        let store = ProfileStore(fileURL: directory.appendingPathComponent("profiles.json"))
+        var library = ProfileLibrary()
+        XCTAssertNil(try store.save(library))
+        try library.add(Profile(name: "A", color: .blue))
+        XCTAssertNil(try store.save(library))
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        XCTAssertEqual(files, ["profiles.json"])
+    }
+
     func testMoveAssignsShortcuts() throws {
         var library = ProfileLibrary()
         let a = Profile(name: "A", color: .blue)
