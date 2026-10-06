@@ -1,0 +1,220 @@
+import Foundation
+import XCTest
+@testable import LanesCore
+
+/// `profiles.json` has to stay readable across Lanes versions, in both
+/// directions within a file version: a newer build reads what an older one
+/// wrote, and an older build keeps what a newer one added.
+final class ProfileCompatibilityTests: XCTestCase {
+    /// A version 1 file exactly as Lanes 0.1.0 writes it. Never edit this
+    /// string: a change that needs a different file needs a new version and a
+    /// new frozen file next to this one.
+    static let versionOneFile = """
+    {
+      "profiles" : [
+        {
+          "accountClass" : "personal",
+          "color" : "orange",
+          "createdAt" : "2026-10-04T22:10:00Z",
+          "id" : "0f3c9a52-1d2e-4b7a-9c11-000000000001",
+          "isDefault" : true,
+          "mode" : "standard",
+          "monogram" : "A",
+          "name" : "Ana hesap"
+        },
+        {
+          "accountClass" : "employer",
+          "color" : "blue",
+          "createdAt" : "2026-10-04T22:12:30Z",
+          "id" : "0f3c9a52-1d2e-4b7a-9c11-000000000002",
+          "isDefault" : false,
+          "mode" : "signedClone",
+          "monogram" : "İ",
+          "name" : "İş"
+        }
+      ],
+      "version" : 1
+    }
+    """
+
+    var directory: URL!
+
+    override func setUpWithError() throws {
+        directory = FileManager.default.temporaryDirectory.appendingPathComponent("LanesCoreTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    func store(with contents: String) throws -> ProfileStore {
+        let url = directory.appendingPathComponent("profiles.json")
+        try Data(contents.utf8).write(to: url)
+        return ProfileStore(fileURL: url)
+    }
+
+    func jsonObject(_ data: Data) throws -> NSDictionary {
+        try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? NSDictionary)
+    }
+
+    func testReadsTheFrozenVersionOneFile() throws {
+        let library = try store(with: Self.versionOneFile).load()
+
+        XCTAssertEqual(library.version, 1)
+        XCTAssertEqual(library.profiles.count, 2)
+        let main = library.profiles[0]
+        XCTAssertEqual(main.id, ProfileID(rawValue: "0f3c9a52-1d2e-4b7a-9c11-000000000001"))
+        XCTAssertEqual(main.name, "Ana hesap")
+        XCTAssertEqual(main.monogram, "A")
+        XCTAssertEqual(main.color, .orange)
+        XCTAssertEqual(main.mode, .standard)
+        XCTAssertEqual(main.accountClass, .personal)
+        XCTAssertTrue(main.isDefault)
+        XCTAssertEqual(main.createdAt, ISO8601DateFormatter().date(from: "2026-10-04T22:10:00Z"))
+        let work = library.profiles[1]
+        XCTAssertEqual(work.name, "İş")
+        XCTAssertEqual(work.monogram, "İ")
+        XCTAssertEqual(work.mode, .signedClone)
+        XCTAssertEqual(work.accountClass, .employer)
+        XCTAssertFalse(work.isDefault)
+    }
+
+    func testWritesTheSameFieldsItRead() throws {
+        let library = try store(with: Self.versionOneFile).load()
+        let written = try ProfileStore.encoder.encode(library)
+        XCTAssertEqual(try jsonObject(written), try jsonObject(Data(Self.versionOneFile.utf8)))
+    }
+
+    func testMissingFieldsGetDefaults() throws {
+        let library = try store(with: #"{"profiles": [{"id": "a"}]}"#).load()
+
+        XCTAssertEqual(library.version, 1)
+        let profile = try XCTUnwrap(library.profiles.first)
+        XCTAssertEqual(profile.id, ProfileID(rawValue: "a"))
+        XCTAssertEqual(profile.name, "Adsız hesap")
+        XCTAssertEqual(profile.monogram, "A")
+        XCTAssertEqual(profile.color, .gray)
+        XCTAssertEqual(profile.mode, .standard)
+        XCTAssertEqual(profile.accountClass, .personal)
+        XCTAssertFalse(profile.isDefault)
+        XCTAssertEqual(profile.createdAt, Date(timeIntervalSince1970: 0))
+    }
+
+    func testEmptyFileObjectIsAnEmptyList() throws {
+        XCTAssertEqual(try store(with: "{}").load(), ProfileLibrary())
+    }
+
+    func testProfileWithoutIDIsRejected() throws {
+        XCTAssertThrowsError(try store(with: #"{"version": 1, "profiles": [{"name": "A"}]}"#).load())
+    }
+
+    func testNewerFileIsReadAndItsAdditionsAreKept() throws {
+        let newer = """
+        {
+          "version": 1,
+          "rules": [{"kind": "new", "profile": "b"}],
+          "profiles": [
+            {
+              "id": "b",
+              "name": "Müşteri",
+              "monogram": "M",
+              "color": "magenta",
+              "mode": "sandbox",
+              "accountClass": "partner",
+              "isDefault": "yes",
+              "createdAt": 1790000000,
+              "labels": {"email": "m@example.com", "plan": null, "seats": 3, "pinned": true}
+            }
+          ]
+        }
+        """
+        let store = try store(with: newer)
+        let library = try store.load()
+
+        let profile = try XCTUnwrap(library.profiles.first)
+        XCTAssertEqual(profile.name, "Müşteri")
+        XCTAssertEqual(profile.color, .gray)
+        XCTAssertEqual(profile.mode, .standard)
+        XCTAssertEqual(profile.accountClass, .personal)
+        XCTAssertFalse(profile.isDefault)
+        XCTAssertEqual(profile.createdAt, Date(timeIntervalSince1970: 0))
+
+        XCTAssertNil(try store.save(library))
+        let saved = try jsonObject(Data(contentsOf: store.fileURL))
+        XCTAssertEqual(saved, try jsonObject(Data(newer.utf8)))
+    }
+
+    func testChangingAKeptFieldWritesTheNewValue() throws {
+        let store = try store(with: #"{"version": 1, "profiles": [{"id": "c", "name": "C", "color": "magenta", "mode": "sandbox"}]}"#)
+        var library = try store.load()
+        var profile = try XCTUnwrap(library.profiles.first)
+        profile.color = .teal
+        try library.update(profile)
+
+        try store.save(library)
+        let saved = try jsonObject(Data(contentsOf: store.fileURL))
+        let savedProfile = try XCTUnwrap((saved["profiles"] as? [NSDictionary])?.first)
+        XCTAssertEqual(savedProfile["color"] as? String, "teal")
+        XCTAssertEqual(savedProfile["mode"] as? String, "sandbox")
+        XCTAssertEqual(try store.load().profiles.first?.color, .teal)
+    }
+}
+
+final class ProfileStartupTests: XCTestCase {
+    var directory: URL!
+
+    override func setUpWithError() throws {
+        directory = FileManager.default.temporaryDirectory.appendingPathComponent("LanesCoreTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    var fileURL: URL {
+        directory.appendingPathComponent("profiles.json")
+    }
+
+    func testFirstLaunchAddsTheDefaultProfile() throws {
+        let startup = ProfileStore(fileURL: fileURL).startup(defaultProfileName: "Ana hesap")
+
+        XCTAssertTrue(startup.isFirstLaunch)
+        XCTAssertNil(startup.loadError)
+        XCTAssertEqual(startup.library.profiles.map(\.name), ["Ana hesap"])
+        XCTAssertEqual(startup.library.defaultProfile?.name, "Ana hesap")
+        // Saving is the caller's job.
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+    }
+
+    func testEmptyListCountsAsFirstLaunch() throws {
+        try ProfileStore(fileURL: fileURL).save(ProfileLibrary())
+        let startup = ProfileStore(fileURL: fileURL).startup(defaultProfileName: "Ana hesap")
+        XCTAssertTrue(startup.isFirstLaunch)
+        XCTAssertEqual(startup.library.profiles.count, 1)
+    }
+
+    func testReadableListIsUsedAsItIs() throws {
+        var library = ProfileLibrary()
+        try library.add(Profile(name: "Kişisel", color: .blue, isDefault: true, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try library.add(Profile(name: "İş", color: .orange, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try ProfileStore(fileURL: fileURL).save(library)
+
+        let startup = ProfileStore(fileURL: fileURL).startup(defaultProfileName: "Ana hesap")
+
+        XCTAssertFalse(startup.isFirstLaunch)
+        XCTAssertNil(startup.loadError)
+        XCTAssertEqual(startup.library, library)
+    }
+
+    func testUnreadableListIsNeverReplacedByANewOne() throws {
+        try Data(#"{"version": 99, "profiles": []}"#.utf8).write(to: fileURL)
+
+        let startup = ProfileStore(fileURL: fileURL).startup(defaultProfileName: "Ana hesap")
+
+        XCTAssertFalse(startup.isFirstLaunch)
+        XCTAssertEqual(startup.loadError as? ProfileStoreError, .unsupportedVersion(99))
+        XCTAssertTrue(startup.library.profiles.isEmpty)
+    }
+}

@@ -3,14 +3,40 @@ import Foundation
 /// What `profiles.json` holds. The order of `profiles` is the order the user
 /// sees, and the first nine get ⌘1 to ⌘9.
 public struct ProfileLibrary: Codable, Equatable, Sendable {
+    /// Raise this only for a change an older Lanes must not read at all, such
+    /// as a field whose meaning changes. Adding a field or a new value for an
+    /// existing field needs no new version: older builds keep what they cannot
+    /// read and write it back unchanged. A new version ships with a migration
+    /// and a new frozen file in the compatibility tests.
     public static let currentVersion = 1
 
     public var version: Int
     public var profiles: [Profile]
+    /// Top-level fields this build does not know, kept for the next save.
+    private var keptFields: [String: JSONValue] = [:]
 
     public init(version: Int = ProfileLibrary.currentVersion, profiles: [Profile] = []) {
         self.version = version
         self.profiles = profiles
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: AnyCodingKey.self)
+        // The first files had a version from the start, so a missing one can only mean 1.
+        version = try container.decodeIfPresent(Int.self, forKey: AnyCodingKey("version")) ?? 1
+        profiles = try container.decodeIfPresent([Profile].self, forKey: AnyCodingKey("profiles")) ?? []
+        for key in container.allKeys where key.stringValue != "version" && key.stringValue != "profiles" {
+            keptFields[key.stringValue] = try container.decode(JSONValue.self, forKey: key)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: AnyCodingKey.self)
+        for (key, value) in keptFields {
+            try container.encode(value, forKey: AnyCodingKey(key))
+        }
+        try container.encode(version, forKey: AnyCodingKey("version"))
+        try container.encode(profiles, forKey: AnyCodingKey("profiles"))
     }
 
     public var defaultProfile: Profile? {
@@ -164,5 +190,38 @@ extension ProfileLibrary {
         let profile = profiles.remove(at: index)
         let clamped = min(max(newIndex, 0), profiles.count)
         profiles.insert(profile, at: clamped)
+    }
+}
+
+/// What Lanes starts with when it opens.
+public struct ProfileStartup {
+    public var library: ProfileLibrary
+    /// Why the list could not be read. Lanes then starts with an empty list
+    /// and leaves the file alone until the next save moves it aside.
+    public var loadError: (any Error)?
+    /// True when there was no list yet. The default profile has been added,
+    /// and the library still needs saving.
+    public var isFirstLaunch: Bool
+}
+
+extension ProfileStore {
+    /// Loads the list, or starts a new one with the default profile when there
+    /// is none. An unreadable list never turns into a new one, so its profiles
+    /// are not replaced by a fresh default.
+    public func startup(defaultProfileName: String) -> ProfileStartup {
+        let library: ProfileLibrary
+        do {
+            library = try load()
+        } catch {
+            return ProfileStartup(library: ProfileLibrary(), loadError: error, isFirstLaunch: false)
+        }
+        guard library.profiles.isEmpty else {
+            return ProfileStartup(library: library, loadError: nil, isFirstLaunch: false)
+        }
+        // The account the user is already signed in to keeps using Claude's
+        // own folders, so nothing changes for it.
+        var started = library
+        try? started.add(Profile(name: defaultProfileName, color: .orange, isDefault: true))
+        return ProfileStartup(library: started, loadError: nil, isFirstLaunch: true)
     }
 }

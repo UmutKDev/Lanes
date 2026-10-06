@@ -27,5 +27,5 @@ Lanes ilk kez Claude'a bağlantı gönderdiğinde macOS bir Otomasyon izni sorar
 ## Güvenlik notları
 
 - Lanes giriş bilgilerine, çerezlere ve Anahtar Zinciri'ne dokunmaz. Dördüncü denemede yalnız dosyaların değiştirilme saatine bakar, içeriklerini açmaz.
-- İkinci deneme sırasında Lanes `claude://` bağlantılarını açan uygulama olabilir. Bu sırada bir giriş bağlantısı gelirse Lanes onu iletmez ve varsayılanı Claude'a geri verir. Girişi bir kez daha denemen gerekir. Lanes her açılışta da varsayılanı Claude'a geri verir.
+- İkinci deneme sırasında Lanes `claude://` bağlantılarını açan uygulama olabilir. Bu sırada bir giriş bağlantısı ya da Lanes'in tanımadığı bir bağlantı gelirse Lanes onu iletmez ve varsayılanı Claude'a geri verir. Girişi bir kez daha denemen gerekir. Lanes gelen bağlantıların yalnız türünü tutar, adresini saklamaz. Lanes her açılışta da varsayılanı Claude'a geri verir.
 - Klonlar `~/Applications/Lanes Profiles` klasörüne yazılır. "Klonu Çöpe At" düğmesi deneme klonunu Çöp Sepeti'ne taşır.

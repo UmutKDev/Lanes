@@ -16,7 +16,9 @@ final class AppModel {
 
     struct ReceivedLink: Identifiable {
         let id = UUID()
-        var url: URL
+        /// What kind of link arrived. The link itself is never kept, because
+        /// a sign-in link can carry a one-time code.
+        var kind: String
         var receivedAt: Date
         var outcome: String
     }
@@ -40,25 +42,16 @@ final class AppModel {
 
     init(paths: ProfilePaths = .standard()) {
         let store = ProfileStore(paths: paths)
-        var loaded = ProfileLibrary()
-        var loadError: Error?
-        do {
-            loaded = try store.load()
-        } catch {
-            loadError = error
-        }
+        let startup = store.startup(defaultProfileName: String(localized: "Ana hesap"))
         self.paths = paths
         self.store = store
         self.validation = ValidationModel(paths: paths)
-        self.library = loaded
+        self.library = startup.library
 
-        if let loadError {
+        if let loadError = startup.loadError {
             notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
-        } else if library.profiles.isEmpty {
+        } else if startup.isFirstLaunch {
             isFirstLaunch = true
-            // The account the user is already signed in to keeps using
-            // Claude's own folders, so nothing changes for it.
-            try? library.add(Profile(name: String(localized: "Ana hesap"), color: .orange, isDefault: true))
             save()
         }
     }
@@ -78,6 +71,10 @@ final class AppModel {
     func refreshInstances() {
         if claude == nil {
             claude = ClaudeInstallation.find(paths: paths)
+            // Claude may have been installed after Lanes started.
+            if claude != nil {
+                Task { await stepAsideFromSignInIfNeeded() }
+            }
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
     }
@@ -252,24 +249,63 @@ final class AppModel {
     /// routing is turned on, it must never keep the default: Claude's own
     /// sign-in depends on receiving those links.
     func stepAsideFromSignInIfNeeded() async {
-        guard !Preferences.linkRoutingEnabled, LinkHandlerRegistry.lanesIsHandler, let claude else { return }
+        guard !Preferences.linkRoutingEnabled else { return }
+        await giveLinksBackToClaude()
+    }
+
+    /// Hands the `claude://` default back to Claude if Lanes holds it.
+    private func giveLinksBackToClaude() async {
+        guard LinkHandlerRegistry.lanesIsHandler, let claude else { return }
         try? await LinkHandlerRegistry.setHandler(claude.url)
     }
 
     func receive(_ url: URL) {
         let link = ClaudeLink(url: url)
         let outcome: String
-        if link?.mustNotForward == true {
-            outcome = String(localized: "Giriş bağlantısı. İletilmedi, varsayılan Claude'a geri verildi.")
-            notice = Notice(kind: .warning, message: String(localized: "Bir giriş bağlantısı Lanes'e geldi. Bağlantıları yeniden Claude açacak, girişi bir kez daha dene."))
-            Task { await stepAsideFromSignInIfNeeded() }
-        } else if let claude {
-            outcome = String(localized: "Claude'a iletildi.")
-            let configuration = NSWorkspace.OpenConfiguration()
-            NSWorkspace.shared.open([url], withApplicationAt: claude.url, configuration: configuration, completionHandler: nil)
-        } else {
-            outcome = String(localized: "Claude bulunamadı, iletilmedi.")
+        switch ClaudeLink.handling(for: url) {
+        case .holdBack:
+            // Whatever the routing setting says: the next try of this link,
+            // a sign-in above all, has to reach Claude directly.
+            if claude != nil {
+                outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
+            } else {
+                outcome = String(localized: "İletilmedi. Claude bulunamadığı için varsayılan geri verilemedi.")
+            }
+            if link?.mustNotForward == true {
+                notice = Notice(kind: .warning, message: String(localized: "Bir giriş bağlantısı Lanes'e geldi. Bağlantıları yeniden Claude açacak, girişi bir kez daha dene."))
+            } else {
+                notice = Notice(kind: .warning, message: String(localized: "Lanes'in tanımadığı bir bağlantı geldi ve iletilmedi. Bağlantıları yeniden Claude açacak, bağlantıyı bir kez daha aç."))
+            }
+            Task { await giveLinksBackToClaude() }
+        case .openWithClaude:
+            if let claude {
+                outcome = String(localized: "Claude'a iletildi.")
+                let configuration = NSWorkspace.OpenConfiguration()
+                NSWorkspace.shared.open([url], withApplicationAt: claude.url, configuration: configuration, completionHandler: nil)
+            } else {
+                outcome = String(localized: "Claude bulunamadı, iletilmedi.")
+            }
         }
-        receivedLinks.insert(ReceivedLink(url: url, receivedAt: Date(), outcome: outcome), at: 0)
+        receivedLinks.insert(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome), at: 0)
+    }
+
+    /// Names a link's kind without any part of the link.
+    static func kindName(_ link: ClaudeLink?) -> String {
+        guard let link else { return String(localized: "Claude bağlantısı değil") }
+        switch link.kind {
+        case .signIn: return String(localized: "Giriş bağlantısı")
+        case .oauthCallback: return String(localized: "OAuth dönüşü")
+        case .unknown: return String(localized: "Tanınmayan bağlantı")
+        case let .routable(route):
+            switch route {
+            case .newChat: return String(localized: "Yeni sohbet")
+            case .newCodeSession: return String(localized: "Yeni Code oturumu")
+            case .continueCodeSession: return String(localized: "Code oturumunu sürdür")
+            case .codeNeedsInput: return String(localized: "Yanıt bekleyen Code oturumu")
+            case .resume: return String(localized: "Sohbeti sürdür")
+            case .cowork: return String(localized: "Cowork")
+            case .settings: return String(localized: "Ayarlar")
+            }
+        }
     }
 }

@@ -50,6 +50,21 @@ final class ClaudeLinkTests: XCTestCase {
         XCTAssertNil(link("mailto:someone@example.com"))
     }
 
+    func testOnlyRoutableLinksAreHandedOn() {
+        func handling(_ string: String) -> LinkHandling {
+            ClaudeLink.handling(for: URL(string: string)!)
+        }
+        XCTAssertEqual(handling("claude://claude.ai/new?q=x"), .openWithClaude)
+        XCTAssertEqual(handling("claude://code/new"), .openWithClaude)
+        XCTAssertEqual(handling("claude://claude.ai/settings/connectors"), .openWithClaude)
+        XCTAssertEqual(handling("claude://login/google-auth?code=abc"), .holdBack)
+        XCTAssertEqual(handling("claude://claude.ai/mcp-auth-callback/sdk?code=x&state=y"), .holdBack)
+        // A sign-in link in a form `classify` does not know yet.
+        XCTAssertEqual(handling("claude://claude.ai/signin-callback?code=abc"), .holdBack)
+        XCTAssertEqual(handling("claude://"), .holdBack)
+        XCTAssertEqual(handling("https://example.com/new"), .holdBack)
+    }
+
     func testCaseInsensitivity() {
         XCTAssertEqual(link("CLAUDE://Claude.AI/Magic-Link#x")?.kind, .signIn)
     }
