@@ -207,8 +207,9 @@ final class AppModel {
         }
     }
 
-    /// Removes the profile from Lanes. Its folders stay on disk, so signing
-    /// back in is never needed if the user changes their mind.
+    /// Removes the profile from Lanes. Its folders stay on disk, but adding
+    /// the account again creates a new, empty folder, so the user signs in
+    /// again.
     func removeProfile(_ profile: Profile) {
         guard !profile.isDefault else { return }
         do {

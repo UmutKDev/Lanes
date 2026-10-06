@@ -83,7 +83,7 @@ struct SidebarView: View {
                 model.removeProfile(profile)
             }
         } message: { _ in
-            Text("Hesabın klasörü silinmez. Hesabı yeniden eklersen oturumun olduğu gibi durur.")
+            Text("Hesabın klasörü silinmez. Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
         }
     }
 
