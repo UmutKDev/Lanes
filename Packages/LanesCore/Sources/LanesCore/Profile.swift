@@ -82,6 +82,19 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         guard let first = trimmed.first else { return "?" }
         return String(first).uppercased(with: Locale(identifier: "tr_TR"))
     }
+
+    /// Renames the profile. A monogram that only followed the old name
+    /// follows the new one. A monogram this build could not read still shows
+    /// the new name's letter, but saving keeps the stored value.
+    public mutating func rename(to newName: String) {
+        let followsName = monogram == Profile.defaultMonogram(for: name)
+        let keptMonogram = keptFields[Field.monogram.rawValue]
+        name = newName
+        if followsName {
+            monogram = Profile.defaultMonogram(for: newName)
+            keptFields[Field.monogram.rawValue] = keptMonogram
+        }
+    }
 }
 
 extension Profile {

@@ -260,20 +260,25 @@ final class AppModel {
     }
 
     func receive(_ url: URL) {
+        // A link that launches Lanes arrives before start() has looked for
+        // Claude.
+        if claude == nil {
+            claude = ClaudeInstallation.find(paths: paths)
+        }
         let link = ClaudeLink(url: url)
         let outcome: String
         switch ClaudeLink.handling(for: url) {
         case .holdBack:
             // Whatever the routing setting says: the next try of this link,
             // a sign-in above all, has to reach Claude directly.
-            if claude != nil {
-                outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
-            } else {
+            if claude == nil {
                 outcome = String(localized: "İletilmedi. Claude bulunamadığı için varsayılan geri verilemedi.")
-            }
-            if link?.mustNotForward == true {
+                notice = Notice(kind: .warning, message: String(localized: "Lanes'e gelen bir bağlantı iletilmedi. Claude bulunamadığı için bağlantılar Claude'a geri verilemedi. Claude'u kurduktan sonra yeniden dene."))
+            } else if link?.mustNotForward == true {
+                outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
                 notice = Notice(kind: .warning, message: String(localized: "Bir giriş bağlantısı Lanes'e geldi. Bağlantıları yeniden Claude açacak, girişi bir kez daha dene."))
             } else {
+                outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
                 notice = Notice(kind: .warning, message: String(localized: "Lanes'in tanımadığı bir bağlantı geldi ve iletilmedi. Bağlantıları yeniden Claude açacak, bağlantıyı bir kez daha aç."))
             }
             Task { await giveLinksBackToClaude() }

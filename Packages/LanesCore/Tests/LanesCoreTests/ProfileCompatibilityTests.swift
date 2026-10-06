@@ -145,6 +145,46 @@ final class ProfileCompatibilityTests: XCTestCase {
         XCTAssertEqual(saved, try jsonObject(Data(newer.utf8)))
     }
 
+    func testKeptNumbersAreWrittenBackExactly() throws {
+        let numbers = ["9007199254740993", "9223372036854775807", "-9223372036854775808", "18446744073709551615", "0.1", "1.5"]
+        let list = numbers.joined(separator: ", ")
+        let newer = #"{"version": 1, "counters": [\#(list)], "profiles": [{"id": "d", "name": "D", "counters": [\#(list)]}]}"#
+        let store = try store(with: newer)
+
+        XCTAssertNil(try store.save(store.load()))
+
+        let saved = try String(contentsOf: store.fileURL, encoding: .utf8)
+        for number in numbers {
+            XCTAssertEqual(saved.components(separatedBy: number).count - 1, 2, "\(number) was not written back as it was read")
+        }
+    }
+
+    func testRenamingLeavesAnUnreadableMonogramAsItWas() throws {
+        var library = try store(with: #"{"profiles": [{"id": "e", "name": "Ali", "monogram": {"emoji": "x"}}]}"#).load()
+        var profile = try XCTUnwrap(library.profiles.first)
+        XCTAssertEqual(profile.monogram, "A")
+
+        profile.rename(to: "Burak")
+        try library.update(profile)
+
+        XCTAssertEqual(profile.name, "Burak")
+        XCTAssertEqual(profile.monogram, "B")
+        let saved = try jsonObject(ProfileStore.encoder.encode(library))
+        let savedProfile = try XCTUnwrap((saved["profiles"] as? [NSDictionary])?.first)
+        XCTAssertEqual(savedProfile["name"] as? String, "Burak")
+        XCTAssertEqual(savedProfile["monogram"] as? NSDictionary, ["emoji": "x"])
+    }
+
+    func testRenamingMovesOnlyAMonogramThatFollowedTheName() {
+        var following = Profile(name: "Ali", color: .blue)
+        following.rename(to: "işler")
+        XCTAssertEqual(following.monogram, "İ")
+
+        var chosen = Profile(name: "Ali", monogram: "Q", color: .blue)
+        chosen.rename(to: "Burak")
+        XCTAssertEqual(chosen.monogram, "Q")
+    }
+
     func testChangingAKeptFieldWritesTheNewValue() throws {
         let store = try store(with: #"{"version": 1, "profiles": [{"id": "c", "name": "C", "color": "magenta", "mode": "sandbox"}]}"#)
         var library = try store.load()
