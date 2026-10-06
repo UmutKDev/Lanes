@@ -62,12 +62,43 @@ public struct ProfileStore: Sendable {
         return library
     }
 
-    public func save(_ library: ProfileLibrary) throws {
+    /// Saves the library. A file on disk that `load()` rejects is moved aside
+    /// first, so a save never replaces the only copy of a list Lanes could not
+    /// read. Returns where that copy went, or nil when nothing was moved.
+    @discardableResult
+    public func save(_ library: ProfileLibrary, now: Date = Date()) throws -> URL? {
         try ProfileStore.validate(library)
         let directory = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let data = try ProfileStore.encoder.encode(library)
+        var setAside: URL?
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            do {
+                _ = try load()
+            } catch {
+                setAside = try setAsideUnreadableFile(now: now)
+            }
+        }
         try data.write(to: fileURL, options: [.atomic])
+        return setAside
+    }
+
+    /// Renames the file to `profiles-unreadable-<date>-<time>.json` in the same
+    /// folder, adding a counter if that name is taken.
+    func setAsideUnreadableFile(now: Date) throws -> URL {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let stem = fileURL.deletingPathExtension().lastPathComponent + "-unreadable-" + formatter.string(from: now)
+        let directory = fileURL.deletingLastPathComponent()
+        var destination = directory.appendingPathComponent(stem + ".json", isDirectory: false)
+        var counter = 2
+        while FileManager.default.fileExists(atPath: destination.path) {
+            destination = directory.appendingPathComponent("\(stem)-\(counter).json", isDirectory: false)
+            counter += 1
+        }
+        try FileManager.default.moveItem(at: fileURL, to: destination)
+        return destination
     }
 
     static func validate(_ library: ProfileLibrary) throws {
