@@ -10,7 +10,6 @@ struct AddProfileSheet: View {
 
     @State private var name = ""
     @State private var color: ProfileColor = .blue
-    @State private var mode: ProfileMode = .standard
     @State private var accountClass: AccountClass = .personal
     @State private var opensAfterAdding = true
 
@@ -32,12 +31,10 @@ struct AddProfileSheet: View {
                             Label(kind.displayName, systemImage: kind.symbol).tag(kind)
                         }
                     }
-                    Picker("Açılış biçimi", selection: $mode) {
-                        ForEach([ProfileMode.standard, .signedClone], id: \.self) { mode in
-                            Text(mode.displayName).tag(mode)
-                        }
-                    }
-                    Text(mode.explanation)
+                    // New accounts open with Claude itself. Klon comes back
+                    // once Lanes makes clones for real accounts, which waits
+                    // on Faz 0 checks 3 and 5.
+                    Text(ProfileMode.standard.explanation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -73,7 +70,7 @@ struct AddProfileSheet: View {
     }
 
     private var preview: Profile {
-        Profile(name: name.isEmpty ? "?" : name, color: color, mode: mode, accountClass: accountClass)
+        Profile(name: name.isEmpty ? "?" : name, color: color, accountClass: accountClass)
     }
 
     private func nextFreeColor() -> ProfileColor {
@@ -82,7 +79,7 @@ struct AddProfileSheet: View {
     }
 
     private func add() {
-        guard let profile = model.addProfile(name: name, color: color, mode: mode, accountClass: accountClass) else { return }
+        guard let profile = model.addProfile(name: name, color: color, mode: .standard, accountClass: accountClass) else { return }
         dismiss()
         navigation.navigate(to: .account(profile.id))
         if opensAfterAdding {

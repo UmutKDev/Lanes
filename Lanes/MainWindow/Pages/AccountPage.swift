@@ -116,14 +116,12 @@ private struct AccountGeneralTab: View {
             }
             Section {
                 Picker("Açılış biçimi", selection: binding(\.mode)) {
-                    ForEach([ProfileMode.standard, .signedClone], id: \.self) { mode in
+                    ForEach(modeChoices, id: \.self) { mode in
                         Text(mode.displayName).tag(mode)
                     }
                 }
-                .disabled(profile.isDefault)
-                Text(profile.isDefault
-                     ? String(localized: "Ana hesap her zaman Claude'un kendisiyle açılır.")
-                     : profile.mode.explanation)
+                .disabled(profile.isDefault || modeChoices.count < 2)
+                Text(modeCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -141,6 +139,23 @@ private struct AccountGeneralTab: View {
             name = newValue
         }
         .onDisappear(perform: commitName)
+    }
+
+    /// Only Standart works today: Lanes makes no clones for real accounts
+    /// until Faz 0 checks 3 and 5 settle how. An account saved earlier with
+    /// another mode opens with Claude itself and can be switched back here.
+    private var modeChoices: [ProfileMode] {
+        profile.mode == .standard ? [.standard] : [.standard, profile.mode]
+    }
+
+    private var modeCaption: String {
+        if profile.isDefault {
+            return String(localized: "Ana hesap her zaman Claude'un kendisiyle açılır.")
+        }
+        if profile.mode == .standard {
+            return String(localized: "\(ProfileMode.standard.explanation) Her hesabın kendi simgesiyle açılacağı Klon biçimi, Faz 0 denemelerinden sonra gelecek.")
+        }
+        return String(localized: "\(profile.mode.displayName) biçimi henüz hazır değil. Bu hesap şimdilik Claude'un kendisiyle, kendi klasörüyle açılıyor. İstersen Standart'a geçir.")
     }
 
     private func commitName() {
