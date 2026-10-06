@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: LanesCore tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v5
+      - name: Test
+        run: swift test --package-path Packages/LanesCore
+
+  app:
+    name: Build Lanes (Xcode ${{ matrix.xcode }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: xcode-27
+            xcode: "27.0"
+          - runner: xcode-27
+            xcode: "27.1"
+          - runner: macos-26
+            xcode: "26.6"
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v5
+      - name: Xcode version
+        run: |
+          xcodebuild -version
+          swift --version
+          sw_vers
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Test LanesCore
+        run: swift test --package-path Packages/LanesCore
+      - name: Build
+        shell: bash
+        run: |
+          xcodebuild \
+            -project Lanes.xcodeproj \
+            -scheme Lanes \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build.log
+      - name: Errors and warnings
+        if: always()
+        shell: bash
+        run: |
+          grep -E "(error|warning): " build.log | sort -u | head -100 || true
+          if grep -qE "\.swift:[0-9]+:[0-9]+: warning: " build.log; then
+            echo "::error::The Swift code builds with warnings."
+            exit 1
+          fi
