@@ -62,7 +62,47 @@ targets:
         DEAD_CODE_STRIPPING: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         SWIFT_EMIT_LOC_STRINGS: YES
-        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        # NO because the commit script below reads .git and runs git status
+        # over the work tree, and edits the built Info.plist in place. The
+        # sandbox only allows declared files, and git's reads cannot be
+        # declared one by one. With YES the keys would silently go missing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      # Runs after every other phase. The built Info.plist is an input, so the
+      # script waits for Info.plist processing, and code signing waits for the
+      # script. No outputs and basedOnDependencyAnalysis: false, so it runs on
+      # every build. Keep it last: earlier, a phase that feeds the Info.plist
+      # would form a cycle. Use $VAR without braces in the script, because
+      # XcodeGen replaces dollar-brace names with its own environment.
+      - name: Embed git commit in Info.plist
+        basedOnDependencyAnalysis: false
+        showEnvVars: false
+        inputFiles:
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
+        script: |
+          # Writes LanesGitCommit and LanesGitTreeDirty into the built Info.plist
+          # for the Faz 0 report. Never fails the build: without git or a
+          # repository the keys are left out and the report says "bilinmiyor".
+          plist="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          buddy=/usr/libexec/PlistBuddy
+          [ -f "$plist" ] || exit 0
+          "$buddy" -c "Delete :LanesGitCommit" "$plist" >/dev/null 2>&1
+          "$buddy" -c "Delete :LanesGitTreeDirty" "$plist" >/dev/null 2>&1
+
+          command -v git >/dev/null 2>&1 || exit 0
+          top=$(git -C "$SRCROOT" rev-parse --show-toplevel 2>/dev/null) || exit 0
+          [ "$(cd "$top" && pwd -P)" = "$(cd "$SRCROOT" && pwd -P)" ] || exit 0
+          commit=$(git -C "$SRCROOT" rev-parse --short=12 HEAD 2>/dev/null) || exit 0
+          [ -n "$commit" ] || exit 0
+          "$buddy" -c "Add :LanesGitCommit string $commit" "$plist" >/dev/null 2>&1 || exit 0
+
+          # Dirty means tracked changes or new files in what the build reads.
+          # Ignored files (build/, the generated project, Info.plist) and files
+          # outside these paths (CI's build.log) do not count.
+          changes=$(git -C "$SRCROOT" --no-optional-locks status --porcelain -- Lanes Packages Config project.yml 2>/dev/null) || exit 0
+          if [ -n "$changes" ]; then dirty=true; else dirty=false; fi
+          "$buddy" -c "Add :LanesGitTreeDirty bool $dirty" "$plist" >/dev/null 2>&1
+          exit 0
 schemes:
   Lanes:
     build:

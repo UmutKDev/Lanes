@@ -62,6 +62,15 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log
+      - name: Commit in Info.plist
+        shell: bash
+        run: |
+          plist=build/Build/Products/Debug/Lanes.app/Contents/Info.plist
+          commit=$(/usr/libexec/PlistBuddy -c "Print :LanesGitCommit" "$plist")
+          dirty=$(/usr/libexec/PlistBuddy -c "Print :LanesGitTreeDirty" "$plist")
+          echo "LanesGitCommit=$commit LanesGitTreeDirty=$dirty"
+          test "$commit" = "$(git rev-parse --short=12 HEAD)"
+          test "$dirty" = "false"
       - name: Errors and warnings
         if: always()
         shell: bash

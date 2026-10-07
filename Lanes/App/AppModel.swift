@@ -47,6 +47,7 @@ final class AppModel {
         self.store = store
         self.validation = ValidationModel(paths: paths)
         self.library = startup.library
+        validation.currentClaude = { [weak self] in self?.claude }
 
         if let loadError = startup.loadError {
             notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))

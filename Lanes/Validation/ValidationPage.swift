@@ -1,9 +1,9 @@
 import LanesCore
 import SwiftUI
 
-/// Faz 0: the nine checks, each with its steps, a helper that does the work
-/// where Lanes can, and a place to record what happened. The report at the
-/// bottom is what the user pastes back into the project.
+/// Faz 0 and Faz 0.5: the checks, each with its steps, a helper that does the
+/// work where Lanes can, and a place to record what happened. The report at
+/// the bottom is what the user pastes back into the project.
 struct ValidationPage: View {
     @Environment(AppModel.self) private var model
     @State private var copiedReport = false
@@ -16,13 +16,16 @@ struct ValidationPage: View {
             // the page grows taller than the window (856 pt at any size).
             VStack(spacing: 0) {
                 List(selection: checkBinding) {
-                    Section {
-                        ForEach(ValidationCheck.all) { check in
-                            CheckRow(check: check, outcome: validation.result(for: check.id).outcome)
-                                .tag(check.id)
+                    ForEach(ValidationPhase.allCases) { phase in
+                        let checks = ValidationCheck.checks(in: phase)
+                        Section {
+                            ForEach(checks) { check in
+                                CheckRow(check: check, outcome: validation.result(for: check.id).outcome)
+                                    .tag(check.id)
+                            }
+                        } header: {
+                            Text("\(phase.title) · \(validation.completedCount(in: phase))/\(checks.count) deneme kaydedildi")
                         }
-                    } header: {
-                        Text("\(validation.completedCount)/\(ValidationCheck.all.count) deneme kaydedildi")
                     }
                 }
                 // A list of checks next to the detail, not a second sidebar:
@@ -33,7 +36,7 @@ struct ValidationPage: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     Button {
-                        validation.copyReport(claude: model.claude)
+                        validation.copyReport()
                         copiedReport = true
                     } label: {
                         Label("Raporu Kopyala", systemImage: "doc.on.clipboard")
@@ -42,7 +45,7 @@ struct ValidationPage: View {
                     .buttonStyle(.borderedProminent)
                     Text(copiedReport
                          ? String(localized: "Rapor panoya kopyalandı. Projedeki konuşmaya yapıştırman yeterli.")
-                         : String(localized: "Rapor yalnız deneme sonuçlarını ve sürüm bilgilerini içerir."))
+                         : String(localized: "Rapor sonuçları, sürüm bilgilerini ve kayıtları içerir. Kayıtlarda dosya yolları ve hesap adların da var. Ev klasörün ~ olarak yazılır."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -52,6 +55,14 @@ struct ValidationPage: View {
             .frame(minWidth: 220, idealWidth: 290, maxWidth: 290)
             Divider()
             ScrollView {
+                if let problem = validation.fileProblem {
+                    Label(problem, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding([.horizontal, .top], 24)
+                        .frame(maxWidth: 720, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 CheckDetail(check: ValidationCheck.check(validation.selectedCheck))
                     .id(validation.selectedCheck)
                     .padding(24)
@@ -77,7 +88,7 @@ private struct CheckRow: View {
         HStack(spacing: 8) {
             OutcomeIcon(outcome: outcome)
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: "\(check.number). \(check.title)")
+                Text(verbatim: "\(check.label). \(check.title)")
                     .lineLimit(2)
                 Text(check.isDeferred ? String(localized: "\(check.mode.displayName) · Sonraya kalabilir") : check.mode.displayName)
                     .font(.caption)
@@ -138,7 +149,7 @@ private struct CheckDetail: View {
         let result = validation.result(for: check.id)
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(verbatim: "Deneme \(check.number)")
+                Text(verbatim: "\(check.phase.title) · Deneme \(check.label)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(check.title)
@@ -234,7 +245,7 @@ private struct CheckDetail: View {
         case .reclaimLinkHandler:
             LinkHandlerAssistant()
         case .signedCloneIdentity:
-            CloneAssistant()
+            CloneAssistant(checkID: .signedCloneIdentity)
         case .claudeCodeConfigDirectory:
             ConfigDirectoryAssistant()
         case .appManagementPrompt:
@@ -247,6 +258,22 @@ private struct CheckDetail: View {
             ActivationAssistant()
         case .separateIdentityCowork:
             EmptyView()
+        case .staleClone:
+            StaleCloneAssistant()
+        case .cloneOutsideLanes:
+            CloneOutsideLanesAssistant()
+        case .newAccountSignIn:
+            NewAccountSignInAssistant()
+        case .crossAccountSignOut:
+            CrossAccountSignOutAssistant()
+        case .claudeCodeLogin:
+            ClaudeCodeLoginAssistant()
+        case .coworkStandard:
+            CoworkAssistant()
+        case .claudeCodeSessionRecords:
+            SessionRecordsAssistant()
+        case .cloneRecheck:
+            CloneAssistant(checkID: .cloneRecheck)
         }
     }
 }

@@ -30,7 +30,9 @@ final class WindowRouter {
         mainWindowController = controller
         return Task { @MainActor in
             guard let window = controller.window else { return nil }
-            return await WindowActivator.bringForward(window)
+            let outcome = await WindowActivator.bringForward(window)
+            self.recordIconClickTrial(outcome)
+            return outcome
         }
     }
 
@@ -85,6 +87,52 @@ final class WindowRouter {
 
         let summary = ActivationTrials(trials: trials)
         validation.appendEvidence(summary.evidenceLines + (trials.isEmpty ? [] : panelSessionNote), for: .mainWindowActivation)
+        validation.setOutcome(summary.suggestedOutcome, for: .mainWindowActivation)
+    }
+
+    /// Check 9 measured the way a user works: the user clicks the menu bar
+    /// icon and the panel's window button, and Lanes records each try. Between
+    /// tries it closes the window and hands focus to Finder.
+    func startIconClickTrials(count: Int) {
+        _ = statusItemController?.takePanelLatency()
+        model.validation.iconClickRun = ValidationModel.IconClickRun(target: count)
+        Task { await prepareForNextIconClick() }
+    }
+
+    func stopIconClickTrials() {
+        model.validation.iconClickRun = nil
+    }
+
+    private func prepareForNextIconClick() async {
+        // Long enough to see that the window came forward.
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        guard model.validation.iconClickRun != nil else { return }
+        mainWindow?.close()
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
+            NSApp.yieldActivation(to: finder)
+            _ = finder.activate(options: [])
+        }
+    }
+
+    private func recordIconClickTrial(_ outcome: WindowActivator.Outcome) {
+        guard var run = model.validation.iconClickRun else { return }
+        run.trials.append(ActivationTrials.Trial(
+            becameKey: outcome.becameKey,
+            appBecameActive: outcome.appBecameActive && outcome.showsDockIcon == Preferences.showsDockIconWithWindow,
+            duration: outcome.duration,
+            method: outcome.method.rawValue,
+            panelLatency: statusItemController?.takePanelLatency()
+        ))
+        guard run.trials.count >= run.target else {
+            model.validation.iconClickRun = run
+            Task { await prepareForNextIconClick() }
+            return
+        }
+        model.validation.iconClickRun = nil
+        let summary = ActivationTrials(trials: run.trials)
+        let validation = model.validation
+        validation.appendEvidence(["Panel menü çubuğundaki simgeye tıklanarak açıldı."] + summary.evidenceLines, for: .mainWindowActivation)
         validation.setOutcome(summary.suggestedOutcome, for: .mainWindowActivation)
     }
 

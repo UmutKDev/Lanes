@@ -16,28 +16,44 @@ final class ValidationModel {
         mode: .signedClone
     )
 
-    /// What check 3 has found so far. It lives here, not in the page, so
-    /// looking at check 5 on the way does not lose it.
+    /// What a clone check (3, or 0.5.8) has found so far. It lives here, not
+    /// in the page, so looking at another check on the way does not lose it.
     struct CloneCheckProgress {
         var signatureValid: Bool?
         var dockIcon: Bool?
         var dockName: Bool?
         var switcherIcon: Bool?
+        var appManagementPrompted: Bool?
+    }
+
+    /// A check 9 run in which the user opens the panel by clicking the menu
+    /// bar icon, then opens the main window from it.
+    struct IconClickRun {
+        var target: Int
+        var trials: [ActivationTrials.Trial] = []
     }
 
     @ObservationIgnored private let paths: ProfilePaths
+    @ObservationIgnored private let store: ValidationStore
+    /// Keeps the entries this build could not read, for the next save.
+    @ObservationIgnored private var records = ValidationRecords()
     private(set) var results: [ValidationCheckID: ValidationResult] = [:]
+    /// Said on the page when the results file could not be read or was set aside.
+    private(set) var fileProblem: String?
     var selectedCheck: ValidationCheckID = .linkToSpecificInstance
     var isRunningActivationTrials = false
-    var cloneProgress = CloneCheckProgress()
+    /// Nil unless an icon-click run is in progress.
+    var iconClickRun: IconClickRun?
+    var cloneProgress: [ValidationCheckID: CloneCheckProgress] = [:]
+    /// Yes/no answers given on a Faz 0.5 check's page but not saved yet.
+    var draftAnswers: [ValidationCheckID: [String: Bool]] = [:]
+    /// The Claude installation the app found, for stamping results.
+    @ObservationIgnored var currentClaude: () -> ClaudeInstallation? = { nil }
 
     init(paths: ProfilePaths) {
         self.paths = paths
+        self.store = ValidationStore(paths: paths)
         load()
-    }
-
-    var resultsFile: URL {
-        paths.diagnosticsDirectory.appendingPathComponent("faz0-results.json", isDirectory: false)
     }
 
     var reportFile: URL {
@@ -52,12 +68,14 @@ final class ValidationModel {
         var result = result(for: id)
         result.outcome = outcome
         result.recordedAt = Date()
+        result.environment = environment()
         results[id] = result
         save()
     }
 
     func setNotes(_ notes: String, for id: ValidationCheckID) {
         var result = result(for: id)
+        guard result.notes != notes else { return }
         result.notes = notes
         results[id] = result
         save()
@@ -73,6 +91,7 @@ final class ValidationModel {
         result.evidence.append("[\(formatter.string(from: Date()))]")
         result.evidence.append(contentsOf: lines)
         result.recordedAt = Date()
+        result.environment = environment()
         results[id] = result
         save()
     }
@@ -82,54 +101,61 @@ final class ValidationModel {
         save()
     }
 
-    var completedCount: Int {
-        results.values.filter { $0.outcome != .notRun }.count
+    func completedCount(in phase: ValidationPhase) -> Int {
+        ValidationCheck.checks(in: phase).filter { result(for: $0.id).outcome != .notRun }.count
     }
 
-    func environment(claude: ClaudeInstallation?) -> ValidationEnvironment {
+    func environment() -> ValidationEnvironment {
         let version = ProcessInfo.processInfo.operatingSystemVersion
         #if arch(arm64)
         let architecture = "arm64"
         #else
         let architecture = "x86_64"
         #endif
-        let lanesVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        let info = Bundle.main.infoDictionary
+        let lanesVersion = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
         return ValidationEnvironment(
             macOSVersion: "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)",
             architecture: architecture,
-            claudeVersion: claude?.version,
-            lanesVersion: "\(lanesVersion) (\(build))"
+            claudeVersion: currentClaude()?.version,
+            lanesVersion: "\(lanesVersion) (\(build))",
+            commit: info?["LanesGitCommit"] as? String,
+            commitHasLocalChanges: info?["LanesGitTreeDirty"] as? Bool,
+            signing: CodeSignature.current?.kind.reportLabel,
+            appPath: (Bundle.main.bundlePath as NSString).abbreviatingWithTildeInPath
         )
     }
 
-    func report(claude: ClaudeInstallation?) -> String {
-        ValidationReport(environment: environment(claude: claude), results: results, generatedAt: Date()).markdown()
+    func report() -> String {
+        ValidationReport(environment: environment(), results: results, generatedAt: Date(), homeDirectory: NSHomeDirectory()).markdown()
     }
 
     /// Copies the report and keeps a file copy next to the results.
-    func copyReport(claude: ClaudeInstallation?) {
-        let markdown = report(claude: claude)
+    func copyReport() {
+        let markdown = report()
         SystemActions.copy(markdown)
         try? FileManager.default.createDirectory(at: paths.diagnosticsDirectory, withIntermediateDirectories: true)
         try? markdown.write(to: reportFile, atomically: true, encoding: .utf8)
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: resultsFile) else { return }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        guard let list = try? decoder.decode([ValidationResult].self, from: data) else { return }
-        results = Dictionary(list.map { ($0.checkID, $0) }, uniquingKeysWith: { _, last in last })
+        do {
+            records = try store.load()
+            results = records.results
+        } catch {
+            fileProblem = String(localized: "Deneme sonuçları okunamadı: \(error.localizedDescription) Lanes bu dosyayı silmez, ilk kayıtta aynı klasörde başka bir adla saklar.")
+        }
     }
 
     private func save() {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        encoder.dateEncodingStrategy = .iso8601
-        let list = ValidationCheckID.allCases.compactMap { results[$0] }
-        guard let data = try? encoder.encode(list) else { return }
-        try? FileManager.default.createDirectory(at: paths.diagnosticsDirectory, withIntermediateDirectories: true)
-        try? data.write(to: resultsFile, options: [.atomic])
+        records.results = results
+        do {
+            if let setAside = try store.save(records) {
+                fileProblem = String(localized: "Okunamayan deneme sonuçları \(setAside.lastPathComponent) adıyla aynı klasörde saklandı.")
+            }
+        } catch {
+            fileProblem = String(localized: "Deneme sonuçları kaydedilemedi: \(error.localizedDescription)")
+        }
     }
 }

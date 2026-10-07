@@ -26,6 +26,12 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     private var lastShown = Date.distantPast
     /// A right click starts a session too while its menu is tracking.
     private var isShowingContextMenu = false
+    /// When the user clicked the icon to open the panel, on the system uptime
+    /// clock that event timestamps use. Cleared when the panel takes focus.
+    private var iconClickTime: TimeInterval?
+    /// Seconds from that click until the panel took focus. Check 9's
+    /// icon-click run reads it.
+    private var lastPanelLatency: TimeInterval?
 
     init(model: AppModel, router: WindowRouter) {
         self.model = model
@@ -64,6 +70,10 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     }
 
     private func updateTitle() {
+        if let run = model.validation.iconClickRun {
+            statusItem.button?.title = " \(min(run.trials.count + 1, run.target))/\(run.target)"
+            return
+        }
         let count = model.runningCount
         let title = Preferences.showsRunningCountInMenuBar && count > 1 ? " \(count)" : ""
         statusItem.button?.title = title
@@ -73,8 +83,21 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         if NSApp.currentEvent?.type == .rightMouseUp {
             showContextMenu()
         } else {
+            if panel?.isVisible != true {
+                noteIconClick()
+            }
             togglePanel()
         }
+    }
+
+    private func noteIconClick() {
+        iconClickTime = NSApp.currentEvent?.timestamp ?? ProcessInfo.processInfo.systemUptime
+    }
+
+    /// The last icon-to-panel time, once: a second call returns nil.
+    func takePanelLatency() -> TimeInterval? {
+        defer { lastPanelLatency = nil }
+        return lastPanelLatency
     }
 
     func togglePanel() {
@@ -147,6 +170,11 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let settings = NSMenuItem(title: String(localized: "Ayarlar…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        if model.validation.iconClickRun != nil {
+            let stop = NSMenuItem(title: String(localized: "Ölçümü Durdur"), action: #selector(stopIconClickTrials), keyEquivalent: "")
+            stop.target = self
+            menu.addItem(stop)
+        }
         menu.addItem(.separator())
         let quit = NSMenuItem(title: String(localized: "Lanes'ten Çık"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
@@ -168,7 +196,17 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         router.showSettings()
     }
 
+    @objc private func stopIconClickTrials() {
+        router.stopIconClickTrials()
+    }
+
     // MARK: NSWindowDelegate
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        guard let clicked = iconClickTime else { return }
+        iconClickTime = nil
+        lastPanelLatency = ProcessInfo.processInfo.systemUptime - clicked
+    }
 
     func windowDidResignKey(_ notification: Notification) {
         closePanel()
@@ -193,6 +231,7 @@ extension StatusItemController: @MainActor NSStatusItemExpandedInterfaceDelegate
             session.cancel()
             return
         }
+        noteIconClick()
         showPanel()
     }
 
