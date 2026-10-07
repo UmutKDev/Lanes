@@ -92,7 +92,8 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     private func updateTitle() {
         if let run = model.validation.iconClickRun {
-            statusItem.button?.title = " \(min(run.trials.count + 1, run.target))/\(run.target)"
+            // "…" while Lanes gets ready for the next try.
+            statusItem.button?.title = run.isArmed ? " \(min(run.trials.count + 1, run.target))/\(run.target)" : " …"
             return
         }
         let count = model.runningCount
@@ -110,6 +111,12 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     var isPanelVisible: Bool {
         panel?.isVisible == true
+    }
+
+    /// True when the panel was opened by a click on the icon during an
+    /// icon-click run and has taken focus.
+    var hasPanelOpeningFromIconClick: Bool {
+        panelOpening?.keyAt != nil
     }
 
     func togglePanel(fromIconClick: Bool = false) {

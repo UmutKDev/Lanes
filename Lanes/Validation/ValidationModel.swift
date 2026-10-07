@@ -24,13 +24,20 @@ final class ValidationModel {
         var dockName: Bool?
         var switcherIcon: Bool?
         var appManagementPrompted: Bool?
+        /// Whether the last "Klonu Oluştur" replaced a clone already on disk.
+        /// 0.5.8 asks about App Management only then.
+        var replacedExisting: Bool?
     }
 
     /// A check 9 run in which the user opens the panel by clicking the menu
     /// bar icon, then opens the main window from it.
     struct IconClickRun {
+        let id = UUID()
         var target: Int
         var trials: [ActivationTrials.Trial] = []
+        /// True once Lanes has closed the window and handed focus to Finder
+        /// for the next try. A window opened before that is not a trial.
+        var isArmed = false
     }
 
     @ObservationIgnored private let paths: ProfilePaths
@@ -40,8 +47,16 @@ final class ValidationModel {
     private(set) var results: [ValidationCheckID: ValidationResult] = [:]
     /// Said on the page when the results file could not be read or was set aside.
     private(set) var fileProblem: String?
+    /// Said on the page while the last save failed. The next good save clears it.
+    private(set) var saveProblem: String?
+    /// The results file could not be read at launch, so the first save moves
+    /// it aside whatever it holds by then.
+    @ObservationIgnored private var resultsFileWasUnreadable = false
     var selectedCheck: ValidationCheckID = .linkToSpecificInstance
     var isRunningActivationTrials = false
+    /// True while a helper creates, inspects or trashes the test clone, so
+    /// another check's helper does not change it at the same time.
+    var isCloneBusy = false
     /// Nil unless an icon-click run is in progress.
     var iconClickRun: IconClickRun?
     var cloneProgress: [ValidationCheckID: CloneCheckProgress] = [:]
@@ -77,6 +92,9 @@ final class ValidationModel {
         var result = result(for: id)
         guard result.notes != notes else { return }
         result.notes = notes
+        if result.environment == nil {
+            result.environment = environment()
+        }
         results[id] = result
         save()
     }
@@ -96,8 +114,11 @@ final class ValidationModel {
         save()
     }
 
+    /// Deletes a check's records and starts its helper afresh.
     func clear(_ id: ValidationCheckID) {
         results[id] = nil
+        draftAnswers[id] = nil
+        cloneProgress[id] = nil
         save()
     }
 
@@ -140,22 +161,31 @@ final class ValidationModel {
     }
 
     private func load() {
+        let source = store.sourceURL
         do {
             records = try store.load()
             results = records.results
         } catch {
-            fileProblem = String(localized: "Deneme sonuçları okunamadı: \(error.localizedDescription) Lanes bu dosyayı silmez, ilk kayıtta aynı klasörde başka bir adla saklar.")
+            let name = source?.lastPathComponent ?? store.fileURL.lastPathComponent
+            if source == store.fileURL {
+                resultsFileWasUnreadable = true
+                fileProblem = String(localized: "Deneme sonuçları (\(name)) okunamadı: \(error.localizedDescription) Lanes bu dosyayı silmez, ilk kayıtta aynı klasörde başka bir adla saklar.")
+            } else {
+                fileProblem = String(localized: "Eski deneme sonuçları (\(name)) okunamadı: \(error.localizedDescription) Lanes bu dosyaya dokunmaz, yeni sonuçları \(store.fileURL.lastPathComponent) dosyasına yazar.")
+            }
         }
     }
 
     private func save() {
         records.results = results
         do {
-            if let setAside = try store.save(records) {
+            if let setAside = try store.save(records, setAsideExisting: resultsFileWasUnreadable) {
                 fileProblem = String(localized: "Okunamayan deneme sonuçları \(setAside.lastPathComponent) adıyla aynı klasörde saklandı.")
             }
+            resultsFileWasUnreadable = false
+            saveProblem = nil
         } catch {
-            fileProblem = String(localized: "Deneme sonuçları kaydedilemedi: \(error.localizedDescription)")
+            saveProblem = String(localized: "Deneme sonuçları kaydedilemedi: \(error.localizedDescription)")
         }
     }
 }

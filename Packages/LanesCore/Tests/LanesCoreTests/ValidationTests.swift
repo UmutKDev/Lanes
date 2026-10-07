@@ -63,13 +63,13 @@ final class ValidationTests: XCTestCase {
         appPath: "~/Library/Developer/Xcode/DerivedData/Lanes/Build/Products/Debug/Lanes.app"
     )
 
-    func testMarkdownReport() {
+    func testMarkdownReport() throws {
         let report = ValidationReport(
             environment: Self.environment,
             results: [
                 .mainWindowActivation: ValidationResult(checkID: .mainWindowActivation, outcome: .passed, evidence: ["10/10 denemede pencere öne geldi."], environment: Self.environment),
-                .signedCloneIdentity: ValidationResult(checkID: .signedCloneIdentity, outcome: .failed, notes: "Dock'ta Claude yazıyor."),
-                .coworkStandard: ValidationResult(checkID: .coworkStandard, outcome: .passed),
+                .signedCloneIdentity: ValidationResult(checkID: .signedCloneIdentity, outcome: .failed, notes: "Dock'ta Claude yazıyor.", environment: Self.environment),
+                .coworkStandard: ValidationResult(checkID: .coworkStandard, outcome: .passed, environment: Self.environment),
             ],
             generatedAt: Date(timeIntervalSince1970: 0)
         )
@@ -89,6 +89,18 @@ final class ValidationTests: XCTestCase {
         XCTAssertTrue(markdown.contains("Not: Dock'ta Claude yazıyor."))
         XCTAssertFalse(markdown.contains("### 1."), "checks with nothing to say get no section")
         XCTAssertFalse(markdown.contains("Kaydedildiği ortam:"), "a result recorded in the header's environment needs no line")
+        let faz05 = try XCTUnwrap(markdown.range(of: "## Faz 0.5"))
+        let check9 = try XCTUnwrap(markdown.range(of: "### 9."))
+        XCTAssertLessThan(check9.lowerBound, faz05.lowerBound, "Faz 0 details stay under the Faz 0 heading")
+    }
+
+    func testAResultRecordedBeforeEnvironmentsWereKeptSaysSo() {
+        let report = ValidationReport(
+            environment: Self.environment,
+            results: [.signedCloneIdentity: ValidationResult(checkID: .signedCloneIdentity, outcome: .passed)],
+            generatedAt: Date(timeIntervalSince1970: 0)
+        )
+        XCTAssertTrue(report.markdown().contains("Sonuç: Olumlu\n\nKaydedildiği ortam: bilinmiyor\n"))
     }
 
     func testReportNamesTheEnvironmentAResultWasRecordedIn() {
@@ -130,6 +142,27 @@ final class ValidationTests: XCTestCase {
     func testAbbreviatingHome() {
         XCTAssertEqual(ValidationReport.abbreviatingHome("/Users/ali/", in: "/Users/ali/a /Users/ali.b /Users/ali"), "~/a /Users/ali.b ~")
         XCTAssertEqual(ValidationReport.abbreviatingHome("/", in: "/Users/ali"), "/Users/ali")
+        XCTAssertEqual(
+            ValidationReport.abbreviatingHome("/Users/ali", in: "-Users-ali-Lanes: 2 oturum (-Users-ali) -Users-alican-X"),
+            "~-Lanes: 2 oturum (~) -Users-alican-X"
+        )
+        XCTAssertEqual(ValidationReport.abbreviatingHome("/Users/ümit", in: "-Users--mit-Lanes"), "~-Lanes")
+    }
+
+    func testReportHidesTheHomeFolderInClaudeCodeFolderNames() {
+        let folder = ClaudeCodeSessionFolder(
+            projects: [.init(folderName: "-Users-ali-Lanes", sessionCount: 2)],
+            newestSession: .init(projectFolderName: "-Users-ali-Lanes", id: "abc", modifiedAt: Date(timeIntervalSince1970: 0))
+        )
+        let report = ValidationReport(
+            environment: Self.environment,
+            results: [.claudeCodeSessionRecords: ValidationResult(checkID: .claudeCodeSessionRecords, outcome: .passed, evidence: folder.evidenceLines, environment: Self.environment)],
+            generatedAt: Date(timeIntervalSince1970: 0),
+            homeDirectory: "/Users/ali"
+        )
+        let markdown = report.markdown()
+        XCTAssertFalse(markdown.contains("Users-ali"))
+        XCTAssertTrue(markdown.contains("~-Lanes: 2 oturum"))
     }
 
     func testSigningKinds() {
@@ -162,7 +195,15 @@ final class ValidationStoreTests: XCTestCase {
     }
 
     var fileURL: URL {
+        directory.appendingPathComponent("validation-results.json")
+    }
+
+    var legacyFileURL: URL {
         directory.appendingPathComponent("faz0-results.json")
+    }
+
+    func savedEntries() throws -> [NSDictionary] {
+        try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(contentsOf: fileURL)) as? [NSDictionary])
     }
 
     func testMissingFileHasNoResults() throws {
@@ -243,8 +284,67 @@ final class ValidationStoreTests: XCTestCase {
         records.results[.coworkStandard] = ValidationResult(checkID: .coworkStandard, outcome: .passed)
         let setAside = try XCTUnwrap(try store.save(records, now: Date(timeIntervalSince1970: 0)))
 
-        XCTAssertTrue(setAside.lastPathComponent.hasPrefix("faz0-results-unreadable-"))
+        XCTAssertTrue(setAside.lastPathComponent.hasPrefix("validation-results-unreadable-"))
         XCTAssertEqual(try String(contentsOf: setAside, encoding: .utf8), "not json")
         XCTAssertEqual(try store.load().results[.coworkStandard]?.outcome, .passed)
+    }
+    func testUnreadableAtLaunchIsSetAsideEvenIfRepairedSince() throws {
+        try Data(#"[{"checkID": "linkToSpecificInstance", "outcome": "passed", "notes": "", "evidence": []}]"#.utf8).write(to: fileURL)
+        let store = ValidationStore(fileURL: fileURL)
+        var records = ValidationRecords()
+        records.results[.coworkStandard] = ValidationResult(checkID: .coworkStandard, outcome: .passed)
+        let setAside = try XCTUnwrap(try store.save(records, setAsideExisting: true, now: Date(timeIntervalSince1970: 0)))
+        XCTAssertTrue(try String(contentsOf: setAside, encoding: .utf8).contains("linkToSpecificInstance"))
+        XCTAssertEqual(Array(try store.load().results.keys), [.coworkStandard])
+    }
+
+    func testReadsTheOlderFileUntilTheNewOneExistsAndNeverWritesIt() throws {
+        let older = #"[{"checkID": "linkToSpecificInstance", "outcome": "passed", "notes": "", "evidence": []}]"#
+        try Data(older.utf8).write(to: legacyFileURL)
+        let store = ValidationStore(fileURL: fileURL, legacyFileURL: legacyFileURL)
+        XCTAssertEqual(store.sourceURL, legacyFileURL)
+        var records = try store.load()
+        XCTAssertEqual(records.results[.linkToSpecificInstance]?.outcome, .passed)
+
+        records.results[.staleClone] = ValidationResult(checkID: .staleClone, outcome: .failed)
+        XCTAssertNil(try store.save(records))
+
+        XCTAssertEqual(try String(contentsOf: legacyFileURL, encoding: .utf8), older, "builds before Faz 0.5 still read the older file")
+        XCTAssertEqual(store.sourceURL, fileURL)
+        XCTAssertEqual(Set(try store.load().results.keys), [.linkToSpecificInstance, .staleClone])
+    }
+
+    func testANoteAloneLeavesAKeptEntryForTheSameCheck() throws {
+        try Data(#"[{"checkID": "reclaimLinkHandler", "outcome": "blocked", "notes": "", "evidence": ["x"]}]"#.utf8).write(to: fileURL)
+        let store = ValidationStore(fileURL: fileURL)
+        var records = try store.load()
+        records.results[.reclaimLinkHandler] = ValidationResult(checkID: .reclaimLinkHandler, notes: "a")
+        try store.save(records)
+
+        let saved = try savedEntries()
+        XCTAssertEqual(saved.count, 2)
+        XCTAssertEqual(saved[0]["notes"] as? String, "a")
+        XCTAssertEqual(saved[1]["outcome"] as? String, "blocked")
+        XCTAssertEqual(saved[1]["evidence"] as? [String], ["x"])
+        XCTAssertEqual(try store.load().results[.reclaimLinkHandler]?.notes, "a")
+    }
+
+    func testFieldsANewerLanesAddedSurviveUntilTheResultChanges() throws {
+        let file = """
+        [
+          {"checkID": "linkToSpecificInstance", "outcome": "passed", "notes": "", "evidence": [], "futureField": "keep me"},
+          {"checkID": "panelOnNewMenuBar", "outcome": "passed", "notes": "", "evidence": [], "futureField": "old"}
+        ]
+        """
+        try Data(file.utf8).write(to: fileURL)
+        let store = ValidationStore(fileURL: fileURL)
+        var records = try store.load()
+        records.results[.panelOnNewMenuBar]?.outcome = .failed
+        try store.save(records)
+
+        let saved = try savedEntries()
+        XCTAssertEqual(saved[0]["futureField"] as? String, "keep me")
+        XCTAssertNil(saved[1]["futureField"], "a field about the old recording goes with it")
+        XCTAssertEqual(saved[1]["outcome"] as? String, "failed")
     }
 }

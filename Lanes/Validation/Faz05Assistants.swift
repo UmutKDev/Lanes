@@ -133,7 +133,7 @@ struct StaleCloneAssistant: View {
                     }
                     .disabled(model.claude == nil)
                 }
-                .disabled(isWorking || !cloneExists)
+                .disabled(isWorking || validation.isCloneBusy || !cloneExists)
 
                 Text("Klonu açınca şunlara bak:")
                 YesNoRow(title: String(localized: "Klon açıldı"), answer: draftAnswer(validation, check, "opened"))
@@ -151,8 +151,13 @@ struct StaleCloneAssistant: View {
     }
 
     private func inspect() async {
+        guard !model.validation.isCloneBusy else { return }
         isWorking = true
-        defer { isWorking = false }
+        model.validation.isCloneBusy = true
+        defer {
+            isWorking = false
+            model.validation.isCloneBusy = false
+        }
         status = String(localized: "Klon inceleniyor…")
         var lines = ["Klonun sürümü: \(bundleVersion(at: cloneURL) ?? "okunamadı")"]
         if let claude = model.claude {
@@ -199,6 +204,9 @@ struct StaleCloneAssistant: View {
             required.append(signatureValid)
         }
         model.validation.setOutcome(outcome(for: required), for: check)
+        // The verdict belongs to the clone as it was inspected. A later save
+        // needs a fresh inspection.
+        model.validation.draftAnswers[check]?["signatureValid"] = nil
         status = String(localized: "Kaydedildi.")
     }
 }
@@ -295,18 +303,37 @@ struct NewAccountSignInAssistant: View {
     @Environment(NavigationModel.self) private var navigation
     @State private var method = Method.google
     @State private var startedIn: Int32?
+    /// The window's name when it was picked, so the record still names it if
+    /// that Claude quits during the sign-in.
+    @State private var startedLabel: String?
     @State private var status: String?
+    @State private var isRestoring = false
 
     private let check = ValidationCheckID.newAccountSignIn
+
+    /// The sign-in's return link has to reach Claude itself. After 0.5.2 it
+    /// can go to the test clone, and during 2 to Lanes.
+    private var claudeOpensLinks: Bool {
+        guard let handler = LinkHandlerRegistry.currentHandler(), let claude = model.claude else { return false }
+        return InstanceMatcher.normalize(handler.path) == InstanceMatcher.normalize(claude.url.path)
+    }
 
     var body: some View {
         GroupBox("Deneme") {
             VStack(alignment: .leading, spacing: 12) {
-                if LinkHandlerRegistry.lanesIsHandler {
-                    Text("claude:// bağlantılarını şu an Lanes açıyor. Önce 2. denemeden Claude'u geri yükle.")
+                if !claudeOpensLinks {
+                    Text("claude:// bağlantılarını şu an \(LinkHandlerRegistry.currentHandler()?.lastPathComponent ?? String(localized: "hiçbir uygulama")) açıyor. Giriş bağlantısı Claude'a gitmezse bu deneme Claude'u değil o uygulamayı ölçer.")
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
+                    Button("Claude'u Geri Yükle") {
+                        Task { await restoreClaude() }
+                    }
+                    .disabled(model.claude == nil || isRestoring)
                 }
+                Text(handlerLine())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                 ButtonRow {
                     Button("1. Başlangıcı Kaydet") {
                         start()
@@ -330,6 +357,11 @@ struct NewAccountSignInAssistant: View {
                         Text(instanceLabel(instance, model: model)).tag(Optional(instance.pid))
                     }
                 }
+                .onChange(of: startedIn) { _, selected in
+                    startedLabel = selected
+                        .flatMap { pid in model.instances.first { $0.pid == pid } }
+                        .map { instanceLabel($0, model: model) }
+                }
                 if startedIn != nil {
                     Text("Giriş hangi pencerede tamamlandı?")
                     FlowButtons(instances: model.instances, model: model) { finished in
@@ -349,12 +381,34 @@ struct NewAccountSignInAssistant: View {
         status = String(localized: "Başlangıç kaydedildi. Şimdi yeni hesabı ekle ve aç.")
     }
 
+    private func restoreClaude() async {
+        guard let claude = model.claude else { return }
+        isRestoring = true
+        defer { isRestoring = false }
+        var lines = ["Claude'u geri yükleme"]
+        do {
+            try await LinkHandlerRegistry.setHandler(claude.url)
+            lines.append("İstek başarılı.")
+        } catch {
+            lines.append("Hata: \(error.localizedDescription)")
+        }
+        lines.append(handlerLine())
+        model.validation.appendEvidence(lines, for: check)
+        status = claudeOpensLinks
+            ? String(localized: "claude:// bağlantılarını yeniden Claude açıyor.")
+            : String(localized: "Varsayılan hâlâ Claude değil. Deneme klonu açıksa klondan Claude'un kendi menüsüyle çık ya da klonu 3. denemeden çöpe at, sonra yeniden dene.")
+    }
+
     private func record(finishedIn finished: RunningInstance?) {
-        guard let startedIn, let started = model.instances.first(where: { $0.pid == startedIn }) else { return }
-        let isSameWindow = finished?.pid == started.pid
+        guard let startedIn, let startedLabel else {
+            self.startedIn = nil
+            status = String(localized: "Girişi başlattığın pencereyi yeniden seç.")
+            return
+        }
+        let isSameWindow = finished?.pid == startedIn
         var lines = [
             "Giriş yolu: \(method.displayName)",
-            "Başlatıldığı pencere: \(instanceLabel(started, model: model))",
+            "Başlatıldığı pencere: \(startedLabel)",
             "Tamamlandığı pencere: \(finished.map { instanceLabel($0, model: model) } ?? "hiçbiri")",
             isSameWindow ? "Giriş başlatıldığı pencerede tamamlandı." : "Giriş başka bir pencerede tamamlandı ya da tamamlanmadı.",
             handlerLine(),
@@ -374,6 +428,7 @@ struct NewAccountSignInAssistant: View {
         }
         validation.setOutcome(outcome, for: check)
         self.startedIn = nil
+        self.startedLabel = nil
         status = String(localized: "Kaydedildi. Öbür giriş yollarıyla da dene.")
     }
 }

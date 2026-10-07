@@ -55,7 +55,7 @@ struct ValidationPage: View {
             .frame(minWidth: 220, idealWidth: 290, maxWidth: 290)
             Divider()
             ScrollView {
-                if let problem = validation.fileProblem {
+                ForEach([validation.saveProblem, validation.fileProblem].compactMap { $0 }, id: \.self) { problem in
                     Label(problem, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)

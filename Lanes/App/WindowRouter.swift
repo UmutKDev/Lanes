@@ -25,17 +25,17 @@ final class WindowRouter {
         if let destination {
             navigation.navigate(to: destination)
         }
-        // Read before closing: check 9's icon-click run counts only windows
-        // opened from the panel.
-        let fromPanel = statusItemController?.isPanelVisible == true
+        // Before the panel closes: check 9's icon-click run counts only
+        // windows opened from a panel that a click on the icon opened.
+        let trialRunID = takeArmedIconClickRun()
         statusItemController?.closePanel()
         let controller = mainWindowController ?? MainWindowController(model: model, router: self)
         mainWindowController = controller
         return Task { @MainActor in
             guard let window = controller.window else { return nil }
             let outcome = await WindowActivator.bringForward(window)
-            if fromPanel {
-                self.recordIconClickTrial(outcome)
+            if let trialRunID {
+                self.recordIconClickTrial(outcome, runID: trialRunID)
             }
             return outcome
         }
@@ -100,8 +100,9 @@ final class WindowRouter {
     /// tries it closes the window and hands focus to Finder.
     func startIconClickTrials(count: Int) {
         statusItemController?.setMeasuringIconClicks(true)
-        model.validation.iconClickRun = ValidationModel.IconClickRun(target: count)
-        Task { await prepareForNextIconClick() }
+        let run = ValidationModel.IconClickRun(target: count)
+        model.validation.iconClickRun = run
+        Task { await prepareForNextIconClick(runID: run.id) }
     }
 
     func stopIconClickTrials() {
@@ -109,20 +110,40 @@ final class WindowRouter {
         statusItemController?.setMeasuringIconClicks(false)
     }
 
-    private func prepareForNextIconClick() async {
+    /// Closes the window, hands focus to Finder and only then accepts the
+    /// next try. Each step stops if the run was stopped or replaced.
+    private func prepareForNextIconClick(runID: UUID) async {
         // Long enough to see that the window came forward.
         try? await Task.sleep(nanoseconds: 800_000_000)
-        guard model.validation.iconClickRun != nil else { return }
+        guard model.validation.iconClickRun?.id == runID else { return }
         mainWindow?.close()
         try? await Task.sleep(nanoseconds: 400_000_000)
+        guard model.validation.iconClickRun?.id == runID else { return }
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
             NSApp.yieldActivation(to: finder)
             _ = finder.activate(options: [])
         }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        guard model.validation.iconClickRun?.id == runID else { return }
+        // A panel opened before this point is not part of the next try.
+        _ = statusItemController?.takePanelLatency()
+        model.validation.iconClickRun?.isArmed = true
     }
 
-    private func recordIconClickTrial(_ outcome: WindowActivator.Outcome) {
-        guard var run = model.validation.iconClickRun else { return }
+    /// The run a window opened now counts for, if one is waiting for a try
+    /// and the panel was opened by a click on the icon. Taking it disarms the
+    /// run, so a second click before the window is up does not count twice.
+    private func takeArmedIconClickRun() -> UUID? {
+        guard let run = model.validation.iconClickRun, run.isArmed,
+              statusItemController?.isPanelVisible == true,
+              statusItemController?.hasPanelOpeningFromIconClick == true
+        else { return nil }
+        model.validation.iconClickRun?.isArmed = false
+        return run.id
+    }
+
+    private func recordIconClickTrial(_ outcome: WindowActivator.Outcome, runID: UUID) {
+        guard var run = model.validation.iconClickRun, run.id == runID else { return }
         let latency = statusItemController?.takePanelLatency()
         run.trials.append(ActivationTrials.Trial(
             becameKey: outcome.becameKey,
@@ -134,7 +155,7 @@ final class WindowRouter {
         ))
         guard run.trials.count >= run.target else {
             model.validation.iconClickRun = run
-            Task { await prepareForNextIconClick() }
+            Task { await prepareForNextIconClick(runID: runID) }
             return
         }
         model.validation.iconClickRun = nil

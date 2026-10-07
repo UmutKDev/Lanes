@@ -186,7 +186,7 @@ public struct ValidationCheck: Sendable, Identifiable, Equatable {
             steps: [
                 "Bu denemede \"Klonu Oluştur\"a basma. O düğme eski klonu siler.",
                 "Lanes diskteki deneme klonunu inceler. Klonun ve Claude'un sürümünü, imzayı ve Gatekeeper sonucunu kaydeder.",
-                "Klonu aç. Açılıp açılmadığını, simgesinin durup durmadığını ve güncelleme isteyip istemediğini işaretle.",
+                "Klonu aç. Açılıp açılmadığını, simgesinin durup durmadığını ve güncelleme isteyip istemediğini işaretle. Bitince klondan Claude'un kendi menüsüyle çık.",
                 "Diskte klon yoksa 3. denemeden yeni bir klon oluştur. Bu denemeyi Claude'un bir sonraki güncellemesinden sonra yap.",
             ]
         ),
@@ -199,6 +199,7 @@ public struct ValidationCheck: Sendable, Identifiable, Equatable {
                 "Klon açıksa kapat.",
                 "\"Finder'da Göster\" ile klonu bul ve Finder'dan aç. İstersen Spotlight ve Dock ile de dene.",
                 "Lanes açık pencerelerin hangi klasörle açıldığını ve claude:// bağlantılarını açan uygulamayı kaydeder.",
+                "Bitince klondan Claude'un kendi menüsüyle çık. claude:// varsayılanı klona geçtiyse 0.5.3'teki \"Claude'u Geri Yükle\" ile geri al.",
             ]
         ),
         ValidationCheck(
@@ -266,7 +267,8 @@ public struct ValidationCheck: Sendable, Identifiable, Equatable {
             mode: .assisted, isDeferred: false,
             steps: [
                 "Bu denemeyi en sona bırak. \"Klonu Oluştur\" diskteki eski klonu kalıcı olarak siler.",
-                "Klonu oluştur. Bir izin penceresi çıkarsa bunu işaretle.",
+                "Deneme klonu açıksa önce klondan Claude'un kendi menüsüyle çık. Lanes açık bir klonu değiştirmez.",
+                "Klonu oluştur. Diskte eski klon varsa, değiştirilirken bir izin penceresi çıkıp çıkmadığını işaretle.",
                 "Klonu aç ve Dock'ta, Cmd-Tab'da gördüğünü seç.",
             ]
         ),
@@ -564,40 +566,23 @@ public struct ValidationReport: Sendable {
         lines.append("- İmza: \(environment.signing ?? "bilinmiyor")")
         lines.append("- Uygulama: \(environment.appPath ?? "bilinmiyor")")
         lines.append("")
-        lines.append("Her denemenin altındaki \"Kaydedildiği ortam\" satırı, deneme bu başlıktakinden farklı bir Lanes ya da Claude ile kaydedildiyse görünür.")
+        lines.append("Her denemenin altındaki \"Kaydedildiği ortam\" satırı, deneme bu başlıktakinden farklı bir Lanes ya da Claude ile kaydedildiyse görünür. Lanes bu bilgiyi tutmaya başlamadan önce kaydedilen denemelerde \"bilinmiyor\" yazar.")
         for phase in ValidationPhase.allCases {
+            let checks = ValidationCheck.checks(in: phase)
             lines.append("")
             lines.append("## \(phase.title)")
             lines.append("")
             lines.append("| # | Deneme | Sonuç |")
             lines.append("| - | ------ | ----- |")
-            for check in ValidationCheck.checks(in: phase) {
+            for check in checks {
                 let outcome = results[check.id]?.outcome ?? .notRun
                 lines.append("| \(check.label) | \(check.title) | \(outcome.reportLabel) |")
             }
-        }
-        for check in ValidationCheck.all {
-            guard let result = results[check.id], result.outcome != .notRun || !result.notes.isEmpty || !result.evidence.isEmpty else {
-                continue
-            }
-            lines.append("")
-            lines.append("### \(check.label). \(check.title)")
-            lines.append("")
-            lines.append("Sonuç: \(result.outcome.reportLabel)")
-            if let recorded = result.environment, recorded.summary != environment.summary {
-                lines.append("")
-                lines.append("Kaydedildiği ortam: \(recorded.summary)")
-            }
-            let notes = result.notes.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !notes.isEmpty {
-                lines.append("")
-                lines.append("Not: \(notes)")
-            }
-            if !result.evidence.isEmpty {
-                lines.append("")
-                lines.append("```")
-                lines.append(contentsOf: result.evidence)
-                lines.append("```")
+            for check in checks {
+                guard let result = results[check.id], result.outcome != .notRun || !result.notes.isEmpty || !result.evidence.isEmpty else {
+                    continue
+                }
+                lines.append(contentsOf: details(of: check, result: result))
             }
         }
         let text = lines.joined(separator: "\n") + "\n"
@@ -605,21 +590,62 @@ public struct ValidationReport: Sendable {
         return ValidationReport.abbreviatingHome(homeDirectory, in: text)
     }
 
-    /// Writes the home folder as "~" wherever a path starts with it.
+    private func details(of check: ValidationCheck, result: ValidationResult) -> [String] {
+        var lines = ["", "### \(check.label). \(check.title)", "", "Sonuç: \(result.outcome.reportLabel)"]
+        if let recorded = result.environment {
+            if recorded.summary != environment.summary {
+                lines.append("")
+                lines.append("Kaydedildiği ortam: \(recorded.summary)")
+            }
+        } else {
+            lines.append("")
+            lines.append("Kaydedildiği ortam: bilinmiyor")
+        }
+        let notes = result.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !notes.isEmpty {
+            lines.append("")
+            lines.append("Not: \(notes)")
+        }
+        if !result.evidence.isEmpty {
+            lines.append("")
+            lines.append("```")
+            lines.append(contentsOf: result.evidence)
+            lines.append("```")
+        }
+        return lines
+    }
+
+    /// Writes the home folder as "~" wherever a path starts with it. Claude
+    /// Code names its project folders after the project's path with every
+    /// character other than an ASCII letter or digit turned into "-", so
+    /// "/Users/ali/Lanes" also appears as "-Users-ali-Lanes". That form is
+    /// written as "~" too.
     public static func abbreviatingHome(_ home: String, in text: String) -> String {
         let home = home.hasSuffix("/") ? String(home.dropLast()) : home
         guard home.count > 1 else { return text }
+        // Only a whole folder name: "/Users/ali" must not turn
+        // "/Users/alican" into "~can".
+        let slashed = replacingWholeName(home, in: text) { next in
+            next == "/" || !(next.isLetter || next.isNumber || next == "." || next == "_" || next == "-")
+        }
+        let dashed = String(home.map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "-" })
+        return replacingWholeName(dashed, in: slashed) { next in
+            !(next.isASCII && (next.isLetter || next.isNumber))
+        }
+    }
+
+    /// Replaces `name` with "~" where it ends the text or the next character
+    /// passes `endsName`.
+    private static func replacingWholeName(_ name: String, in text: String, endsName: (Character) -> Bool) -> String {
         var result = ""
         var rest = Substring(text)
-        while let range = rest.range(of: home) {
+        while let range = rest.range(of: name) {
             let end = rest[range.upperBound...]
-            // Only a whole folder name: "/Users/ali" must not turn
-            // "/Users/alican" into "~can".
-            if end.isEmpty || end.first == "/" || !(end.first!.isLetter || end.first!.isNumber || end.first == "." || end.first == "_" || end.first == "-") {
+            if let next = end.first, !endsName(next) {
+                result += rest[..<range.upperBound]
+            } else {
                 result += rest[..<range.lowerBound]
                 result += "~"
-            } else {
-                result += rest[..<range.upperBound]
             }
             rest = end
         }

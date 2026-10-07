@@ -265,10 +265,19 @@ struct CloneAssistant: View {
                         removeClone()
                     }
                 }
-                .disabled(isWorking)
+                .disabled(isWorking || model.validation.isCloneBusy)
 
                 if asksAboutAppManagement {
-                    YesNoRow(title: String(localized: "Klonu oluştururken macOS bir izin penceresi gösterdi"), answer: answer(\.appManagementPrompted))
+                    switch progress.replacedExisting {
+                    case true?:
+                        YesNoRow(title: String(localized: "Var olan klon değiştirilirken macOS bir izin penceresi gösterdi"), answer: answer(\.appManagementPrompted))
+                    case false?:
+                        Text("Diskte eski klon yoktu, yani değiştirilen bir klon olmadı. App Management sorusu için klonu bir kez daha oluştur.")
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    case nil:
+                        EmptyView()
+                    }
                 }
                 Text("Klonu açınca şunlara bak:")
                 YesNoRow(title: String(localized: "Dock'ta klonun kendi simgesi görünüyor"), answer: answer(\.dockIcon))
@@ -278,7 +287,7 @@ struct CloneAssistant: View {
                     save()
                 }
                 .disabled(progress.dockIcon == nil || progress.dockName == nil || progress.switcherIcon == nil
-                          || (asksAboutAppManagement && progress.appManagementPrompted == nil))
+                          || (asksAboutAppManagement && progress.replacedExisting == true && progress.appManagementPrompted == nil))
 
                 if let status {
                     Text(status)
@@ -301,13 +310,20 @@ struct CloneAssistant: View {
     }
 
     private func makeClone() async {
-        guard let claude = model.claude else { return }
+        guard let claude = model.claude, !model.validation.isCloneBusy, !refuseWhileCloneRuns() else { return }
         isWorking = true
-        defer { isWorking = false }
+        model.validation.isCloneBusy = true
+        defer {
+            isWorking = false
+            model.validation.isCloneBusy = false
+        }
         status = String(localized: "Klon oluşturuluyor…")
         var lines: [String] = ["Kaynak: \(claude.url.path) (\(claude.version ?? "?"))"]
-        if FileManager.default.fileExists(atPath: cloneURL.path) {
+        let existed = FileManager.default.fileExists(atPath: cloneURL.path)
+        if existed {
             lines.append("Diskteki eski klon (\(bundleVersion(at: cloneURL) ?? "sürümü okunamadı")) siliniyor.")
+        } else {
+            lines.append("Diskte eski klon yoktu.")
         }
         do {
             let result = try CloneMaker.makeClone(
@@ -321,6 +337,7 @@ struct CloneAssistant: View {
             let signature = await CloneSignature.check(cloneURL)
             lines.append(contentsOf: signature.lines)
             model.validation.cloneProgress[checkID, default: Progress()].signatureValid = signature.isValid
+            model.validation.cloneProgress[checkID, default: Progress()].replacedExisting = existed
             status = String(localized: "Klon hazır. Şimdi aç ve Dock'a bak.")
         } catch {
             lines.append("Klon oluşturulamadı: \(error.localizedDescription)")
@@ -347,7 +364,21 @@ struct CloneAssistant: View {
         model.refreshInstances()
     }
 
+    /// Lanes never quits a Claude window, so it does not replace or trash a
+    /// clone that is running: the open window would be left on a bundle that
+    /// changed under it.
+    private func refuseWhileCloneRuns() -> Bool {
+        model.refreshInstances()
+        let clonePath = InstanceMatcher.normalize(cloneURL.path)
+        guard let running = model.instances.first(where: { InstanceMatcher.normalize($0.applicationBundlePath) == clonePath }) else {
+            return false
+        }
+        status = String(localized: "Deneme klonu açık (PID \(running.pid)). Önce klondan Claude'un kendi menüsüyle çık, sonra yeniden dene.")
+        return true
+    }
+
     private func removeClone() {
+        guard !model.validation.isCloneBusy, !refuseWhileCloneRuns() else { return }
         do {
             try CloneMaker.removeClone(at: cloneURL, paths: model.paths)
             status = String(localized: "Klon çöpe atıldı.")
@@ -365,9 +396,13 @@ struct CloneAssistant: View {
             "Cmd-Tab simgesi: \(progress.switcherIcon == true ? "evet" : "hayır")",
             "İmza ve Gatekeeper: \(progress.signatureValid.map { $0 ? "geçerli" : "geçersiz" } ?? "çalıştırılmadı")",
         ]
-        if asksAboutAppManagement, let prompted = progress.appManagementPrompted {
-            lines.append(prompted ? "App Management izni soruldu." : "App Management izni sorulmadı.")
-            answers.append(!prompted)
+        if asksAboutAppManagement {
+            if progress.replacedExisting == true, let prompted = progress.appManagementPrompted {
+                lines.append(prompted ? "Var olan klon değiştirilirken App Management izni soruldu." : "Var olan klon değiştirilirken App Management izni sorulmadı.")
+                answers.append(!prompted)
+            } else {
+                lines.append("Var olan bir klon değiştirilmedi, App Management sorusu ölçülmedi.")
+            }
         }
         model.validation.appendEvidence(lines, for: checkID)
         let yesCount = answers.filter { $0 }.count
@@ -379,7 +414,10 @@ struct CloneAssistant: View {
         } else {
             outcome = .partial
         }
-        model.validation.setOutcome(outcome, for: checkID)
+        // 0.5.8 is about replacing a clone. Without one replaced, half of it
+        // was not measured.
+        let unmeasured = asksAboutAppManagement && progress.replacedExisting != true
+        model.validation.setOutcome(unmeasured && outcome == .passed ? .partial : outcome, for: checkID)
         status = String(localized: "Kaydedildi.")
     }
 }
@@ -687,7 +725,7 @@ struct ActivationAssistant: View {
                 .disabled(isBusy)
 
                 Divider()
-                Text("Simgeye tıklayarak ölçmede Lanes pencereyi kapatır ve odağı Finder'a verir. Her seferinde menü çubuğundaki Lanes simgesine, sonra paneldeki pencere düğmesine (Lanes'i aç) tıkla. Kaçıncı denemede olduğun simgenin yanında görünür.")
+                Text("Simgeye tıklayarak ölçmede Lanes pencereyi kapatır ve odağı Finder'a verir. Her seferinde menü çubuğundaki Lanes simgesine, sonra paneldeki pencere düğmesine (Lanes'i aç) tıkla. Kaçıncı denemede olduğun simgenin yanında görünür. Orada üç nokta varken tıklama, Lanes bir sonraki denemeye hazırlanıyor.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let run = validation.iconClickRun {
