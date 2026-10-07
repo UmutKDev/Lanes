@@ -19,7 +19,8 @@ public struct ClaudeLink: Equatable, Sendable {
         case oauthCallback
         /// A link Lanes may send to the profile the user chooses.
         case routable(Route)
-        /// Not a Claude link Lanes understands. Handed to the default profile.
+        /// Not a Claude link Lanes understands. Held back like a sign-in link,
+        /// because it may be one in a form Lanes does not know yet.
         case unknown
     }
 
@@ -106,5 +107,26 @@ public struct ClaudeLink: Equatable, Sendable {
         default:
             return .unknown
         }
+    }
+}
+
+/// What Lanes does with a link that reaches it while it holds the `claude://`
+/// default.
+public enum LinkHandling: Equatable, Sendable {
+    /// Opened with Claude.app, as macOS would without Lanes.
+    case openWithClaude
+    /// Kept back. Lanes gives the default to Claude, so the next try reaches
+    /// Claude directly.
+    case holdBack
+}
+
+extension ClaudeLink {
+    /// Only links Lanes recognises as routable go anywhere. Sign-in and OAuth
+    /// links belong to the window that started them. Links Lanes does not
+    /// recognise are held too, because a sign-in link in a form missing from
+    /// `classify` must not reach another window.
+    public static func handling(for url: URL) -> LinkHandling {
+        guard let link = ClaudeLink(url: url), link.isRoutable else { return .holdBack }
+        return .openWithClaude
     }
 }

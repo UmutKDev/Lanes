@@ -55,13 +55,14 @@ struct LinkDeliveryAssistant: View {
     }
 
     private func send() {
-        guard let pid = targetPID, let instance = model.instances.first(where: { $0.pid == pid }) else { return }
-        let url = URL(string: "claude://claude.ai/new?q=Lanes%20Faz%200%20denemesi%20\(attempt)")!
+        guard let pid = targetPID, let instance = model.instances.first(where: { $0.pid == pid }),
+              let link = ClaudeLink(url: URL(string: "claude://claude.ai/new?q=Lanes%20Faz%200%20denemesi%20\(attempt)")!)
+        else { return }
         isSending = true
         status = nil
         Task {
             do {
-                try await AppleEvents.sendURL(url, to: pid)
+                try await AppleEvents.sendLink(link, to: pid)
                 pendingTarget = instance
                 status = String(localized: "Bağlantı gönderildi. Claude pencerelerine bak.")
             } catch {
@@ -168,7 +169,7 @@ struct LinkHandlerAssistant: View {
                     Text("Lanes'e gelen bağlantılar")
                         .font(.caption.weight(.semibold))
                     ForEach(model.receivedLinks.prefix(5)) { link in
-                        Text(verbatim: "\(link.url.absoluteString.prefix(80)) · \(link.outcome)")
+                        Text(verbatim: "\(link.kind) · \(link.outcome)")
                             .font(.system(.caption, design: .monospaced))
                             .lineLimit(1)
                     }

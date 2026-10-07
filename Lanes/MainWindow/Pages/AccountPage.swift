@@ -161,11 +161,7 @@ private struct AccountGeneralTab: View {
     private func commitName() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != profile.name, var updated = model.profile(withID: profile.id) else { return }
-        let oldDefaultMonogram = Profile.defaultMonogram(for: updated.name)
-        updated.name = trimmed
-        if updated.monogram == oldDefaultMonogram {
-            updated.monogram = Profile.defaultMonogram(for: trimmed)
-        }
+        updated.rename(to: trimmed)
         model.updateProfile(updated)
     }
 

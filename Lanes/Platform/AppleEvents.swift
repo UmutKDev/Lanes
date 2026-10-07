@@ -1,4 +1,5 @@
 import AppKit
+import LanesCore
 
 /// Sends Apple Events to one specific process. This is how Lanes delivers a
 /// link to the right Claude window when several share a bundle identifier.
@@ -8,12 +9,15 @@ import AppKit
 enum AppleEvents {
     enum Failure: LocalizedError {
         case notPermitted
+        case notRoutable
         case other(code: Int, message: String)
 
         var errorDescription: String? {
             switch self {
             case .notPermitted:
                 return String(localized: "macOS, Lanes'in Claude'a komut göndermesine izin vermiyor. Sistem Ayarları > Gizlilik ve Güvenlik > Otomasyon'dan izin verebilirsin.")
+            case .notRoutable:
+                return String(localized: "Lanes bu bağlantıyı bir pencereye gönderemez. Giriş bağlantıları ve Lanes'in tanımadığı bağlantılar hiçbir pencereye gönderilmez.")
             case let .other(code, message):
                 return "\(message) (\(code))"
             }
@@ -28,8 +32,11 @@ enum AppleEvents {
     }
 
     /// Sends a `GURL` event, the same event macOS sends when a link opens.
-    static func sendURL(_ url: URL, to pid: pid_t) async throws {
-        try await send(eventClass: "GURL", eventID: "GURL", to: pid, directObject: url.absoluteString)
+    /// Only routable links go out: a sign-in or OAuth link belongs to the
+    /// window that started it.
+    static func sendLink(_ link: ClaudeLink, to pid: pid_t) async throws {
+        guard link.isRoutable else { throw Failure.notRoutable }
+        try await send(eventClass: "GURL", eventID: "GURL", to: pid, directObject: link.url.absoluteString)
     }
 
     /// Sends a reopen event, the same event a Dock icon click sends.
