@@ -9,7 +9,7 @@ Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydın
 Bu ilk sürüm iki şey içeriyor:
 
 - Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde başlatma.
-- Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
+- Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme ve Claude'un davranışını ölçen sekiz Faz 0.5 denemesi. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
 
 ## Derleme
 
@@ -32,7 +32,7 @@ Kendi ekip kimliğinle imzalamak için `Config/Local.xcconfig.example` dosyasın
 | `Lanes/App` | Uygulamanın girişi, ortak durum ve pencere yönlendirmesi. |
 | `Lanes/Tray` | Menü çubuğu simgesi ve paneli. |
 | `Lanes/MainWindow` | Ana pencere: kenar çubuğu, hesap sayfası, ayarlar. |
-| `Lanes/Validation` | Faz 0 doğrulama ekranı. |
-| `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon. |
+| `Lanes/Validation` | Faz 0 ve Faz 0.5 doğrulama ekranı. |
+| `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
 
 Testler: `make core-test`
