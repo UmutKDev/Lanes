@@ -24,8 +24,9 @@ final class ValidationModel {
         var dockName: Bool?
         var switcherIcon: Bool?
         var appManagementPrompted: Bool?
-        /// Whether the last "Klonu Oluştur" replaced a clone already on disk.
-        /// 0.5.8 asks about App Management only then.
+        /// Whether the last "Klonu Oluştur" found a clone on disk to replace,
+        /// whether or not the replacement went through. 0.5.8 asks about
+        /// App Management only then.
         var replacedExisting: Bool?
     }
 
@@ -89,10 +90,14 @@ final class ValidationModel {
     }
 
     func setNotes(_ notes: String, for id: ValidationCheckID) {
+        let isNew = results[id] == nil
         var result = result(for: id)
         guard result.notes != notes else { return }
         result.notes = notes
-        if result.environment == nil {
+        // Only a result the note starts gets this build's environment. A
+        // result an older Lanes recorded keeps none, so the report goes on
+        // saying its environment is unknown rather than naming this build.
+        if isNew {
             result.environment = environment()
         }
         results[id] = result

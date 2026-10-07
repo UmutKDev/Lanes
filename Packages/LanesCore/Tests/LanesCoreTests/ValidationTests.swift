@@ -103,6 +103,17 @@ final class ValidationTests: XCTestCase {
         XCTAssertTrue(report.markdown().contains("Sonuç: Olumlu\n\nKaydedildiği ortam: bilinmiyor\n"))
     }
 
+    func testANoteAddedLaterLeavesTheEnvironmentUnknown() {
+        var result = ValidationResult(checkID: .signedCloneIdentity, outcome: .passed)
+        result.notes = "Dock'ta doğru simge vardı."
+        let report = ValidationReport(
+            environment: Self.environment,
+            results: [.signedCloneIdentity: result],
+            generatedAt: Date(timeIntervalSince1970: 0)
+        )
+        XCTAssertTrue(report.markdown().contains("Kaydedildiği ortam: bilinmiyor\n"))
+    }
+
     func testReportNamesTheEnvironmentAResultWasRecordedIn() {
         var older = Self.environment
         older.claudeVersion = "1.2.2"

@@ -317,6 +317,14 @@ struct CloneAssistant: View {
             isWorking = false
             model.validation.isCloneBusy = false
         }
+        // A new clone starts a new measurement: the earlier answers and
+        // signature were about the clone this one replaces. A permission
+        // prompt already seen while replacing stays, because allowing it is
+        // what lets a later try go through without one.
+        let promptedBefore = progress.appManagementPrompted == true
+        model.validation.cloneProgress[checkID] = Progress(appManagementPrompted: promptedBefore ? true : nil)
+        // 0.5.1's verdict is about the clone on disk, which is about to change.
+        model.validation.draftAnswers[.staleClone]?["signatureValid"] = nil
         status = String(localized: "Klon oluşturuluyor…")
         var lines: [String] = ["Kaynak: \(claude.url.path) (\(claude.version ?? "?"))"]
         let existed = FileManager.default.fileExists(atPath: cloneURL.path)
@@ -337,12 +345,16 @@ struct CloneAssistant: View {
             let signature = await CloneSignature.check(cloneURL)
             lines.append(contentsOf: signature.lines)
             model.validation.cloneProgress[checkID, default: Progress()].signatureValid = signature.isValid
-            model.validation.cloneProgress[checkID, default: Progress()].replacedExisting = existed
             status = String(localized: "Klon hazır. Şimdi aç ve Dock'a bak.")
         } catch {
             lines.append("Klon oluşturulamadı: \(error.localizedDescription)")
-            status = error.localizedDescription
+            status = existed && asksAboutAppManagement
+                ? String(localized: "\(error.localizedDescription) macOS bir izin penceresi gösterdiyse aşağıda işaretle.")
+                : error.localizedDescription
         }
+        // Set after a failed try too: when macOS blocks the change, its
+        // permission prompt comes with the failure.
+        model.validation.cloneProgress[checkID, default: Progress()].replacedExisting = existed
         model.validation.appendEvidence(lines, for: checkID)
     }
 
@@ -381,6 +393,7 @@ struct CloneAssistant: View {
         guard !model.validation.isCloneBusy, !refuseWhileCloneRuns() else { return }
         do {
             try CloneMaker.removeClone(at: cloneURL, paths: model.paths)
+            model.validation.draftAnswers[.staleClone]?["signatureValid"] = nil
             status = String(localized: "Klon çöpe atıldı.")
         } catch {
             status = error.localizedDescription

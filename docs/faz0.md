@@ -32,14 +32,14 @@ Faz 0.5, Faz 0'ın denemediği Claude davranışlarını ölçüyor. Aynı ekran
 
 | # | Deneme | Nasıl yapılıyor |
 | - | ------ | --------------- |
-| 0.5.1 | Eski klon | Lanes, Claude güncellemesinden önce oluşturulan deneme klonunu silmeden ve yeniden oluşturmadan inceler: sürümler, imza ve Gatekeeper. Klonu açınca ne gördüğünü işaretlersin. |
+| 0.5.1 | Eski klon | Lanes, Claude güncellemesinden önce oluşturulan deneme klonunu silmeden ve yeniden oluşturmadan inceler: sürümler, imza ve Gatekeeper. Klonu açınca ne gördüğünü işaretlersin. Her kayıttan önce klon yeniden incelenir. |
 | 0.5.2 | Lanes'siz açılan klon | Klonu Finder, Spotlight ya da Dock'tan açarsın. Lanes klonun hangi klasörü kullandığını ve `claude://` varsayılanının klona geçip geçmediğini kaydeder. Varsayılan klona geçtiyse 0.5.3'teki "Claude'u Geri Yükle" onu geri alır. |
 | 0.5.3 | Yeni hesabın girişi | Ana hesap açıkken yeni bir hesapla Google, e-posta bağlantısı ve varsa SSO ile giriş yaparsın. Girişin hangi pencerede tamamlandığını seçersin. |
 | 0.5.4 | Hesaplar arası çıkış | İkinci bir hesap açıkken ana hesapta hesap değiştirirsin. İki pencereyi kapatıp Lanes'ten yeniden açarsın ve ikinci hesabın oturumunun açık kalıp kalmadığını işaretlersin. |
 | 0.5.5 | Claude Code girişi | Ana hesap ve bir profil için Claude Code'u Terminalde açarsın. Yeniden açınca ikisinin de kendi hesabında kalıp kalmadığına `/status` ile bakarsın. İki ayrı hesap gerekiyor. |
 | 0.5.6 | Standart modda Cowork | Cowork'ün ikinci bir hesapta ve iki hesapta aynı anda çalışıp çalışmadığını işaretlersin. |
 | 0.5.7 | Claude Code oturum kayıtları | Lanes bir hesabın `projects/` klasöründeki proje klasörlerini ve oturum sayısını kaydeder. En yeni oturumu `claude --resume` ile sürdüren komutu kopyalayıp denersin. |
-| 0.5.8 | Klon yeniden | Üçüncü deneme güncel kodla yapılır. Var olan klon değiştirilirken App Management izni soruluyor mu, o da işaretlenir. Klon açıksa önce ondan çıkman gerekir. |
+| 0.5.8 | Klon yeniden | Üçüncü deneme güncel kodla yapılır. Var olan klon değiştirilirken App Management izni soruluyor mu, o da işaretlenir. İzin yüzünden başarısız olan bir değiştirme de sayılır. Klon açıksa önce ondan çıkman gerekir. |
 
 Rapor iki aşamayı ayrı tablolarla gösterir. Başlıkta Lanes'in commit'i, imza türü ve uygulamanın yolu da var. Bir deneme başlıktakinden farklı bir Lanes ya da Claude sürümüyle kaydedildiyse, denemenin altında hangisiyle kaydedildiği yazar. Lanes bu bilgiyi tutmaya başlamadan önce kaydedilen denemelerde orada "bilinmiyor" yazar.
 

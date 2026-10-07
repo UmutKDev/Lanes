@@ -142,12 +142,26 @@ struct StaleCloneAssistant: View {
                 Button("Sonucu Kaydet") {
                     save()
                 }
-                .disabled(["opened", "iconKept", "updaterActed"].contains { validation.draftAnswers[check]?[$0] == nil })
+                .disabled(["opened", "iconKept", "updaterActed"].contains { validation.draftAnswers[check]?[$0] == nil }
+                          || needsInspection(cloneExists: cloneExists))
+                if needsInspection(cloneExists: cloneExists) {
+                    Text("Kaydetmek için önce \"Klonu İncele\"ye bas. Her kayıt yeni bir inceleme ister.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 StatusText(status: status)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(4)
         }
+    }
+
+    /// The signature verdict belongs to the clone as it was inspected, so
+    /// each save of a clone on disk needs one of its own. Without it a
+    /// rejected clone could be saved again as if it had never been checked.
+    private func needsInspection(cloneExists: Bool) -> Bool {
+        cloneExists && model.validation.draftAnswers[check]?["signatureValid"] == nil
     }
 
     private func inspect() async {
@@ -204,8 +218,7 @@ struct StaleCloneAssistant: View {
             required.append(signatureValid)
         }
         model.validation.setOutcome(outcome(for: required), for: check)
-        // The verdict belongs to the clone as it was inspected. A later save
-        // needs a fresh inspection.
+        // A later save needs a fresh inspection; see needsInspection.
         model.validation.draftAnswers[check]?["signatureValid"] = nil
         status = String(localized: "Kaydedildi.")
     }

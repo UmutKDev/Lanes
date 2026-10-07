@@ -131,14 +131,23 @@ final class WindowRouter {
     }
 
     /// The run a window opened now counts for, if one is waiting for a try
-    /// and the panel was opened by a click on the icon. Taking it disarms the
-    /// run, so a second click before the window is up does not count twice.
+    /// and the panel was opened by a click on the icon. Any window opened
+    /// while the run waits disarms it, so a second click before the window
+    /// is up does not count twice.
     private func takeArmedIconClickRun() -> UUID? {
-        guard let run = model.validation.iconClickRun, run.isArmed,
-              statusItemController?.isPanelVisible == true,
-              statusItemController?.hasPanelOpeningFromIconClick == true
-        else { return nil }
+        guard let run = model.validation.iconClickRun, run.isArmed else { return nil }
         model.validation.iconClickRun?.isArmed = false
+        guard statusItemController?.isPanelVisible == true,
+              statusItemController?.hasPanelOpeningFromIconClick == true
+        else {
+            // Opened another way, such as the icon's menu, Finder or a panel
+            // from before the run was armed. That is not a try, and the next
+            // one has to start again from a closed window with Finder in front.
+            // A run is armed only once no preparation is pending, so this
+            // never starts a second one.
+            Task { await prepareForNextIconClick(runID: run.id) }
+            return nil
+        }
         return run.id
     }
 

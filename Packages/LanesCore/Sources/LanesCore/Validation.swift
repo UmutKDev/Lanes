@@ -185,7 +185,7 @@ public struct ValidationCheck: Sendable, Identifiable, Equatable {
             mode: .assisted, isDeferred: false,
             steps: [
                 "Bu denemede \"Klonu Oluştur\"a basma. O düğme eski klonu siler.",
-                "Lanes diskteki deneme klonunu inceler. Klonun ve Claude'un sürümünü, imzayı ve Gatekeeper sonucunu kaydeder.",
+                "\"Klonu İncele\"ye bas. Lanes klonun ve Claude'un sürümünü, imzayı ve Gatekeeper sonucunu kaydeder. Her kayıttan önce yeniden incele.",
                 "Klonu aç. Açılıp açılmadığını, simgesinin durup durmadığını ve güncelleme isteyip istemediğini işaretle. Bitince klondan Claude'un kendi menüsüyle çık.",
                 "Diskte klon yoksa 3. denemeden yeni bir klon oluştur. Bu denemeyi Claude'un bir sonraki güncellemesinden sonra yap.",
             ]
@@ -268,7 +268,7 @@ public struct ValidationCheck: Sendable, Identifiable, Equatable {
             steps: [
                 "Bu denemeyi en sona bırak. \"Klonu Oluştur\" diskteki eski klonu kalıcı olarak siler.",
                 "Deneme klonu açıksa önce klondan Claude'un kendi menüsüyle çık. Lanes açık bir klonu değiştirmez.",
-                "Klonu oluştur. Diskte eski klon varsa, değiştirilirken bir izin penceresi çıkıp çıkmadığını işaretle.",
+                "Klonu oluştur. Diskte eski klon varsa, değiştirilirken bir izin penceresi çıkıp çıkmadığını işaretle. Klon izin yüzünden oluşmazsa bunu da işaretle, sonra izni verip klonu yeniden oluştur.",
                 "Klonu aç ve Dock'ta, Cmd-Tab'da gördüğünü seç.",
             ]
         ),
