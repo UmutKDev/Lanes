@@ -449,13 +449,25 @@ public struct ActivationTrials: Codable, Equatable, Sendable {
         /// Seconds from a real click on the menu bar icon until the panel
         /// took keyboard focus. Nil when the panel was opened from code.
         public var panelLatency: Double?
+        /// What `panelLatency` was measured from: "mouseDown" (the press on
+        /// the icon), "event" (the click event Lanes was handed) or
+        /// "callback" (the moment Lanes was told, without the system's delay).
+        public var panelLatencySource: String?
 
-        public init(becameKey: Bool, appBecameActive: Bool, duration: Double, method: String, panelLatency: Double? = nil) {
+        public init(
+            becameKey: Bool,
+            appBecameActive: Bool,
+            duration: Double,
+            method: String,
+            panelLatency: Double? = nil,
+            panelLatencySource: String? = nil
+        ) {
             self.becameKey = becameKey
             self.appBecameActive = appBecameActive
             self.duration = duration
             self.method = method
             self.panelLatency = panelLatency
+            self.panelLatencySource = panelLatencySource
         }
 
         public var succeeded: Bool { becameKey && appBecameActive }
@@ -513,6 +525,12 @@ public struct ActivationTrials: Codable, Equatable, Sendable {
         lines.append("İşe yarayan adım: \(methods).")
         if let median = medianPanelLatency, let p95 = p95PanelLatency {
             lines.append("Simgeye tıklandıktan sonra panel \(panelLatencies.count) denemede ortanca \(ValidationReport.milliseconds(median)), p95 \(ValidationReport.milliseconds(p95)) içinde açıldı.")
+        }
+        let sources = Dictionary(grouping: trials.compactMap(\.panelLatencySource), by: { $0 }).mapValues(\.count)
+        if !sources.isEmpty {
+            let labels = ["mouseDown": "simgeye basış", "event": "tıklama olayı", "callback": "Lanes'e haber geldiği an"]
+            let parts = sources.sorted { $0.key < $1.key }.map { "\(labels[$0.key] ?? $0.key) (\($0.value) deneme)" }
+            lines.append("Panel süresinin başladığı an: \(parts.joined(separator: ", ")).")
         }
         return lines
     }

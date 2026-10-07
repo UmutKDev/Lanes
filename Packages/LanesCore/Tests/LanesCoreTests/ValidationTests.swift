@@ -42,6 +42,15 @@ final class ValidationTests: XCTestCase {
         XCTAssertEqual(trials.evidenceLines.last, "Simgeye tıklandıktan sonra panel 2 denemede ortanca 30 ms, p95 45 ms içinde açıldı.")
     }
 
+    func testPanelLatencySources() {
+        let trials = ActivationTrials(trials: [
+            .init(becameKey: true, appBecameActive: true, duration: 0.2, method: "activate(from:)", panelLatency: 0.120, panelLatencySource: "mouseDown"),
+            .init(becameKey: true, appBecameActive: true, duration: 0.2, method: "activate(from:)", panelLatency: 0.020, panelLatencySource: "callback"),
+            .init(becameKey: true, appBecameActive: true, duration: 0.2, method: "activate(from:)", panelLatency: 0.110, panelLatencySource: "mouseDown"),
+        ])
+        XCTAssertEqual(trials.evidenceLines.last, "Panel süresinin başladığı an: Lanes'e haber geldiği an (1 deneme), simgeye basış (2 deneme).")
+    }
+
     func testSuggestedOutcome() {
         XCTAssertEqual(ActivationTrials().suggestedOutcome, .notRun)
         XCTAssertEqual(ActivationTrials(trials: [.init(becameKey: true, appBecameActive: true, duration: 0.1, method: "a")]).suggestedOutcome, .passed)

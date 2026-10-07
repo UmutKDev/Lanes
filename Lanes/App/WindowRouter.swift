@@ -25,13 +25,18 @@ final class WindowRouter {
         if let destination {
             navigation.navigate(to: destination)
         }
+        // Read before closing: check 9's icon-click run counts only windows
+        // opened from the panel.
+        let fromPanel = statusItemController?.isPanelVisible == true
         statusItemController?.closePanel()
         let controller = mainWindowController ?? MainWindowController(model: model, router: self)
         mainWindowController = controller
         return Task { @MainActor in
             guard let window = controller.window else { return nil }
             let outcome = await WindowActivator.bringForward(window)
-            self.recordIconClickTrial(outcome)
+            if fromPanel {
+                self.recordIconClickTrial(outcome)
+            }
             return outcome
         }
     }
@@ -94,13 +99,14 @@ final class WindowRouter {
     /// icon and the panel's window button, and Lanes records each try. Between
     /// tries it closes the window and hands focus to Finder.
     func startIconClickTrials(count: Int) {
-        _ = statusItemController?.takePanelLatency()
+        statusItemController?.setMeasuringIconClicks(true)
         model.validation.iconClickRun = ValidationModel.IconClickRun(target: count)
         Task { await prepareForNextIconClick() }
     }
 
     func stopIconClickTrials() {
         model.validation.iconClickRun = nil
+        statusItemController?.setMeasuringIconClicks(false)
     }
 
     private func prepareForNextIconClick() async {
@@ -117,12 +123,14 @@ final class WindowRouter {
 
     private func recordIconClickTrial(_ outcome: WindowActivator.Outcome) {
         guard var run = model.validation.iconClickRun else { return }
+        let latency = statusItemController?.takePanelLatency()
         run.trials.append(ActivationTrials.Trial(
             becameKey: outcome.becameKey,
             appBecameActive: outcome.appBecameActive && outcome.showsDockIcon == Preferences.showsDockIconWithWindow,
             duration: outcome.duration,
             method: outcome.method.rawValue,
-            panelLatency: statusItemController?.takePanelLatency()
+            panelLatency: latency?.seconds,
+            panelLatencySource: latency?.source
         ))
         guard run.trials.count >= run.target else {
             model.validation.iconClickRun = run
@@ -130,6 +138,7 @@ final class WindowRouter {
             return
         }
         model.validation.iconClickRun = nil
+        statusItemController?.setMeasuringIconClicks(false)
         let summary = ActivationTrials(trials: run.trials)
         let validation = model.validation
         validation.appendEvidence(["Panel menü çubuğundaki simgeye tıklanarak açıldı."] + summary.evidenceLines, for: .mainWindowActivation)
