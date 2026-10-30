@@ -67,7 +67,7 @@ Testler: `make core-test`
 
 Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizlilik sayfasında tek listede duruyor. Kısaca:
 
-- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı. Faz 0 denemelerinde yalnız klasörlerin değişme saati.
+- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati.
 - **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine yalnız Claude yazar), Terminal komut dosyaları ve Faz 0 sonuçları. Faz 0 klonları `~/Applications/Lanes Profiles` altında.
 - **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
 - **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Lanes'in yaptığı tek ağ isteği bu.

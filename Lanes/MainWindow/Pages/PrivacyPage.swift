@@ -28,7 +28,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "Klasörlerin değişme saati",
-                    detail: "Yalnız Faz 0 denemelerinde, bir hesabın kendi klasörünü kullandığını doğrulamak için. Dosyaların kendisi açılmaz."
+                    detail: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde, o hesabın Claude'unun kendi klasörünü kullandığını doğrulamak için. Yalnız klasörün ve doğrudan içindekilerin saatine bakılır, dosyaların kendisi açılmaz."
                 )
             }
 
