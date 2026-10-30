@@ -61,7 +61,7 @@ enum Destination: Hashable {
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .settings: return true
+        case .overview, .account, .privacy, .settings: return true
         default: return showingDeveloperPages
         }
     }
@@ -77,7 +77,6 @@ enum Destination: Hashable {
         case .scenes: return String(localized: "Birden çok hesabı tek tıkla, belirli pencere düzeniyle açan kayıtlı düzenler.")
         case .health: return String(localized: "Claude sürümü, klonların imza durumu ve bağlantı varsayılanı tek bakışta.")
         case .maintenance: return String(localized: "Profil klasörlerinin boyutu, önbellek temizliği ve yedekleme.")
-        case .privacy: return String(localized: "Lanes'in neye dokunduğu, neye asla dokunmadığı. Giriş bilgileri hiçbir zaman okunmaz.")
         case .integrations: return String(localized: "Kısayollar, Raycast ve Alfred ile bağlantılar.")
         default: return ""
         }

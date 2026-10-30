@@ -11,6 +11,8 @@ Bu ilk sürüm iki şey içeriyor:
 - Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde başlatma.
 - Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme ve Claude'un davranışını ölçen sekiz Faz 0.5 denemesi. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
 
+Denemek için: [docs/test-kilavuzu.md](docs/test-kilavuzu.md)
+
 ## Derleme
 
 Gerekenler: macOS 26 ya da üstü, Xcode 26 ya da 27 ve XcodeGen. CI her değişikliği Xcode 27.0, 27.1 ve 26.6 ile derliyor.
@@ -60,6 +62,16 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 | `scripts` | `make release` betiği. |
 
 Testler: `make core-test`
+
+## Gizlilik
+
+Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizlilik sayfasında tek listede duruyor. Kısaca:
+
+- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı. Faz 0 denemelerinde yalnız klasörlerin değişme saati.
+- **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi, hesap klasörleri (içine yalnız Claude yazar), Terminal komut dosyaları ve Faz 0 sonuçları. Faz 0 klonları `~/Applications/Lanes Profiles` altında.
+- **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
+- **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Lanes'in yaptığı tek ağ isteği bu.
+- **Dokunmadıkları:** Giriş bilgileri, çerezler, Anahtar Zinciri, sohbetler, Claude'un ayar dosyaları ve hesap klasörlerinin içi.
 
 ## Lisans
 

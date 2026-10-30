@@ -37,6 +37,9 @@ final class AppModel {
     /// The overview's "Claude was not found" warning, closed until Lanes
     /// quits. It comes back on the next launch if Claude is still missing.
     var isMissingClaudeNoticeDismissed = false
+    /// Lanes runs from a temporary read-only copy, see AppLocation.
+    let isTranslocated = AppLocation.isTranslocated(bundlePath: Bundle.main.bundlePath)
+    var isTranslocationNoticeDismissed = false
     /// The "could not bring forward" warning describes one attempt only, so
     /// the next attempt clears it.
     @ObservationIgnored private var activationWarningID: Notice.ID?
@@ -63,6 +66,7 @@ final class AppModel {
 
     func start() {
         claude = ClaudeInstallation.find(paths: paths)
+        Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
         }
@@ -82,6 +86,7 @@ final class AppModel {
             }
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
+        Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
     }
 
     /// Claude.app and every clone Lanes made.
@@ -139,13 +144,16 @@ final class AppModel {
         switch action {
         case let .activate(pid):
             let inFront = await InstanceLauncher.activate(pid: pid)
+            Log.instances.info("Bring forward PID \(pid): \(inFront ? "in front" : "stayed behind", privacy: .public)")
             if !inFront {
                 stayedBehind = pid
             }
         case let .launch(plan):
             do {
                 try await InstanceLauncher.launch(plan)
+                Log.instances.info("Launched \(plan.applicationURL.lastPathComponent == "Claude.app" ? "Claude" : "a clone", privacy: .public) with \(plan.arguments.isEmpty ? "Claude's own folder" : "its own folder", privacy: .public)")
             } catch {
+                Log.instances.error("Launch failed: \(error.localizedDescription)")
                 notice = Notice(kind: .error, message: String(localized: "\(profile.name) açılamadı: \(error.localizedDescription)"))
             }
         }
@@ -230,6 +238,42 @@ final class AppModel {
         save()
     }
 
+    // MARK: Diagnostics
+
+    /// Copies the diagnostics report and saves it in the Diagnostics folder.
+    /// Returns the saved file, or nil when it could not be written.
+    @discardableResult
+    func prepareDiagnostics() -> URL? {
+        refreshInstances()
+        var folderExists: [ProfileID: Bool] = [:]
+        for profile in library.profiles {
+            folderExists[profile.id] = FileManager.default.fileExists(atPath: paths.profileDirectory(for: profile.id).path)
+        }
+        let report = DiagnosticsReport(
+            environment: validation.environment(),
+            claudePath: claude?.url.path,
+            linkHandlerPath: LinkHandlerRegistry.currentHandler()?.path,
+            isTranslocated: isTranslocated,
+            updatesEnabled: updater.isAvailable,
+            profiles: library.profiles,
+            folderExists: folderExists,
+            instances: instances,
+            generatedAt: Date(),
+            homeDirectory: NSHomeDirectory()
+        ).markdown()
+        SystemActions.copy(report)
+        let file = paths.diagnosticsDirectory.appendingPathComponent("lanes-tanilama.md", isDirectory: false)
+        do {
+            try FileManager.default.createDirectory(at: paths.diagnosticsDirectory, withIntermediateDirectories: true)
+            try report.write(to: file, atomically: true, encoding: .utf8)
+            Log.app.info("Diagnostics saved")
+            return file
+        } catch {
+            Log.app.error("Diagnostics not saved: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     func profile(withID id: ProfileID) -> Profile? {
         library.profile(withID: id)
     }
@@ -240,10 +284,13 @@ final class AppModel {
 
     private func save() {
         do {
-            if let setAside = try store.save(library) {
+            let setAside = try store.save(library)
+            Log.app.info("Saved \(self.library.profiles.count) accounts")
+            if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan profil listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }
         } catch {
+            Log.app.error("Save failed: \(error.localizedDescription)")
             notice = Notice(kind: .error, message: String(localized: "Profil listesi kaydedilemedi: \(error.localizedDescription)"))
         }
     }
