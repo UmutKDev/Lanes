@@ -1,4 +1,4 @@
-.PHONY: project open build test core-test clean
+.PHONY: project open build release test core-test clean
 
 # Generates Lanes.xcodeproj from project.yml.
 project:
@@ -10,6 +10,11 @@ open: project
 
 build: project
 	xcodebuild -project Lanes.xcodeproj -scheme Lanes -configuration Debug -destination 'platform=macOS' build
+
+# Developer ID signed, notarized DMG in build/release. Needs LANES_TEAM_ID and
+# notarytool credentials; see scripts/release.sh.
+release:
+	scripts/release.sh
 
 # LanesCore's tests run with plain SwiftPM, on macOS or Linux.
 core-test:

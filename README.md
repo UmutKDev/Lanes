@@ -22,7 +22,25 @@ make open
 
 `make open` Xcode projesini `project.yml` dosyasından oluşturur ve Xcode'da açar. Proje dosyası depoda tutulmuyor, `project.yml` tek kaynak.
 
-Kendi ekip kimliğinle imzalamak için `Config/Local.xcconfig.example` dosyasını `Config/Local.xcconfig` olarak kopyala ve ekip kimliğini yaz. Ekip kimliği olmadan da derlenir, ama macOS o durumda her derlemeden sonra Otomasyon iznini yeniden sorar.
+Kendi ekip kimliğinle imzalamak için `Config/Local.xcconfig.example` dosyasını `Config/Local.xcconfig` olarak kopyala ve ekip kimliğini yaz. Ekip kimliği olmadan da derlenir, ama macOS o durumda her derlemeden sonra Otomasyon iznini yeniden sorar. Bu dosyayı yalnız Debug derlemesi okur.
+
+## Sürüm
+
+Test edenlere giden DMG'yi tek komut hazırlar:
+
+```sh
+LANES_TEAM_ID=ABCDE12345 make release
+```
+
+Komut uygulamayı Developer ID ile imzalar, Apple'ın onay taramasından (notarization) geçirir ve onayı pakete ekler. Ardından aynısını DMG için yapar. Her adımdan sonra imzayı ve `spctl` sonucunu denetler. Bir denetim geçmezse DMG oluşmaz. Sonuç `build/release/<sürüm>-<derleme>/` klasörüne düşer. Derleme numarası commit sayısıdır, bu yüzden komut yalnız temiz ve tam bir klondan çalışır.
+
+Bir Mac'te bir kez hazırlanması gerekenler:
+
+- Xcode 27. Xcode 26 ile yapılan derleme macOS 27'ye özel menü çubuğu kodunu dışarıda bırakıyor.
+- Anahtar Zinciri'nde ekibin "Developer ID Application" sertifikası.
+- Onay taraması için kaydedilmiş giriş bilgisi: `xcrun notarytool store-credentials lanes-notary`. Başka bir ad için `LANES_NOTARY_PROFILE` kullanılır.
+
+Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişiklikte Release'i Xcode 27 ile imzasız derler.
 
 ## Yapı
 
@@ -34,5 +52,7 @@ Kendi ekip kimliğinle imzalamak için `Config/Local.xcconfig.example` dosyasın
 | `Lanes/MainWindow` | Ana pencere: kenar çubuğu, hesap sayfası, ayarlar. |
 | `Lanes/Validation` | Faz 0 ve Faz 0.5 doğrulama ekranı. |
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
+| `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
+| `scripts` | `make release` betiği. |
 
 Testler: `make core-test`

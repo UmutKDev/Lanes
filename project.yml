@@ -21,8 +21,8 @@ targets:
     type: application
     platform: macOS
     configFiles:
-      Debug: Config/Lanes.xcconfig
-      Release: Config/Lanes.xcconfig
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
     sources:
       - path: Lanes
     dependencies:
@@ -58,7 +58,6 @@ targets:
         SWIFT_VERSION: "5.0"
         SWIFT_STRICT_CONCURRENCY: minimal
         ENABLE_HARDENED_RUNTIME: YES
-        CODE_SIGN_STYLE: Automatic
         DEAD_CODE_STRIPPING: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         SWIFT_EMIT_LOC_STRINGS: YES
