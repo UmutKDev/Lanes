@@ -8,6 +8,7 @@ enum Preferences {
         static let linkRoutingEnabled = "linkRoutingEnabled"
         static let lastSettingsPane = "lastSettingsPane"
         static let showsDeveloperPages = "showsDeveloperPages"
+        static let relaunchedAfterUpdate = "relaunchedAfterUpdate"
     }
 
     static var showsDockIconWithWindow: Bool {

@@ -161,10 +161,20 @@ tag="v$version-$build"
 updates="$out/updates"
 mkdir -p "$updates"
 cp "$dmg" "$updates/"
+# Release notes for Sparkle's update window: the commit subjects since the
+# previous release tag. generate_appcast picks the file up by the DMG's name.
+previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+notes="$updates/$(basename "$dmg" .dmg).html"
+{
+  echo "<ul>"
+  git log --no-merges --format='%s' ${previous:+"$previous..HEAD"} \
+    | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's#.*#<li>&</li>#'
+  echo "</ul>"
+} >"$notes"
 generate_appcast="$out/packages/artifacts/sparkle/Sparkle/bin/generate_appcast"
 [ -x "$generate_appcast" ] || fail "generate_appcast bulunamadı: $generate_appcast"
-# Signs the DMG with the EdDSA key from the keychain.
-"$generate_appcast" --download-url-prefix "https://github.com/$repo/releases/download/$tag/" "$updates"
+# Signs the DMG with the EdDSA key from the keychain and embeds the notes.
+"$generate_appcast" --embed-release-notes --download-url-prefix "https://github.com/$repo/releases/download/$tag/" "$updates"
 [ -f "$updates/appcast.xml" ] || fail "appcast.xml oluşmadı."
 
 step "Hazır"
