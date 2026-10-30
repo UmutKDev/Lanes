@@ -62,6 +62,20 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log
+      # Release is what testers get, so it has to compile too. Signing is off:
+      # CI has no Developer ID certificate. Only Xcode 27 makes releases.
+      - name: Build Release (unsigned)
+        if: startsWith(matrix.xcode, '27')
+        shell: bash
+        run: |
+          xcodebuild \
+            -project Lanes.xcodeproj \
+            -scheme Lanes \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build-release.log
       - name: Commit in Info.plist
         shell: bash
         run: |
@@ -75,8 +89,10 @@ jobs:
         if: always()
         shell: bash
         run: |
-          grep -E "(error|warning): " build.log | sort -u | head -100 || true
-          if grep -qE "\.swift:[0-9]+:[0-9]+: warning: " build.log; then
+          logs=$(ls build.log build-release.log 2>/dev/null || true)
+          [ -n "$logs" ] || exit 0
+          grep -hE "(error|warning): " $logs | sort -u | head -100 || true
+          if grep -qE "\.swift:[0-9]+:[0-9]+: warning: " $logs; then
             echo "::error::The Swift code builds with warnings."
             exit 1
           fi

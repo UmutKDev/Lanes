@@ -5,13 +5,12 @@ struct SidebarView: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
     @State private var profilePendingRemoval: Profile?
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         List(selection: selection) {
             Section {
-                row(.overview)
-                row(.sessions)
-                row(.usage)
+                rows([.overview, .sessions, .usage])
             }
 
             Section {
@@ -50,23 +49,18 @@ struct SidebarView: View {
                 }
             }
 
-            Section("Yönlendirme") {
-                row(.accountMap)
-                row(.links)
-            }
+            if showsDeveloperPages {
+                Section("Yönlendirme") {
+                    rows([.accountMap, .links])
+                }
 
-            Section("Kitaplık") {
-                row(.toolbox)
-                row(.scenes)
+                Section("Kitaplık") {
+                    rows([.toolbox, .scenes])
+                }
             }
 
             Section("Sistem") {
-                row(.health)
-                row(.maintenance)
-                row(.privacy)
-                row(.integrations)
-                row(.validation)
-                row(.settings)
+                rows([.health, .maintenance, .privacy, .integrations, .validation, .settings])
             }
         }
         .listStyle(.sidebar)
@@ -99,9 +93,12 @@ struct SidebarView: View {
         return String(localized: "\(profile.name) Lanes'ten kaldırılsın mı?")
     }
 
-    private func row(_ destination: Destination) -> some View {
-        NavigationLink(value: destination) {
-            Label(destination.title, systemImage: destination.symbol)
+    /// The destinations the developer pages setting lets through.
+    private func rows(_ destinations: [Destination]) -> some View {
+        ForEach(destinations.filter { $0.isVisible(showingDeveloperPages: showsDeveloperPages) }, id: \.self) { destination in
+            NavigationLink(value: destination) {
+                Label(destination.title, systemImage: destination.symbol)
+            }
         }
     }
 }

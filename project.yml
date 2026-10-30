@@ -5,7 +5,7 @@ name: Lanes
 options:
   bundleIdPrefix: com.umutkdev
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"
   developmentLanguage: tr
   createIntermediateGroups: true
   groupSortPosition: top
@@ -16,17 +16,23 @@ settings:
 packages:
   LanesCore:
     path: Packages/LanesCore
+  # In-app updates for builds handed out as a DMG. Lanes's only outside
+  # dependency.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.7.0"
 targets:
   Lanes:
     type: application
     platform: macOS
     configFiles:
-      Debug: Config/Lanes.xcconfig
-      Release: Config/Lanes.xcconfig
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
     sources:
       - path: Lanes
     dependencies:
       - package: LanesCore
+      - package: Sparkle
     info:
       path: Lanes/Info.plist
       properties:
@@ -38,7 +44,10 @@ targets:
         # Lives in the menu bar; the Dock icon appears only while the main
         # window is open.
         LSUIElement: true
-        NSHumanReadableCopyright: "© 2026 Umut. Tüm hakları saklıdır."
+        NSHumanReadableCopyright: "© 2026 Umut Kızıloğlu. MIT lisansıyla."
+        # Empty in Debug, so those builds never check for updates.
+        SUFeedURL: $(LANES_UPDATE_FEED_URL)
+        SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
         NSAppleEventsUsageDescription: "Lanes, claude:// bağlantılarını seçtiğin hesabın Claude penceresine teslim etmek ve o pencereyi öne getirmek için Claude'a komut gönderir."
         # Declared so Faz 0 can test taking over claude:// links. Lanes hands
         # the default back to Claude on launch unless link routing is on.
@@ -58,7 +67,6 @@ targets:
         SWIFT_VERSION: "5.0"
         SWIFT_STRICT_CONCURRENCY: minimal
         ENABLE_HARDENED_RUNTIME: YES
-        CODE_SIGN_STYLE: Automatic
         DEAD_CODE_STRIPPING: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         SWIFT_EMIT_LOC_STRINGS: YES

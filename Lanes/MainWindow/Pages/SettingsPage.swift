@@ -5,11 +5,12 @@ import SwiftUI
 /// pane the user saw last.
 struct SettingsPage: View {
     @Environment(NavigationModel.self) private var navigation
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         HStack(spacing: 0) {
             List(selection: paneBinding) {
-                ForEach(SettingsPane.allCases) { pane in
+                ForEach(SettingsPane.visible(showingDeveloperPages: showsDeveloperPages)) { pane in
                     Label(pane.title, systemImage: pane.symbol)
                         .tag(pane)
                 }
@@ -26,14 +27,19 @@ struct SettingsPage: View {
 
     private var paneBinding: Binding<SettingsPane?> {
         Binding(
-            get: { navigation.settingsPane },
+            get: { pane },
             set: { if let pane = $0 { navigation.selectSettingsPane(pane) } }
         )
     }
 
+    /// The remembered pane, or General when the setting hides it.
+    private var pane: SettingsPane {
+        navigation.settingsPane.isBuilt || showsDeveloperPages ? navigation.settingsPane : .general
+    }
+
     @ViewBuilder
     private var paneContent: some View {
-        switch navigation.settingsPane {
+        switch pane {
         case .general:
             GeneralSettings()
         case .menuBarAndDock:
@@ -47,7 +53,7 @@ struct SettingsPage: View {
         case .notifications:
             PlannedSettings(text: String(localized: "Bir hesabın sınırı dolduğunda ya da yeniden açıldığında haber verme."))
         case .updates:
-            PlannedSettings(text: String(localized: "Lanes güncellemeleri ve Claude güncellemesinden sonra yapılan kontroller."))
+            UpdateSettings()
         case .license:
             PlannedSettings(text: String(localized: "Lisans ve deneme süresi."))
         }
@@ -124,11 +130,63 @@ private struct MenuBarAndDockSettings: View {
     }
 }
 
-private struct AdvancedSettings: View {
+private struct UpdateSettings: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         Form {
+            Section("Lanes") {
+                LabeledContent("Sürüm", value: version)
+                if model.updater.isAvailable {
+                    Toggle("Güncellemeleri kendiliğinden denetle", isOn: Binding(
+                        get: { model.updater.automaticallyChecks },
+                        set: { model.updater.setAutomaticallyChecks($0) }
+                    ))
+                    HStack {
+                        Button("Şimdi Denetle") {
+                            model.updater.checkNow()
+                        }
+                        if let lastCheck = model.updater.lastCheck {
+                            Text("Son denetim: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("Lanes güncelleme olup olmadığını GitHub'daki sürüm listesinden öğrenir. Bu denetim Lanes'in yaptığı tek ağ isteği. Güncelleme yüklenmeden önce Lanes'in imzası denetlenir.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Bu derleme kendini güncellemez. Güncellemeler yalnız DMG ile dağıtılan sürümlerde açık.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
+    }
+}
+
+private struct AdvancedSettings: View {
+    @Environment(AppModel.self) private var model
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
+
+    var body: some View {
+        Form {
+            Section("Geliştirme") {
+                Toggle("Faz 0 denemelerini ve yapım aşamasındaki sayfaları göster", isOn: $showsDeveloperPages)
+                Text("Denemeleri yeniden yapmak için. Henüz çalışmayan sayfalar \"Alfa sürümünde geliyor\" yazar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Section("Lanes klasörleri") {
                 LabeledContent("Profiller") {
                     PathRow(url: model.paths.root)

@@ -1,0 +1,14 @@
+// Debug signs ad hoc ("Sign to Run Locally") unless Local.xcconfig sets a
+// team. Copy Local.xcconfig.example to Local.xcconfig and fill in your team ID;
+// git ignores the copy. With a team, macOS remembers Lanes's Automation
+// permission across rebuilds.
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"
+
+// Debug builds never update themselves: an update would replace the build
+// under development with a release.
+LANES_UPDATE_FEED_URL =
+LANES_SPARKLE_PUBLIC_KEY =

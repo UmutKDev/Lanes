@@ -1,0 +1,16 @@
+// Release signs by hand with Developer ID, for builds handed out outside the
+// Mac App Store. It never reads Local.xcconfig, so a personal Apple
+// Development setup can't end up in a release. `make release` passes the team
+// as LANES_TEAM_ID; a plain Release build without it only works with signing
+// turned off (CI builds with CODE_SIGNING_ALLOWED=NO).
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Developer ID Application
+DEVELOPMENT_TEAM = $(LANES_TEAM_ID)
+// Notarization rejects signatures without a secure timestamp.
+OTHER_CODE_SIGN_FLAGS = --timestamp
+
+// Sparkle reads the update feed and checks every update against this public
+// EdDSA key. The private half stays in the release Mac's keychain (Sparkle's
+// generate_keys). Without a key Lanes never checks for updates.
+LANES_UPDATE_FEED_URL = https:/$()/github.com/UmutKDev/Lanes/releases/latest/download/appcast.xml
+LANES_SPARKLE_PUBLIC_KEY = EFgi4LKs1cfOqoDtevFXN3+WTZoRql9H/6qkk7dt3Hk=
