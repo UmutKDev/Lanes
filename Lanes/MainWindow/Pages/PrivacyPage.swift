@@ -36,7 +36,7 @@ struct PrivacyPage: View {
                 LabeledContent("Hesap listesi ve hesap klasörleri") {
                     PathRow(url: model.paths.root)
                 }
-                Text("Hesap listesi profiles.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine yalnız Claude yazar. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.")
+                Text("Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine yalnız Claude yazar. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

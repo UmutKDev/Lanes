@@ -76,9 +76,18 @@ struct SidebarView: View {
                 navigation.forget(profile.id)
                 model.removeProfile(profile)
             }
-        } message: { _ in
-            Text("Hesabın klasörü silinmez. Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
+        } message: { profile in
+            Text(removalMessage(for: profile))
         }
+    }
+
+    private func removalMessage(for profile: Profile) -> String {
+        let folder = (model.paths.profileDirectory(for: profile.id).path as NSString).abbreviatingWithTildeInPath
+        var message = String(localized: "Hesabın klasörü silinmez: \(folder). Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
+        if model.isRunning(profile) {
+            message += "\n\n" + String(localized: "Bu hesabın Claude'u şu an açık. Kaldırmadan önce onu kapatman iyi olur.")
+        }
+        return message
     }
 
     private var selection: Binding<Destination?> {

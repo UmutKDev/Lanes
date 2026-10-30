@@ -56,11 +56,19 @@ final class AppModel {
         self.library = startup.library
         validation.currentClaude = { [weak self] in self?.claude }
 
-        if let loadError = startup.loadError {
+        if startup.restoredFromBackup {
+            Log.app.error("Profile list unreadable, restored from backup")
+            // Saving now moves the unreadable file aside and keeps it.
+            save()
+            notice = Notice(kind: .warning, message: String(localized: "Profil listesi okunamadı, son sağlam kopyasından geri yüklendi. Okunamayan dosya aynı klasörde başka bir adla saklandı."))
+        } else if let loadError = startup.loadError {
             notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
+        } else if startup.addedMissingDefault {
+            save()
+            notice = Notice(kind: .warning, message: String(localized: "Profil listesinde Ana hesap yoktu, yeniden eklendi. Claude'un kendi klasörlerini kullanıyor."))
         }
     }
 
