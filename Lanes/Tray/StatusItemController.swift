@@ -30,6 +30,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     /// below does nothing and no event monitor is installed.
     private var isMeasuringIconClicks = false
     private var mouseDownMonitors: [Any] = []
+    private var defaultsObserver: NSObjectProtocol?
     /// Recent presses on the icon, on the system uptime clock that NSEvent
     /// timestamps use.
     private var iconMouseDowns: [TimeInterval] = []
@@ -77,6 +78,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         }
         #endif
         observeRunningCount()
+        observeCountSetting()
     }
 
     /// Shows how many accounts are open next to the icon, and keeps it current.
@@ -90,15 +92,31 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// The count setting lives in UserDefaults, which Observation does not
+    /// track, so turning it on or off in Settings would otherwise show only
+    /// when the next account opens or closes.
+    private func observeCountSetting() {
+        defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.updateTitle()
+            }
+        }
+    }
+
     private func updateTitle() {
+        let title: String
         if let run = model.validation.iconClickRun {
             // "…" while Lanes gets ready for the next try.
-            statusItem.button?.title = run.isArmed ? " \(min(run.trials.count + 1, run.target))/\(run.target)" : " …"
-            return
+            title = run.isArmed ? " \(min(run.trials.count + 1, run.target))/\(run.target)" : " …"
+        } else {
+            let count = model.runningCount
+            title = Preferences.showsRunningCountInMenuBar && count > 1 ? " \(count)" : ""
         }
-        let count = model.runningCount
-        let title = Preferences.showsRunningCountInMenuBar && count > 1 ? " \(count)" : ""
-        statusItem.button?.title = title
+        // Every UserDefaults change lands here, so an unchanged title is left
+        // alone.
+        if statusItem.button?.title != title {
+            statusItem.button?.title = title
+        }
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {

@@ -34,5 +34,6 @@ Kendi ekip kimliğinle imzalamak için `Config/Local.xcconfig.example` dosyasın
 | `Lanes/MainWindow` | Ana pencere: kenar çubuğu, hesap sayfası, ayarlar. |
 | `Lanes/Validation` | Faz 0 ve Faz 0.5 doğrulama ekranı. |
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
+| `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 
 Testler: `make core-test`

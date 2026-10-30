@@ -34,6 +34,9 @@ final class AppModel {
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
     var notice: Notice?
+    /// The overview's "Claude was not found" warning, closed until Lanes
+    /// quits. It comes back on the next launch if Claude is still missing.
+    var isMissingClaudeNoticeDismissed = false
     /// The "could not bring forward" warning describes one attempt only, so
     /// the next attempt clears it.
     @ObservationIgnored private var activationWarningID: Notice.ID?
