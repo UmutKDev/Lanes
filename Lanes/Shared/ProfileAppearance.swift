@@ -112,45 +112,11 @@ struct MonogramView: View {
     }
 }
 
-/// The panel's background: Liquid Glass on macOS 26, a vibrant material before.
+/// The panel's background: Liquid Glass.
 struct PanelBackground: ViewModifier {
     var cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
-            content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            legacy(content)
-        }
-        #else
-        legacy(content)
-        #endif
-    }
-
-    private func legacy(_ content: Content) -> some View {
-        content
-            .background(VisualEffectBackground(material: .popover))
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-            )
-    }
-}
-
-struct VisualEffectBackground: NSViewRepresentable {
-    var material: NSVisualEffectView.Material
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = .behindWindow
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = material
+        content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
     }
 }

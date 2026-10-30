@@ -5,7 +5,7 @@ name: Lanes
 options:
   bundleIdPrefix: com.umutkdev
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"
   developmentLanguage: tr
   createIntermediateGroups: true
   groupSortPosition: top
