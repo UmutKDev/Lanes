@@ -37,6 +37,9 @@ final class AppModel {
     /// The overview's "Claude was not found" warning, closed until Lanes
     /// quits. It comes back on the next launch if Claude is still missing.
     var isMissingClaudeNoticeDismissed = false
+    /// Lanes runs from a temporary read-only copy, see AppLocation.
+    let isTranslocated = AppLocation.isTranslocated(bundlePath: Bundle.main.bundlePath)
+    var isTranslocationNoticeDismissed = false
     /// The "could not bring forward" warning describes one attempt only, so
     /// the next attempt clears it.
     @ObservationIgnored private var activationWarningID: Notice.ID?

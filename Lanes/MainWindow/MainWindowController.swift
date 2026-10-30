@@ -146,6 +146,8 @@ private struct DetailView: View {
                 .id(id)
         case .settings:
             SettingsPage()
+        case .privacy:
+            PrivacyPage()
         case .validation:
             ValidationPage()
         default:

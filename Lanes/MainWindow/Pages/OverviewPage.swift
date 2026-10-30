@@ -17,6 +17,12 @@ struct OverviewPage: View {
                 if let notice = model.notice {
                     NoticeRow(notice: notice) { model.notice = nil }
                 }
+                if model.isTranslocated && !model.isTranslocationNoticeDismissed {
+                    NoticeRow(
+                        notice: AppModel.Notice(kind: .warning, message: String(localized: "Lanes geçici bir kopyadan çalışıyor, çünkü doğrudan DMG'den ya da İndirilenler'den açıldı. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne sürükle ve oradan aç. Yoksa güncellemeler yüklenemez ve macOS Otomasyon iznini yeniden sorabilir.")),
+                        onDismiss: { model.isTranslocationNoticeDismissed = true }
+                    )
+                }
                 if model.claude == nil && !model.isMissingClaudeNoticeDismissed {
                     NoticeRow(
                         notice: AppModel.Notice(kind: .warning, message: String(localized: "Claude bu Mac'te bulunamadı. Lanes, hesapları açmak için Claude'un yüklü olmasını bekliyor.")),
