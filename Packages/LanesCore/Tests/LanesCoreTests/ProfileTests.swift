@@ -137,8 +137,9 @@ final class ProfileStoreTests: XCTestCase {
         XCTAssertNil(try store.save(library))
         try library.add(Profile(name: "A", color: .blue))
         XCTAssertNil(try store.save(library))
-        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
-        XCTAssertEqual(files, ["profiles.json"])
+        // Only the backup of the previous readable list joins it.
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path).sorted()
+        XCTAssertEqual(files, ["profiles.backup.json", "profiles.json"])
     }
 
     func testMoveAssignsShortcuts() throws {
