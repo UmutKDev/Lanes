@@ -59,3 +59,7 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 | `scripts` | `make release` betiği. |
 
 Testler: `make core-test`
+
+## Lisans
+
+Lanes [MIT lisansıyla](LICENSE) dağıtılıyor. Lanes bir Anthropic ürünü değil, Anthropic ile bir bağı yok. Claude, Anthropic'in ticari markası.

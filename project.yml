@@ -44,7 +44,7 @@ targets:
         # Lives in the menu bar; the Dock icon appears only while the main
         # window is open.
         LSUIElement: true
-        NSHumanReadableCopyright: "© 2026 Umut. Tüm hakları saklıdır."
+        NSHumanReadableCopyright: "© 2026 Umut Kızıloğlu. MIT lisansıyla."
         # Empty in Debug, so those builds never check for updates.
         SUFeedURL: $(LANES_UPDATE_FEED_URL)
         SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
