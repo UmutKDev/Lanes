@@ -17,10 +17,10 @@ struct OverviewPage: View {
                 if let notice = model.notice {
                     NoticeRow(notice: notice) { model.notice = nil }
                 }
-                if model.claude == nil {
+                if model.claude == nil && !model.isMissingClaudeNoticeDismissed {
                     NoticeRow(
                         notice: AppModel.Notice(kind: .warning, message: String(localized: "Claude bu Mac'te bulunamadı. Lanes, hesapları açmak için Claude'un yüklü olmasını bekliyor.")),
-                        onDismiss: {}
+                        onDismiss: { model.isMissingClaudeNoticeDismissed = true }
                     )
                 }
 
