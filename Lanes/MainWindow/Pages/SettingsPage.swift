@@ -176,6 +176,8 @@ private struct UpdateSettings: View {
 
 private struct AdvancedSettings: View {
     @Environment(AppModel.self) private var model
+    @State private var diagnosticsPrepared = false
+    @State private var diagnosticsFile: URL?
     @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
@@ -197,6 +199,23 @@ private struct AdvancedSettings: View {
                 LabeledContent("Tanılama") {
                     PathRow(url: model.paths.diagnosticsDirectory)
                 }
+            }
+            Section("Tanılama") {
+                HStack {
+                    Button("Tanılama Bilgisini Hazırla") {
+                        diagnosticsFile = model.prepareDiagnostics()
+                        diagnosticsPrepared = true
+                    }
+                    if diagnosticsPrepared {
+                        Text(diagnosticsFile == nil ? "Panoya kopyalandı, dosyaya yazılamadı." : "Panoya kopyalandı ve Tanılama klasörüne kaydedildi.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text("Lanes'in ve Claude'un sürümünü, hesapları ve çalışan her Claude'un kullandığı klasörü içerir. Hesap adları yerine numaralar, ev klasörün yerine ~ yazar. Hesap klasörlerinin içi okunmaz. Bir sorunu bildirirken bu metni yapıştırabilirsin.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Section("Lanes'in dokunmadıkları") {
                 Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
