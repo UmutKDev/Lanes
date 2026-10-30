@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItemController = StatusItemController(model: model, router: router)
         self.statusItemController = statusItemController
         router.statusItemController = statusItemController
-        if model.isFirstLaunch {
+        if model.isFirstLaunch || Updater.takeRelaunchedAfterUpdate() {
             router.showMainWindow(.overview)
         }
     }

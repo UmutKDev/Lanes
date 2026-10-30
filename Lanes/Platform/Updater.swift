@@ -9,6 +9,8 @@ import Sparkle
 @Observable
 final class Updater {
     @ObservationIgnored private let controller: SPUStandardUpdaterController?
+    // Sparkle holds its delegate weakly.
+    @ObservationIgnored private let delegate: UpdaterDelegate
 
     /// False in builds without a feed or key. The settings say so instead of
     /// offering a check that can't run.
@@ -18,8 +20,10 @@ final class Updater {
         let feed = bundle.object(forInfoDictionaryKey: "SUFeedURL") as? String ?? ""
         let key = bundle.object(forInfoDictionaryKey: "SUPublicEDKey") as? String ?? ""
         isAvailable = !feed.isEmpty && !key.isEmpty
+        let delegate = UpdaterDelegate()
+        self.delegate = delegate
         controller = isAvailable
-            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: delegate, userDriverDelegate: nil)
             : nil
         automaticallyChecks = controller?.updater.automaticallyChecksForUpdates ?? false
     }
@@ -39,5 +43,21 @@ final class Updater {
 
     func checkNow() {
         controller?.checkForUpdates(nil)
+    }
+
+    /// True once, on the launch right after Sparkle installed an update.
+    /// Lanes otherwise starts in the menu bar alone, and after "Yükle ve
+    /// Yeniden Başlat" nothing would show that the update finished.
+    static func takeRelaunchedAfterUpdate() -> Bool {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: Preferences.Key.relaunchedAfterUpdate) else { return false }
+        defaults.removeObject(forKey: Preferences.Key.relaunchedAfterUpdate)
+        return true
+    }
+}
+
+private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
+    func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+        UserDefaults.standard.set(true, forKey: Preferences.Key.relaunchedAfterUpdate)
     }
 }

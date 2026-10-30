@@ -43,7 +43,7 @@ Bir Mac'te bir kez hazırlanması gerekenler:
 - Onay taraması için kaydedilmiş giriş bilgisi: `xcrun notarytool store-credentials lanes-notary`. Başka bir ad için `LANES_NOTARY_PROFILE` kullanılır.
 - Sparkle'ın güncelleme anahtarı. Sparkle'ın `generate_keys` aracı gizli anahtarı Anahtar Zinciri'ne yazar ve açık anahtarı gösterir. Açık anahtar `Config/Release.xcconfig` dosyasında `LANES_SPARKLE_PUBLIC_KEY` olarak durur.
 
-Komut DMG'nin yanında Sparkle'ın güncelleme kaydını (`appcast.xml`) da hazırlar ve GitHub'da yayınlama komutunu yazdırır. `LANES_PUBLISH=1` ile sürümü `gh` üzerinden kendisi yayınlar. Lanes güncellemeleri bu deponun GitHub Releases sayfasındaki son sürümden öğrenir. Debug derlemeleri hiç güncelleme denetlemez.
+Komut DMG'nin yanında Sparkle'ın güncelleme kaydını (`appcast.xml`) da hazırlar. Güncelleme penceresindeki sürüm notu, bir önceki sürüm etiketinden bu yana yapılan commit'lerin başlıklarından oluşur. Komut ayrıca GitHub'da yayınlama komutunu yazdırır. `LANES_PUBLISH=1` ile sürümü `gh` üzerinden kendisi yayınlar. Lanes güncellemeleri bu deponun GitHub Releases sayfasındaki son sürümden öğrenir. Debug derlemeleri hiç güncelleme denetlemez.
 
 Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişiklikte Release'i Xcode 27 ile imzasız derler.
 
@@ -59,7 +59,7 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
 | `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
-| `scripts` | `make release` betiği. |
+| `scripts` | `make release` betiği ve uygulama simgesini çizen `make-icon.py`. |
 
 Testler: `make core-test`
 
