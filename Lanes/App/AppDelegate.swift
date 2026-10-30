@@ -16,6 +16,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        // An LSUIElement app that later turns regular gets a generic Dock
+        // icon, and Sparkle's windows show the same blank one. Finder reads
+        // the bundle's icon correctly, so Lanes takes it from there.
+        NSApp.applicationIconImage = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
         CodeSignature.readInBackground()
         model.start()
         let statusItemController = StatusItemController(model: model, router: router)
