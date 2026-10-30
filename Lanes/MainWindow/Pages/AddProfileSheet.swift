@@ -46,6 +46,14 @@ struct AddProfileSheet: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                Section("Yeni pencerede giriş") {
+                    // Faz 0.5 check 3: the return link of a Google or email
+                    // link sign-in reaches the main Claude, not the new
+                    // window. Typing the emailed code works in any window.
+                    SignInStep(number: 1, text: "Google ya da Apple ile değil, e-posta adresinle devam et.")
+                    SignInStep(number: 2, text: "Gelen e-postadaki bağlantıya tıklama. Bağlantı ana hesabın penceresinde açılır.")
+                    SignInStep(number: 3, text: "E-postadaki doğrulama kodunu yeni pencereye yaz.")
+                }
             }
             .formStyle(.grouped)
 
@@ -84,6 +92,21 @@ struct AddProfileSheet: View {
         navigation.navigate(to: .account(profile.id))
         if opensAfterAdding {
             model.open(profile)
+        }
+    }
+}
+
+private struct SignInStep: View {
+    let number: Int
+    let text: LocalizedStringKey
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("\(number).")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

@@ -11,6 +11,8 @@ Bu ilk sürüm iki şey içeriyor:
 - Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde başlatma.
 - Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme ve Claude'un davranışını ölçen sekiz Faz 0.5 denemesi. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
 
+Denemek için: [docs/test-kilavuzu.md](docs/test-kilavuzu.md)
+
 ## Derleme
 
 Gerekenler: macOS 26 ya da üstü, Xcode 26 ya da 27 ve XcodeGen. CI her değişikliği Xcode 27.0, 27.1 ve 26.6 ile derliyor.
