@@ -55,6 +55,7 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 | `Lanes/MainWindow` | Ana pencere: kenar çubuğu, hesap sayfası, ayarlar. |
 | `Lanes/Validation` | Faz 0 ve Faz 0.5 doğrulama ekranı. |
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
+| `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
 | `scripts` | `make release` betiği. |
 
