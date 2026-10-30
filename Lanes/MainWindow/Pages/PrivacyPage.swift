@@ -24,7 +24,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "claude:// bağlantılarını hangi uygulamanın açtığı",
-                    detail: "macOS'un varsayılan uygulama ayarından. Lanes bu ayarı değiştirmez, Claude'da bırakır."
+                    detail: "macOS'un varsayılan uygulama ayarından. Normal kullanımda Lanes bu ayarı Claude'da bırakır, yalnız Faz 0 denemesi geçici olarak değiştirir."
                 )
                 PrivacyItem(
                     title: "Klasörlerin değişme saati",
@@ -43,6 +43,10 @@ struct PrivacyPage: View {
                 LabeledContent("Faz 0 denemelerinin klonları") {
                     PathRow(url: model.paths.clonesDirectory)
                 }
+                PrivacyItem(
+                    title: "Sistem günlüğü",
+                    detail: "Açılış, tarama, hesap açma, öne getirme ve kaydetme gibi olaylar, hesap adı, klasör ya da bağlantı olmadan. Tanılama bilgisi yalnız sen düğmeye basınca hazırlanır ve Mac'inden çıkmaz."
+                )
                 PrivacyItem(
                     title: "Lanes'in kendi ayarları",
                     detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes)."
