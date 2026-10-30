@@ -132,10 +132,13 @@ struct MainWindowView: View {
 }
 
 private struct DetailView: View {
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     let destination: Destination
 
     var body: some View {
-        switch destination {
+        // A hidden page left in the history, or one the setting just hid,
+        // shows the overview instead.
+        switch destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview {
         case .overview:
             OverviewPage()
         case let .account(id):

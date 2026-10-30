@@ -6,6 +6,7 @@ import SwiftUI
 struct CommandPanelView: View {
     @Environment(AppModel.self) private var model
     @Environment(WindowRouter.self) private var router
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     var onClose: () -> Void
 
     var body: some View {
@@ -93,10 +94,12 @@ struct CommandPanelView: View {
             }
             Spacer()
             Menu {
-                Button("Faz 0 Doğrulama") {
-                    router.showMainWindow(.validation)
+                if showsDeveloperPages {
+                    Button("Faz 0 Doğrulama") {
+                        router.showMainWindow(.validation)
+                    }
+                    Divider()
                 }
-                Divider()
                 Button("Lanes'ten Çık") {
                     NSApp.terminate(nil)
                 }

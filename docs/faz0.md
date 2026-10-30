@@ -5,7 +5,7 @@ Faz 0, Lanes'in temel kararlarını senin Mac'inde doğrulayan dokuz kısa denem
 ## Başlamadan önce
 
 1. `make open` ile projeyi aç ve Lanes'i çalıştır.
-2. Menü çubuğundaki Lanes simgesine tıkla. Panelin altındaki üç nokta menüsünden "Faz 0 Doğrulama"yı seç.
+2. Menü çubuğundaki Lanes simgesine tıkla. Panelin altındaki üç nokta menüsünden "Faz 0 Doğrulama"yı seç. Release derlemesinde (`make release`) bu seçenek gizli. Önce Ayarlar > Gelişmiş'te "Faz 0 denemelerini ve yapım aşamasındaki sayfaları göster" seçeneğini aç.
 3. Denemelerin çoğu için en az iki hesap gerekiyor. Ana pencerede "Hesap Ekle" ile ikinci bir hesap ekle ve açılan Claude penceresinde giriş yap.
 
 Lanes ilk kez Claude'a bağlantı gönderdiğinde macOS bir Otomasyon izni sorar. Bu izin birinci denemenin konusu, "İzin Ver" demen gerekiyor.

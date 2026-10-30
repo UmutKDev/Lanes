@@ -5,11 +5,12 @@ import SwiftUI
 /// pane the user saw last.
 struct SettingsPage: View {
     @Environment(NavigationModel.self) private var navigation
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         HStack(spacing: 0) {
             List(selection: paneBinding) {
-                ForEach(SettingsPane.allCases) { pane in
+                ForEach(SettingsPane.visible(showingDeveloperPages: showsDeveloperPages)) { pane in
                     Label(pane.title, systemImage: pane.symbol)
                         .tag(pane)
                 }
@@ -26,14 +27,19 @@ struct SettingsPage: View {
 
     private var paneBinding: Binding<SettingsPane?> {
         Binding(
-            get: { navigation.settingsPane },
+            get: { pane },
             set: { if let pane = $0 { navigation.selectSettingsPane(pane) } }
         )
     }
 
+    /// The remembered pane, or General when the setting hides it.
+    private var pane: SettingsPane {
+        navigation.settingsPane.isBuilt || showsDeveloperPages ? navigation.settingsPane : .general
+    }
+
     @ViewBuilder
     private var paneContent: some View {
-        switch navigation.settingsPane {
+        switch pane {
         case .general:
             GeneralSettings()
         case .menuBarAndDock:
@@ -126,9 +132,17 @@ private struct MenuBarAndDockSettings: View {
 
 private struct AdvancedSettings: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         Form {
+            Section("Geliştirme") {
+                Toggle("Faz 0 denemelerini ve yapım aşamasındaki sayfaları göster", isOn: $showsDeveloperPages)
+                Text("Denemeleri yeniden yapmak için. Henüz çalışmayan sayfalar \"Alfa sürümünde geliyor\" yazar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Section("Lanes klasörleri") {
                 LabeledContent("Profiller") {
                     PathRow(url: model.paths.root)

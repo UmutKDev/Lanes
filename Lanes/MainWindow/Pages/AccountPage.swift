@@ -5,6 +5,7 @@ import SwiftUI
 struct AccountPage: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     let profileID: ProfileID
 
     var body: some View {
@@ -12,7 +13,7 @@ struct AccountPage: View {
             VStack(spacing: 0) {
                 AccountHeader(profile: profile)
                 Picker("Bölüm", selection: tabBinding) {
-                    ForEach(AccountTab.allCases) { tab in
+                    ForEach(AccountTab.visible(showingDeveloperPages: showsDeveloperPages)) { tab in
                         Text(tab.title).tag(tab)
                     }
                 }
@@ -29,12 +30,17 @@ struct AccountPage: View {
     }
 
     private var tabBinding: Binding<AccountTab> {
-        Binding(get: { navigation.accountTab }, set: { navigation.accountTab = $0 })
+        Binding(get: { tab }, set: { navigation.accountTab = $0 })
+    }
+
+    /// The chosen tab, or General when the setting hides it.
+    private var tab: AccountTab {
+        navigation.accountTab.isBuilt || showsDeveloperPages ? navigation.accountTab : .general
     }
 
     @ViewBuilder
     private func tabContent(for profile: Profile) -> some View {
-        switch navigation.accountTab {
+        switch tab {
         case .general:
             AccountGeneralTab(profile: profile)
         case .desktop:
