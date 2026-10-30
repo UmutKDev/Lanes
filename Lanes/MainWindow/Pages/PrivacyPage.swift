@@ -56,7 +56,7 @@ struct PrivacyPage: View {
             Section("Lanes'in gönderdikleri") {
                 PrivacyItem(
                     title: "Claude'a \"yeniden aç\" komutu",
-                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorar. Lanes Claude'a bağlantı ya da metin göndermez."
+                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorabilir. Lanes Claude'a bağlantı ya da metin göndermez."
                 )
                 PrivacyItem(
                     title: "Güncelleme denetimi",

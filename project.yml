@@ -48,7 +48,7 @@ targets:
         # Empty in Debug, so those builds never check for updates.
         SUFeedURL: $(LANES_UPDATE_FEED_URL)
         SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
-        NSAppleEventsUsageDescription: "Lanes, claude:// bağlantılarını seçtiğin hesabın Claude penceresine teslim etmek ve o pencereyi öne getirmek için Claude'a komut gönderir."
+        NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Normal kullanımda bağlantı, ileti ya da başka bir komut göndermez."
         # Declared so Faz 0 can test taking over claude:// links. Lanes hands
         # the default back to Claude on launch unless link routing is on.
         CFBundleURLTypes:
