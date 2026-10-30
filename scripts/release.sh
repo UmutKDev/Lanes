@@ -10,9 +10,14 @@
 #     keychain.
 #   - notarytool credentials saved under a keychain profile:
 #       xcrun notarytool store-credentials lanes-notary
+#   - Sparkle's EdDSA private key in the login keychain, with its public half
+#     in Config/Release.xcconfig (LANES_SPARKLE_PUBLIC_KEY). Sparkle's
+#     generate_keys tool makes both.
 #
 # Usage: LANES_TEAM_ID=ABCDE12345 make release
 # LANES_NOTARY_PROFILE picks another profile name (default lanes-notary).
+# LANES_PUBLISH=1 also creates the GitHub release with the DMG and the update
+# feed, using gh. Without it the script prints the command instead.
 set -euo pipefail
 
 fail() {
@@ -93,6 +98,7 @@ xcodebuild \
   -configuration Release \
   -destination 'generic/platform=macOS' \
   -archivePath "$archive" \
+  -clonedSourcePackagesDirPath "$out/packages" \
   LANES_TEAM_ID="$team" \
   CURRENT_PROJECT_VERSION="$build" \
   archive
@@ -114,6 +120,11 @@ plist="$app/Contents/Info.plist"
 [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = "$build" ] || fail "CFBundleVersion $build değil."
 [ "$(/usr/libexec/PlistBuddy -c 'Print :LanesGitCommit' "$plist")" = "$commit" ] || fail "LanesGitCommit $commit değil."
 [ "$(/usr/libexec/PlistBuddy -c 'Print :LanesGitTreeDirty' "$plist")" = false ] || fail "derleme kirli çalışma ağacından yapılmış."
+# Without both, the released Lanes would never find its next update.
+feed=$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$plist" 2>/dev/null || true)
+[ -n "$feed" ] || fail "SUFeedURL boş, Config/Release.xcconfig'te LANES_UPDATE_FEED_URL gerekli."
+[ -n "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist" 2>/dev/null || true)" ] \
+  || fail "SUPublicEDKey boş: Sparkle'ın generate_keys aracıyla anahtar üret, açık anahtarı Config/Release.xcconfig'te LANES_SPARKLE_PUBLIC_KEY'e yaz."
 
 step "Uygulama onay taramasına gönderiliyor"
 zip="$out/Lanes.zip"
@@ -141,6 +152,34 @@ xcrun stapler validate "$dmg"
 spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg" 2>&1 | tee "$out/spctl-dmg.txt"
 grep -q "source=Notarized Developer ID" "$out/spctl-dmg.txt" || fail "spctl DMG'yi Notarized Developer ID olarak kabul etmedi."
 
+step "Güncelleme kaydı hazırlanıyor"
+# The feed points at .../OWNER/REPO/releases/latest/download/appcast.xml, so
+# each release carries a feed that lists itself, downloaded from its own tag.
+repo=$(printf '%s' "$feed" | sed -nE 's#^https://github.com/([^/]+/[^/]+)/releases/latest/download/appcast\.xml$#\1#p')
+[ -n "$repo" ] || fail "SUFeedURL bir GitHub Releases adresi değil: $feed"
+tag="v$version-$build"
+updates="$out/updates"
+mkdir -p "$updates"
+cp "$dmg" "$updates/"
+generate_appcast="$out/packages/artifacts/sparkle/Sparkle/bin/generate_appcast"
+[ -x "$generate_appcast" ] || fail "generate_appcast bulunamadı: $generate_appcast"
+# Signs the DMG with the EdDSA key from the keychain.
+"$generate_appcast" --download-url-prefix "https://github.com/$repo/releases/download/$tag/" "$updates"
+[ -f "$updates/appcast.xml" ] || fail "appcast.xml oluşmadı."
+
 step "Hazır"
 shasum -a 256 "$dmg"
 echo "$dmg"
+echo "$updates/appcast.xml"
+
+publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" --notes "Commit $commit" "$updates/$(basename "$dmg")" "$updates/appcast.xml")
+if [ "${LANES_PUBLISH:-}" = 1 ]; then
+  step "GitHub'da yayınlanıyor"
+  command -v gh >/dev/null || fail "gh gerekli: brew install gh"
+  "${publish[@]}"
+else
+  echo
+  echo "Yayınlamak için:"
+  printf '%q ' "${publish[@]}"
+  echo
+fi

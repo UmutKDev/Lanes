@@ -39,6 +39,7 @@ final class AppModel {
     @ObservationIgnored private var activationWarningID: Notice.ID?
 
     let validation: ValidationModel
+    let updater = Updater()
 
     init(paths: ProfilePaths = .standard()) {
         let store = ProfileStore(paths: paths)

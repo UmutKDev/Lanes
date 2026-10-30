@@ -100,6 +100,11 @@ struct CommandPanelView: View {
                     }
                     Divider()
                 }
+                if model.updater.isAvailable {
+                    Button("Güncellemeleri Denetle…") {
+                        model.updater.checkNow()
+                    }
+                }
                 Button("Lanes'ten Çık") {
                     NSApp.terminate(nil)
                 }

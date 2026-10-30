@@ -39,6 +39,9 @@ Bir Mac'te bir kez hazırlanması gerekenler:
 - Xcode 27. Xcode 26 ile yapılan derleme macOS 27'ye özel menü çubuğu kodunu dışarıda bırakıyor.
 - Anahtar Zinciri'nde ekibin "Developer ID Application" sertifikası.
 - Onay taraması için kaydedilmiş giriş bilgisi: `xcrun notarytool store-credentials lanes-notary`. Başka bir ad için `LANES_NOTARY_PROFILE` kullanılır.
+- Sparkle'ın güncelleme anahtarı. Sparkle'ın `generate_keys` aracı gizli anahtarı Anahtar Zinciri'ne yazar ve açık anahtarı gösterir. Açık anahtar `Config/Release.xcconfig` dosyasında `LANES_SPARKLE_PUBLIC_KEY` olarak durur.
+
+Komut DMG'nin yanında Sparkle'ın güncelleme kaydını (`appcast.xml`) da hazırlar ve GitHub'da yayınlama komutunu yazdırır. `LANES_PUBLISH=1` ile sürümü `gh` üzerinden kendisi yayınlar. Test edenlerin Lanes'i güncellemeleri `UmutKDev/lanes-releases` deposundaki son sürümden öğrenir. Debug derlemeleri hiç güncelleme denetlemez.
 
 Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişiklikte Release'i Xcode 27 ile imzasız derler.
 

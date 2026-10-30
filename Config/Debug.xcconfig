@@ -7,3 +7,8 @@ CODE_SIGN_IDENTITY = -
 DEVELOPMENT_TEAM =
 
 #include? "Local.xcconfig"
+
+// Debug builds never update themselves: an update would replace the build
+// under development with a release.
+LANES_UPDATE_FEED_URL =
+LANES_SPARKLE_PUBLIC_KEY =

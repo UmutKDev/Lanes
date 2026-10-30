@@ -53,7 +53,7 @@ struct SettingsPage: View {
         case .notifications:
             PlannedSettings(text: String(localized: "Bir hesabın sınırı dolduğunda ya da yeniden açıldığında haber verme."))
         case .updates:
-            PlannedSettings(text: String(localized: "Lanes güncellemeleri ve Claude güncellemesinden sonra yapılan kontroller."))
+            UpdateSettings()
         case .license:
             PlannedSettings(text: String(localized: "Lisans ve deneme süresi."))
         }
@@ -127,6 +127,50 @@ private struct MenuBarAndDockSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+private struct UpdateSettings: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Form {
+            Section("Lanes") {
+                LabeledContent("Sürüm", value: version)
+                if model.updater.isAvailable {
+                    Toggle("Güncellemeleri kendiliğinden denetle", isOn: Binding(
+                        get: { model.updater.automaticallyChecks },
+                        set: { model.updater.setAutomaticallyChecks($0) }
+                    ))
+                    HStack {
+                        Button("Şimdi Denetle") {
+                            model.updater.checkNow()
+                        }
+                        if let lastCheck = model.updater.lastCheck {
+                            Text("Son denetim: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("Lanes güncelleme olup olmadığını GitHub'daki sürüm listesinden öğrenir. Bu denetim Lanes'in yaptığı tek ağ isteği. Güncelleme yüklenmeden önce Lanes'in imzası denetlenir.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Bu derleme kendini güncellemez. Güncellemeler yalnız DMG ile dağıtılan sürümlerde açık.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
     }
 }
 
