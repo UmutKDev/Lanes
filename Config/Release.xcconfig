@@ -12,5 +12,5 @@ OTHER_CODE_SIGN_FLAGS = --timestamp
 // Sparkle reads the update feed and checks every update against this public
 // EdDSA key. The private half stays in the release Mac's keychain (Sparkle's
 // generate_keys). Without a key Lanes never checks for updates.
-LANES_UPDATE_FEED_URL = https:/$()/github.com/UmutKDev/lanes-releases/releases/latest/download/appcast.xml
+LANES_UPDATE_FEED_URL = https:/$()/github.com/UmutKDev/Lanes/releases/latest/download/appcast.xml
 LANES_SPARKLE_PUBLIC_KEY =
