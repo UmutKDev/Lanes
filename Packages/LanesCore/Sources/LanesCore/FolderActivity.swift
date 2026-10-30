@@ -20,6 +20,25 @@ public enum FolderActivity {
         }
     }
 
+    /// The newest modification date anywhere under the folder, hidden files
+    /// left out. Faz 0 check 4 uses it on Claude Code's projects folder,
+    /// which stays small.
+    public static func newestModification(in directory: URL) -> Date? {
+        guard let enumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        var newest: Date?
+        for case let url as URL in enumerator {
+            guard let date = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else { continue }
+            if newest.map({ date > $0 }) ?? true {
+                newest = date
+            }
+        }
+        return newest
+    }
+
     /// True when the folder changed at or after `start`. A second of slack
     /// covers file systems that round modification dates.
     public static func changed(_ folder: URL, since start: Date, fileManager: FileManager = .default) -> Bool {
