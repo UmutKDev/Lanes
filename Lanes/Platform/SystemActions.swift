@@ -52,23 +52,3 @@ enum LoginItem {
         }
     }
 }
-
-/// Activity under a folder, read from modification dates only. Lanes never
-/// opens the files themselves.
-enum FolderActivity {
-    static func newestModification(in directory: URL) -> Date? {
-        guard let enumerator = FileManager.default.enumerator(
-            at: directory,
-            includingPropertiesForKeys: [.contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        ) else { return nil }
-        var newest: Date?
-        for case let url as URL in enumerator {
-            guard let date = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else { continue }
-            if newest.map({ date > $0 }) ?? true {
-                newest = date
-            }
-        }
-        return newest
-    }
-}

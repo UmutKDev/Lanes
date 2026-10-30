@@ -62,9 +62,16 @@ public enum ProfileStoreError: Error, Equatable {
 }
 
 /// Reads and writes `profiles.json`. Writes are atomic, so a crash halfway never
-/// leaves a broken file behind.
+/// leaves a broken file behind. Before each save the list on disk, if it
+/// reads, is copied to `profiles.backup.json`, so one good copy always
+/// survives a file that later turns unreadable.
 public struct ProfileStore: Sendable {
     public let fileURL: URL
+
+    /// The last list that read correctly before the most recent save.
+    public var backupURL: URL {
+        fileURL.deletingPathExtension().appendingPathExtension("backup.json")
+    }
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
@@ -101,6 +108,7 @@ public struct ProfileStore: Sendable {
         if FileManager.default.fileExists(atPath: fileURL.path) {
             do {
                 _ = try load()
+                try Data(contentsOf: fileURL).write(to: backupURL, options: [.atomic])
             } catch {
                 setAside = try setAsideUnreadableFile(now: now)
             }
@@ -190,6 +198,13 @@ public struct ProfileStartup {
     /// True when there was no list yet. The default profile has been added,
     /// and the library still needs saving.
     public var isFirstLaunch: Bool
+    /// True when the list could not be read and `library` comes from
+    /// `profiles.backup.json`. `loadError` says why. The unreadable file
+    /// stays until the next save moves it aside.
+    public var restoredFromBackup = false
+    /// True when the list had no default profile and one was put back at the
+    /// top. The library still needs saving.
+    public var addedMissingDefault = false
 }
 
 extension ProfileStore {
@@ -197,19 +212,26 @@ extension ProfileStore {
     /// is none. An unreadable list never turns into a new one, so its profiles
     /// are not replaced by a fresh default.
     public func startup(defaultProfileName: String) -> ProfileStartup {
-        let library: ProfileLibrary
+        var startup: ProfileStartup
         do {
-            library = try load()
+            startup = ProfileStartup(library: try load(), loadError: nil, isFirstLaunch: false)
         } catch {
-            return ProfileStartup(library: ProfileLibrary(), loadError: error, isFirstLaunch: false)
-        }
-        guard library.profiles.isEmpty else {
-            return ProfileStartup(library: library, loadError: nil, isFirstLaunch: false)
+            guard let backup = try? ProfileStore(fileURL: backupURL).load(), !backup.profiles.isEmpty else {
+                return ProfileStartup(library: ProfileLibrary(), loadError: error, isFirstLaunch: false)
+            }
+            startup = ProfileStartup(library: backup, loadError: error, isFirstLaunch: false, restoredFromBackup: true)
         }
         // The account the user is already signed in to keeps using Claude's
         // own folders, so nothing changes for it.
-        var started = library
-        try? started.add(Profile(name: defaultProfileName, color: .orange, isDefault: true))
-        return ProfileStartup(library: started, loadError: nil, isFirstLaunch: true)
+        let mainProfile = Profile(name: defaultProfileName, color: .orange, isDefault: true)
+        if startup.library.profiles.isEmpty {
+            try? startup.library.add(mainProfile)
+            startup.isFirstLaunch = true
+        } else if startup.library.defaultProfile == nil {
+            // Lanes never removes it, so only a hand-edited file gets here.
+            startup.library.profiles.insert(mainProfile, at: 0)
+            startup.addedMissingDefault = true
+        }
+        return startup
     }
 }

@@ -56,11 +56,19 @@ final class AppModel {
         self.library = startup.library
         validation.currentClaude = { [weak self] in self?.claude }
 
-        if let loadError = startup.loadError {
+        if startup.restoredFromBackup {
+            Log.app.error("Profile list unreadable, restored from backup")
+            // Saving now moves the unreadable file aside and keeps it.
+            save()
+            notice = Notice(kind: .warning, message: String(localized: "Profil listesi okunamadı, son sağlam kopyasından geri yüklendi. Okunamayan dosya aynı klasörde başka bir adla saklandı."))
+        } else if let loadError = startup.loadError {
             notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
+        } else if startup.addedMissingDefault {
+            save()
+            notice = Notice(kind: .warning, message: String(localized: "Profil listesinde Ana hesap yoktu, yeniden eklendi. Claude'un kendi klasörlerini kullanıyor."))
         }
     }
 
@@ -149,8 +157,12 @@ final class AppModel {
                 stayedBehind = pid
             }
         case let .launch(plan):
+            let launchedAt = Date()
             do {
                 try await InstanceLauncher.launch(plan)
+                if let folder = paths.desktopDataDirectory(for: profile) {
+                    Task { await checkSeparation(of: profile, folder: folder, since: launchedAt) }
+                }
                 Log.instances.info("Launched \(plan.applicationURL.lastPathComponent == "Claude.app" ? "Claude" : "a clone", privacy: .public) with \(plan.arguments.isEmpty ? "Claude's own folder" : "its own folder", privacy: .public)")
             } catch {
                 Log.instances.error("Launch failed: \(error.localizedDescription)")
@@ -168,6 +180,24 @@ final class AppModel {
             notice = warning
             activationWarningID = warning.id
         }
+    }
+
+    /// A Claude that ignored its folder argument would run on the main
+    /// account's data. Its own folder changing soon after launch shows that
+    /// it did not. Only modification dates are read, no file is opened.
+    private func checkSeparation(of profile: Profile, folder: URL, since start: Date) async {
+        for _ in 0..<6 {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            if FolderActivity.changed(folder, since: start) {
+                Log.instances.info("Separation check: own folder in use")
+                return
+            }
+        }
+        refreshInstances()
+        // A window closed in the meantime proves nothing either way.
+        guard isRunning(profile) else { return }
+        Log.instances.error("Separation check: own folder unchanged 30 s after launch")
+        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Ana hesabın verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
     }
 
     func quit(_ profile: Profile) {

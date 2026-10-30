@@ -256,5 +256,67 @@ final class ProfileStartupTests: XCTestCase {
         XCTAssertFalse(startup.isFirstLaunch)
         XCTAssertEqual(startup.loadError as? ProfileStoreError, .unsupportedVersion(99))
         XCTAssertTrue(startup.library.profiles.isEmpty)
+        XCTAssertFalse(startup.restoredFromBackup)
+    }
+
+    func testSaveKeepsThePreviousReadableListAsBackup() throws {
+        let store = ProfileStore(fileURL: fileURL)
+        var first = ProfileLibrary()
+        try first.add(Profile(name: "Ana hesap", color: .orange, isDefault: true, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try store.save(first)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.backupURL.path))
+
+        var second = first
+        try second.add(Profile(name: "İş", color: .blue, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try store.save(second)
+
+        XCTAssertEqual(store.backupURL.lastPathComponent, "profiles.backup.json")
+        XCTAssertEqual(try ProfileStore(fileURL: store.backupURL).load(), first)
+        XCTAssertEqual(try store.load(), second)
+    }
+
+    func testUnreadableFileIsNeverCopiedToBackup() throws {
+        let store = ProfileStore(fileURL: fileURL)
+        var library = ProfileLibrary()
+        try library.add(Profile(name: "Ana hesap", color: .orange, isDefault: true, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try store.save(library)
+        try store.save(library)
+        try Data("bozuk".utf8).write(to: fileURL)
+
+        try store.save(library)
+
+        XCTAssertEqual(try ProfileStore(fileURL: store.backupURL).load(), library)
+    }
+
+    func testUnreadableListIsRestoredFromBackup() throws {
+        let store = ProfileStore(fileURL: fileURL)
+        var library = ProfileLibrary()
+        try library.add(Profile(name: "Ana hesap", color: .orange, isDefault: true, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try library.add(Profile(name: "İş", color: .blue, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try store.save(library)
+        try store.save(library)
+        try Data("bozuk".utf8).write(to: fileURL)
+
+        let startup = store.startup(defaultProfileName: "Ana hesap")
+
+        XCTAssertTrue(startup.restoredFromBackup)
+        XCTAssertNotNil(startup.loadError)
+        XCTAssertFalse(startup.isFirstLaunch)
+        XCTAssertEqual(startup.library, library)
+        // The unreadable file waits for the next save to move it aside.
+        XCTAssertEqual(try Data(contentsOf: fileURL), Data("bozuk".utf8))
+    }
+
+    func testMissingDefaultProfileIsPutBackOnTop() throws {
+        var library = ProfileLibrary()
+        try library.add(Profile(name: "İş", color: .blue, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try ProfileStore(fileURL: fileURL).save(library)
+
+        let startup = ProfileStore(fileURL: fileURL).startup(defaultProfileName: "Ana hesap")
+
+        XCTAssertTrue(startup.addedMissingDefault)
+        XCTAssertFalse(startup.isFirstLaunch)
+        XCTAssertEqual(startup.library.profiles.map(\.name), ["Ana hesap", "İş"])
+        XCTAssertEqual(startup.library.defaultProfile?.name, "Ana hesap")
     }
 }

@@ -28,7 +28,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "Klasörlerin değişme saati",
-                    detail: "Yalnız Faz 0 denemelerinde, bir hesabın kendi klasörünü kullandığını doğrulamak için. Dosyaların kendisi açılmaz."
+                    detail: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde, o hesabın Claude'unun kendi klasörünü kullandığını doğrulamak için. Yalnız klasörün ve doğrudan içindekilerin saatine bakılır, dosyaların kendisi açılmaz."
                 )
             }
 
@@ -36,7 +36,7 @@ struct PrivacyPage: View {
                 LabeledContent("Hesap listesi ve hesap klasörleri") {
                     PathRow(url: model.paths.root)
                 }
-                Text("Hesap listesi profiles.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine yalnız Claude yazar. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.")
+                Text("Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine yalnız Claude yazar. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -56,7 +56,7 @@ struct PrivacyPage: View {
             Section("Lanes'in gönderdikleri") {
                 PrivacyItem(
                     title: "Claude'a \"yeniden aç\" komutu",
-                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorar. Lanes Claude'a bağlantı ya da metin göndermez."
+                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorabilir. Lanes Claude'a bağlantı ya da metin göndermez."
                 )
                 PrivacyItem(
                     title: "Güncelleme denetimi",
