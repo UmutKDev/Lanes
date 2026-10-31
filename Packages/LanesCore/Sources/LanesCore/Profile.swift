@@ -61,6 +61,15 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// account the user already signed in to keeps working untouched.
     public var isDefault: Bool { didSet { keptFields[Field.isDefault.rawValue] = nil } }
     public var createdAt: Date { didSet { keptFields[Field.createdAt.rawValue] = nil } }
+    /// The account's email as the user typed it, only to tell accounts
+    /// apart. Lanes never reads it from Claude.
+    public var email: String? { didSet { keptFields[Field.email.rawValue] = nil } }
+    /// A note of the user's, such as what the account is for.
+    public var note: String? { didSet { keptFields[Field.note.rawValue] = nil } }
+    /// Folders Claude Code may open in for this account, with their
+    /// subfolders. Empty means anywhere. Lanes warns before opening Claude
+    /// Code elsewhere, so a client account stays in the client's folders.
+    public var allowedFolders: [String] { didSet { keptFields[Field.allowedFolders.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -74,7 +83,10 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         mode: ProfileMode = .standard,
         accountClass: AccountClass = .personal,
         isDefault: Bool = false,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        email: String? = nil,
+        note: String? = nil,
+        allowedFolders: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -84,6 +96,9 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.accountClass = accountClass
         self.isDefault = isDefault
         self.createdAt = createdAt
+        self.email = email
+        self.note = note
+        self.allowedFolders = allowedFolders
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -109,7 +124,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -140,6 +155,9 @@ extension Profile {
         accountClass = try read(AccountClass.self, .accountClass) ?? .personal
         isDefault = try read(Bool.self, .isDefault) ?? false
         createdAt = try read(Date.self, .createdAt) ?? Date(timeIntervalSince1970: 0)
+        email = try read(String.self, .email)
+        note = try read(String.self, .note)
+        allowedFolders = try read([String].self, .allowedFolders) ?? []
         keptFields = kept
     }
 
@@ -160,5 +178,19 @@ extension Profile {
         try write(accountClass, .accountClass)
         try write(isDefault, .isDefault)
         try write(createdAt, .createdAt)
+        // Written only when set, so a profile without them looks as before.
+        if let email, !email.isEmpty { try write(email, .email) }
+        if let note, !note.isEmpty { try write(note, .note) }
+        if !allowedFolders.isEmpty { try write(allowedFolders, .allowedFolders) }
+    }
+
+    /// Whether Claude Code may open in `path` for this account.
+    public func allowsFolder(_ path: String) -> Bool {
+        guard !allowedFolders.isEmpty else { return true }
+        let target = InstanceMatcher.normalize(path)
+        return allowedFolders.contains { folder in
+            let root = InstanceMatcher.normalize(folder)
+            return target == root || target.hasPrefix(root == "/" ? "/" : root + "/")
+        }
     }
 }

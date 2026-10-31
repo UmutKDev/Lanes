@@ -49,9 +49,9 @@ struct AccountPage: View {
         case .claudeCode:
             AccountClaudeCodeTab(profile: profile)
         case .identity:
-            AccountPlannedTab(text: String(localized: "Hesabın e-postası, planı ve kuruluşu Claude'un kendi ekranlarından okunarak burada görünecek. Lanes giriş bilgilerini okumaz."))
+            AccountIdentityTab(profile: profile)
         case .security:
-            AccountPlannedTab(text: String(localized: "Bu hesabın hangi klasörlerde ve hangi bağlantılarla açılabileceğini sınırlayan kurallar."))
+            AccountSecurityTab(profile: profile)
         case .storage:
             Form {
                 Section {
@@ -354,18 +354,6 @@ enum ClaudeCodeFolderPicker {
         panel.message = String(localized: "Claude Code'un başlayacağı klasörü seç.")
         NSApp.activate()
         return panel.runModal() == .OK ? panel.url : nil
-    }
-}
-
-private struct AccountPlannedTab: View {
-    let text: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Alfa sürümünde geliyor", systemImage: "hammer")
-        } description: {
-            Text(text)
-        }
     }
 }
 

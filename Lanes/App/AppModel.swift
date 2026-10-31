@@ -415,6 +415,10 @@ final class AppModel {
                 notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) klasörü artık yok, listeden çıkarıldı."))
                 return
             }
+            guard profile.allowsFolder(folder.path) else {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+                return
+            }
         }
         do {
             try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder)

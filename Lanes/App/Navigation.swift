@@ -177,8 +177,7 @@ enum AccountTab: String, CaseIterable, Identifiable {
     /// Tabs that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .desktop, .claudeCode, .storage: return true
-        case .identity, .security: return false
+        case .general, .identity, .desktop, .claudeCode, .security, .storage: return true
         }
     }
 
