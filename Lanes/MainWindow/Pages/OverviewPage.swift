@@ -6,6 +6,8 @@ struct OverviewPage: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
     @State private var isConfirmingQuitAll = false
+    /// The kind of account the tiles are narrowed to; nil shows all.
+    @State private var classFilter: AccountClass?
 
     private let columns = [GridItem(.adaptive(minimum: 220, maximum: 320), spacing: 16)]
 
@@ -54,8 +56,19 @@ struct OverviewPage: View {
                 } message: {
                     Text("Her hesabın Claude'u kendi Çık komutuyla kapanır. Giriş ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
                 }
+                if usedClasses.count > 1 {
+                    Picker("Hesap türü", selection: $classFilter) {
+                        Text("Tümü").tag(AccountClass?.none)
+                        ForEach(usedClasses, id: \.self) { kind in
+                            Label(kind.displayName, systemImage: kind.symbol).tag(AccountClass?.some(kind))
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                }
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                    ForEach(model.library.activeProfiles) { profile in
+                    ForEach(filteredProfiles) { profile in
                         AccountTile(profile: profile)
                     }
                     AddAccountTile()
@@ -64,6 +77,22 @@ struct OverviewPage: View {
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .onChange(of: usedClasses) { _, classes in
+            if let classFilter, !classes.contains(classFilter) { self.classFilter = nil }
+        }
+    }
+
+    /// Kinds of the Lanes accounts, in their usual order. The Claude app's
+    /// own account has no kind of its own, so it doesn't count.
+    private var usedClasses: [AccountClass] {
+        let kinds = Set(model.library.activeProfiles.filter { !$0.isDefault }.map(\.accountClass))
+        return AccountClass.allCases.filter(kinds.contains)
+    }
+
+    /// The tiles to show. The Claude app's own account stays in every view.
+    private var filteredProfiles: [Profile] {
+        guard let classFilter else { return model.library.activeProfiles }
+        return model.library.activeProfiles.filter { $0.isDefault || $0.accountClass == classFilter }
     }
 }
 

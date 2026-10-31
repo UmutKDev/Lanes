@@ -354,6 +354,8 @@ final class AppModel {
         if let current = currentFront {
             if current.id == id { return }
             frontTime.record(current.id, from: current.since, to: now)
+            // Leaving the front is the last moment it was used.
+            noteUsed(current.id)
             frontTime.prune(now: now, keeping: Set(library.profiles.map(\.id)))
             if let data = try? JSONEncoder().encode(frontTime) {
                 UserDefaults.standard.set(data, forKey: "frontTime")
