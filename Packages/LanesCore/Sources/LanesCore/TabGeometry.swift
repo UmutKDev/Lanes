@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// Where the active account's Claude window goes in tab mode: right under
 /// Lanes's tab strip, as wide as the strip.
