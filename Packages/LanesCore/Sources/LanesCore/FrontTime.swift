@@ -44,6 +44,11 @@ public struct FrontTimeLog: Codable, Equatable, Sendable {
         }
     }
 
+    /// Seconds on the day that holds `date`.
+    public func seconds(for id: ProfileID, on date: Date, calendar: Calendar = .current) -> Double {
+        days[Self.dayKey(date, calendar: calendar)]?[id.rawValue] ?? 0
+    }
+
     /// Drops days older than `keptDays` and accounts no longer in the list.
     public mutating func prune(now: Date, keeping ids: Set<ProfileID>, calendar: Calendar = .current) {
         let today = calendar.startOfDay(for: now)

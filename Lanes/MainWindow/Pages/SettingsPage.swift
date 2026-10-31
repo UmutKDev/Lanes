@@ -64,6 +64,7 @@ private struct GeneralSettings: View {
     @Environment(AppModel.self) private var model
     @State private var launchesAtLogin = LoginItem.isEnabled
     @State private var loginItemError: String?
+    @AppStorage(Preferences.Key.focusModeEnabled) private var focusMode = false
 
     var body: some View {
         Form {
@@ -83,6 +84,13 @@ private struct GeneralSettings: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
+            }
+            Section("Odak") {
+                Toggle("Bir hesap öne gelince öteki hesapları gizle", isOn: $focusMode)
+                Text("Ekranda yalnız öndeki hesabın Claude'u kalır, ötekiler Cmd-H ile gizlenir gibi gizlenir. Kapanmazlar; Dock'tan, Cmd-Tab'dan ya da Lanes'ten açınca geri gelirler. Sekmeli mod açıkken bu ayar kullanılmaz.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Section("Claude") {
                 LabeledContent("Sürüm", value: model.claude?.version ?? String(localized: "Bulunamadı"))
