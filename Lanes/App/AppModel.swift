@@ -95,6 +95,9 @@ final class AppModel {
     /// Set when the Mac shuts down or logs out, so the accounts quitting
     /// then don't replace the list Lanes reopens next time.
     @ObservationIgnored private var isPoweringOff = false
+    /// The accounts open when Lanes last ran, read before the first scan
+    /// replaces the saved list with what is open now.
+    @ObservationIgnored private let accountsOpenAtLastRun: [String] = UserDefaults.standard.stringArray(forKey: Preferences.Key.lastOpenAccounts) ?? []
 
     struct SeparationResult: Equatable {
         /// True when the account's own folder changed after it opened.
@@ -256,8 +259,7 @@ final class AppModel {
     /// open now, when the setting is on.
     func reopenLastAccountsIfWanted() {
         guard Preferences.reopensLastAccounts else { return }
-        let ids = UserDefaults.standard.stringArray(forKey: Preferences.Key.lastOpenAccounts) ?? []
-        let profiles = ids.compactMap { profile(withID: ProfileID(rawValue: $0)) }.filter { !isRunning($0) }
+        let profiles = accountsOpenAtLastRun.compactMap { profile(withID: ProfileID(rawValue: $0)) }.filter { !isRunning($0) }
         guard !profiles.isEmpty else { return }
         Log.instances.info("Reopening \(profiles.count) accounts from the last run")
         Task {
