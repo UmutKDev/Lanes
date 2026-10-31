@@ -130,7 +130,7 @@ private struct AccountTile: View {
                     Text(profile.name)
                         .font(.headline)
                         .lineLimit(1)
-                    Text(profile.isDefault ? String(localized: "Claude uygulaması") : profile.accountClass.displayName)
+                    Text(kindLine)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
@@ -204,6 +204,16 @@ private struct AccountTile: View {
                 }
             }
         }
+    }
+}
+
+extension AccountTile {
+    /// The account's kind, with today's time in front once there is any.
+    var kindLine: String {
+        let kind = profile.isDefault ? String(localized: "Claude uygulaması") : profile.accountClass.displayName
+        let today = model.frontSeconds(for: profile.id, days: 1)
+        guard today >= 60 else { return kind }
+        return String(localized: "\(kind) · bugün \(FrontTimeLog.describe(seconds: today))")
     }
 }
 

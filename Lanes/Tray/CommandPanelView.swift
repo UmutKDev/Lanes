@@ -191,6 +191,16 @@ struct CommandPanelView: View {
                 }
                 Toggle("Son kullanılan hesap üstte", isOn: $sortsByRecent)
                 Divider()
+                if !model.library.archivedProfiles.isEmpty {
+                    Menu("Arşivdeki Hesaplar") {
+                        ForEach(model.library.archivedProfiles) { profile in
+                            Button(model.isRunning(profile) ? String(localized: "\(profile.name) (açık)") : profile.name) {
+                                onClose()
+                                model.open(profile)
+                            }
+                        }
+                    }
+                }
                 if model.closedActiveProfiles.count > 1 {
                     Button("Kapalı Hesapların Tümünü Aç") {
                         onClose()

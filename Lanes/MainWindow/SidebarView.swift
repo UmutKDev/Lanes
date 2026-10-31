@@ -5,6 +5,7 @@ struct SidebarView: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
     @State private var profilePendingRemoval: Profile?
+    @State private var query = ""
     @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
@@ -14,7 +15,7 @@ struct SidebarView: View {
             }
 
             Section {
-                ForEach(model.library.activeProfiles) { profile in
+                ForEach(matching(model.library.activeProfiles)) { profile in
                     NavigationLink(value: Destination.account(profile.id)) {
                         SidebarAccountRow(profile: profile)
                     }
@@ -44,9 +45,8 @@ struct SidebarView: View {
                         .disabled(profile.isDefault)
                     }
                 }
-                .onMove { source, destination in
-                    model.moveProfiles(fromOffsets: source, toOffset: destination)
-                }
+                // Rows can only be dragged in the full list, not a filtered one.
+                .onMove(perform: query.isEmpty ? moveRows : nil)
             } header: {
                 HStack {
                     Text("Hesaplar")
@@ -61,9 +61,9 @@ struct SidebarView: View {
                 }
             }
 
-            if !model.library.archivedProfiles.isEmpty {
+            if !matching(model.library.archivedProfiles).isEmpty {
                 Section("Arşiv") {
-                    ForEach(model.library.archivedProfiles) { profile in
+                    ForEach(matching(model.library.archivedProfiles)) { profile in
                         NavigationLink(value: Destination.account(profile.id)) {
                             SidebarAccountRow(profile: profile)
                                 .opacity(0.6)
@@ -96,6 +96,7 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .searchable(text: $query, placement: .sidebar, prompt: Text("Hesap ara"))
         .confirmationDialog(
             removalTitle,
             isPresented: Binding(
@@ -127,6 +128,23 @@ struct SidebarView: View {
             get: { navigation.selection },
             set: { if let destination = $0 { navigation.navigate(to: destination) } }
         )
+    }
+
+    private func moveRows(_ source: IndexSet, _ destination: Int) {
+        model.moveProfiles(fromOffsets: source, toOffset: destination)
+    }
+
+    /// Accounts whose name, email or note holds the search text, ignoring
+    /// case and accents with Turkish rules. All of them when it is empty.
+    private func matching(_ profiles: [Profile]) -> [Profile] {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return profiles }
+        let locale = Locale(identifier: "tr_TR")
+        return profiles.filter { profile in
+            [profile.name, profile.email ?? "", profile.note ?? ""].contains {
+                $0.range(of: text, options: [.caseInsensitive, .diacriticInsensitive], locale: locale) != nil
+            }
+        }
     }
 
     private var removalTitle: String {
