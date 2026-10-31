@@ -80,6 +80,10 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// Minutes in front per day after which Lanes posts a reminder. nil
     /// means no reminder.
     public var dailyLimitMinutes: Int? { didSet { keptFields[Field.dailyLimitMinutes.rawValue] = nil } }
+    /// Whether the user put the account away. Archived accounts keep their
+    /// data but leave the overview, the panel, ⌘1-9, the Dock menu and
+    /// Spotlight until they are taken out of the archive.
+    public var isArchived: Bool { didSet { keptFields[Field.isArchived.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -99,7 +103,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         allowedFolders: [String] = [],
         hidesFromDock: Bool = false,
         idleQuitMinutes: Int? = nil,
-        dailyLimitMinutes: Int? = nil
+        dailyLimitMinutes: Int? = nil,
+        isArchived: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -115,6 +120,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.hidesFromDock = hidesFromDock
         self.idleQuitMinutes = idleQuitMinutes
         self.dailyLimitMinutes = dailyLimitMinutes
+        self.isArchived = isArchived
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -140,7 +146,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -177,6 +183,7 @@ extension Profile {
         hidesFromDock = try read(Bool.self, .hidesFromDock) ?? false
         idleQuitMinutes = try read(Int.self, .idleQuitMinutes)
         dailyLimitMinutes = try read(Int.self, .dailyLimitMinutes)
+        isArchived = try read(Bool.self, .isArchived) ?? false
         keptFields = kept
     }
 
@@ -204,6 +211,7 @@ extension Profile {
         if hidesFromDock { try write(hidesFromDock, .hidesFromDock) }
         if let idleQuitMinutes, idleQuitMinutes > 0 { try write(idleQuitMinutes, .idleQuitMinutes) }
         if let dailyLimitMinutes, dailyLimitMinutes > 0 { try write(dailyLimitMinutes, .dailyLimitMinutes) }
+        if isArchived { try write(isArchived, .isArchived) }
     }
 
     /// Whether Claude Code may open in `path` for this account.

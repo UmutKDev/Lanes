@@ -37,7 +37,7 @@ private struct ProfileMenuCommands: View {
     let router: WindowRouter
 
     var body: some View {
-        ForEach(Array(model.library.profiles.prefix(9).enumerated()), id: \.element.id) { index, profile in
+        ForEach(Array(model.library.activeProfiles.prefix(9).enumerated()), id: \.element.id) { index, profile in
             Button(profile.name) {
                 model.open(profile)
             }
