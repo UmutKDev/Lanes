@@ -117,6 +117,7 @@ final class AppModel {
     func start() {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
+        SpotlightIndex.update(library.profiles)
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
         }
@@ -625,6 +626,61 @@ final class AppModel {
         for profile in profiles {
             await openAndWait(profile)
         }
+        await applyLayout(of: scene, to: profiles)
+    }
+
+    // MARK: Scene layout
+
+    /// Saves where each open account of the scene has its Claude window.
+    /// Saves where the scene's windows are now. Returns a line for the
+    /// editor sheet to show, since a notice would sit behind the sheet.
+    @discardableResult
+    func saveLayout(of sceneID: SceneID) -> String {
+        guard var scene = library.scene(withID: sceneID) else { return "" }
+        guard AccessibilityPermission.isGranted else {
+            AccessibilityPermission.request()
+            return String(localized: "Pencere yerleşimi için Lanes'e Erişilebilirlik izni ver, sonra yeniden kaydet.")
+        }
+        refreshInstances()
+        var frames: [String: SceneWindowFrame] = [:]
+        for profile in scene.profiles(in: library) {
+            guard let pid = instance(for: profile)?.pid,
+                  let window = AccessibilityWindow.main(of: pid),
+                  !window.isMinimized, !window.isFullScreen,
+                  let frame = window.frame else { continue }
+            frames[profile.id.rawValue] = SceneWindowFrame(x: frame.minX, y: frame.minY, width: frame.width, height: frame.height)
+        }
+        guard !frames.isEmpty else {
+            return String(localized: "\(scene.name) sahnesinde açık pencere yok. Önce sahnenin hesaplarını aç.")
+        }
+        scene.windowFrames = frames
+        updateScene(scene)
+        Log.instances.info("Saved a scene layout with \(frames.count) windows")
+        return String(localized: "Yerleşim kaydedildi.")
+    }
+
+    func forgetLayout(of sceneID: SceneID) {
+        guard var scene = library.scene(withID: sceneID) else { return }
+        scene.windowFrames = [:]
+        updateScene(scene)
+    }
+
+    /// Puts each account's window where the scene saved it. Windows that
+    /// take a moment to appear are waited for, up to a few seconds.
+    private func applyLayout(of scene: ProfileScene, to profiles: [Profile]) async {
+        guard !scene.windowFrames.isEmpty, AccessibilityPermission.isGranted else { return }
+        for profile in profiles {
+            guard let saved = scene.windowFrame(for: profile.id) else { continue }
+            let frame = CGRect(x: saved.x, y: saved.y, width: saved.width, height: saved.height)
+            for _ in 0..<20 {
+                refreshInstances()
+                if let pid = instance(for: profile)?.pid, let window = AccessibilityWindow.main(of: pid), !window.isFullScreen {
+                    window.setFrame(frame)
+                    break
+                }
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
+        }
     }
 
     /// Scenes marked to open with Lanes, once per launch.
@@ -746,6 +802,7 @@ final class AppModel {
         do {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
+            SpotlightIndex.update(library.profiles)
             if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan profil listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }

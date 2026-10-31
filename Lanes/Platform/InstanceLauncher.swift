@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import LanesCore
 
 /// Starts Claude Desktop for a profile and brings running instances forward.
@@ -47,6 +48,17 @@ enum InstanceLauncher {
             }
             try? await Task.sleep(nanoseconds: 150_000_000)
             if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
+        }
+        // With the Accessibility permission (scene layouts ask for it),
+        // macOS lets Lanes make an app frontmost even from the background,
+        // which a scene needs after its first account took the focus.
+        if AccessibilityPermission.isGranted {
+            let element = AXUIElementCreateApplication(pid)
+            _ = AXUIElementSetAttributeValue(element, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+            for _ in 0..<5 {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
+            }
         }
         // Last resort: ask Launch Services to open the app's bundle. For a
         // running app it activates it and reopens its window, like a Dock
