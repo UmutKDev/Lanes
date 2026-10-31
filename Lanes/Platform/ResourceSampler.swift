@@ -78,8 +78,11 @@ final class ResourceSampler {
 
 extension ResourceUsage {
     /// "1,2 GB · %4 işlemci", for tiles and the account page.
+    var memory: String {
+        ByteCountFormatter.string(fromByteCount: Int64(clamping: memoryBytes), countStyle: .memory)
+    }
+
     var summary: String {
-        let memory = ByteCountFormatter.string(fromByteCount: Int64(clamping: memoryBytes), countStyle: .memory)
         guard let cpuPercent else { return memory }
         return String(localized: "\(memory) · %\(Int(cpuPercent.rounded())) işlemci")
     }

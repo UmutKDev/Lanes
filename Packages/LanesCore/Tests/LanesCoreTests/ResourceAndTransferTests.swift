@@ -53,7 +53,8 @@ final class LibraryTransferTests: XCTestCase {
 
         let export = LibraryExport(library: library)
         XCTAssertEqual(export.profiles.map(\.id), [work.id])
-        XCTAssertEqual(export.scenes.first?.profileIDs, [work.id])
+        XCTAssertEqual(export.scenes.first?.profileIDs, [claudeApp.id, work.id])
+        XCTAssertEqual(export.claudeAppAccountID, claudeApp.id)
         XCTAssertEqual(export.scenes.first?.windowFrames, [:])
 
         let decoded = try LibraryExport.decode(try export.encoded())
@@ -78,6 +79,20 @@ final class LibraryTransferTests: XCTestCase {
         XCTAssertEqual(second.addedProfiles, 0)
         XCTAssertEqual(second.addedScenes, 0)
         XCTAssertEqual(second.library, first.library)
+    }
+
+    func testSceneFollowsTheOtherMacsClaudeAppAccount() {
+        let here = Profile(name: "Claude uygulaması", color: .gray, isDefault: true)
+        let work = Profile(name: "İş", color: .blue)
+        let scene = ProfileScene(name: "Sabah", profileIDs: [here.id, work.id])
+        let export = LibraryExport(library: ProfileLibrary(profiles: [here, work], scenes: [scene]))
+
+        let there = Profile(name: "Claude uygulaması", color: .gray, isDefault: true)
+        let merged = export.merge(into: ProfileLibrary(profiles: [there])).library
+        XCTAssertEqual(merged.scenes.first?.profileIDs, [there.id, work.id])
+
+        let withoutClaudeApp = export.merge(into: ProfileLibrary()).library
+        XCTAssertEqual(withoutClaudeApp.scenes.first?.profileIDs, [work.id])
     }
 
     func testRejectsOtherJSON() {

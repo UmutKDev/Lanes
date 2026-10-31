@@ -11,6 +11,9 @@ public struct LibraryExport: Codable, Equatable, Sendable {
     public var exportedAt: Date
     public var profiles: [Profile]
     public var scenes: [ProfileScene]
+    /// The Claude app's own account as scenes name it. Every Mac has its
+    /// own, so importing maps this ID to that Mac's Claude app account.
+    public var claudeAppAccountID: ProfileID?
 
     /// The Claude app's own account is left out: it belongs to Claude.
     public init(library: ProfileLibrary, exportedAt: Date = Date()) {
@@ -18,7 +21,8 @@ public struct LibraryExport: Codable, Equatable, Sendable {
         version = 1
         self.exportedAt = exportedAt
         profiles = library.profiles.filter { !$0.isDefault }
-        let exported = Set(profiles.map(\.id))
+        claudeAppAccountID = library.profiles.first(where: \.isDefault)?.id
+        let exported = Set(profiles.map(\.id) + [claudeAppAccountID].compactMap { $0 })
         scenes = library.scenes.map { scene in
             var scene = scene
             scene.profileIDs = scene.profileIDs.filter(exported.contains)
@@ -67,7 +71,10 @@ public struct LibraryExport: Codable, Equatable, Sendable {
         }
         for scene in scenes {
             var scene = scene
-            scene.profileIDs = scene.profileIDs.filter { library.profile(withID: $0) != nil }
+            let claudeApp = library.profiles.first(where: \.isDefault)?.id
+            scene.profileIDs = scene.profileIDs
+                .compactMap { $0 == claudeAppAccountID ? claudeApp : $0 }
+                .filter { library.profile(withID: $0) != nil }
             scene.windowFrames = [:]
             if library.scene(withID: scene.id) == nil, (try? library.addScene(scene)) != nil {
                 addedScenes += 1

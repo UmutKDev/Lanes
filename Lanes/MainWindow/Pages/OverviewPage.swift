@@ -91,11 +91,11 @@ private struct AccountTile: View {
                     .foregroundStyle(isRunning ? Color.green : Color.secondary)
                     .labelStyle(.titleAndIcon)
                 if isRunning, let usage = model.resourceUsage[profile.id] {
-                    Text(usage.summary)
+                    Text(usage.memory)
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .help("Claude'un bu hesap için kullandığı bellek ve işlemci, yardımcı süreçleriyle birlikte.")
+                        .help(usage.summary)
                 }
                 Spacer()
                 Button(isRunning ? "Öne Getir" : "Aç") {
