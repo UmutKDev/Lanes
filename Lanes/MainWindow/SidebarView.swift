@@ -25,6 +25,12 @@ struct SidebarView: View {
                         Button("Claude Code'u Terminalde Aç") {
                             model.openClaudeCode(profile)
                         }
+                        Button("Hesabı Çoğalt") {
+                            if let copy = model.duplicateProfile(profile) {
+                                navigation.navigate(to: .account(copy.id))
+                            }
+                        }
+                        .help("Aynı ayarlarla yeni bir hesap ekler. Yeni hesap girişsiz ve boş klasörlerle başlar.")
                         Divider()
                         Button("Hesabı Kaldır…", role: .destructive) {
                             profilePendingRemoval = profile

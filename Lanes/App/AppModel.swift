@@ -230,6 +230,54 @@ final class AppModel {
         }
     }
 
+    // MARK: Cycling and duplicating
+
+    /// Brings the next (or previous) open account forward, in the list's
+    /// order, starting from the account last in front.
+    func cycleOpenAccounts(forward: Bool) {
+        refreshInstances()
+        let openIDs = Set(library.profiles.filter { isRunning($0) }.map(\.id))
+        let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let current = instances.first(where: { $0.pid == frontPID })?.profileID ?? lastFrontProfileID
+        guard let id = AccountCycle.target(current: current, open: openIDs, order: library.profiles.map(\.id), forward: forward),
+              let profile = profile(withID: id) else {
+            notice = Notice(kind: .info, message: String(localized: "Açık hesap yok."))
+            return
+        }
+        open(profile)
+    }
+
+    /// A new account with this one's settings: colour, kind, mode, note,
+    /// allowed folders and Dock and idle settings. It starts signed out
+    /// with its own empty folders.
+    @discardableResult
+    func duplicateProfile(_ source: Profile) -> Profile? {
+        var copy = Profile(
+            name: String(localized: "\(source.name) kopyası"),
+            color: source.color,
+            mode: source.mode,
+            accountClass: source.accountClass,
+            note: source.note,
+            allowedFolders: source.allowedFolders,
+            hidesFromDock: source.hidesFromDock,
+            idleQuitMinutes: source.idleQuitMinutes
+        )
+        if source.isDefault {
+            copy.mode = .signedClone
+        }
+        do {
+            try library.add(copy)
+            save()
+            if CloneCheck.usesClone(copy) {
+                Task { await prepareClone(for: copy) }
+            }
+            return copy
+        } catch {
+            notice = Notice(kind: .error, message: error.localizedDescription)
+            return nil
+        }
+    }
+
     // MARK: Time in front
 
     private func frontChanged(to id: ProfileID?) {
@@ -880,6 +928,8 @@ final class AppModel {
     func name(of target: ShortcutTarget) -> String {
         switch target {
         case .panel: return String(localized: "Menü çubuğu paneli")
+        case .nextAccount: return String(localized: "Sonraki açık hesap")
+        case .previousAccount: return String(localized: "Önceki açık hesap")
         case let .profile(id): return profile(withID: id)?.name ?? String(localized: "Silinmiş hesap")
         case let .scene(id): return library.scene(withID: id)?.name ?? String(localized: "Silinmiş sahne")
         }

@@ -72,6 +72,10 @@ public enum ShortcutTarget: Hashable, Sendable, CustomStringConvertible {
     case profile(ProfileID)
     /// Opens every account in a scene.
     case scene(SceneID)
+    /// Brings the next open account forward, in the list's order.
+    case nextAccount
+    /// Brings the previous open account forward.
+    case previousAccount
 
     /// The key it is saved under.
     public var description: String {
@@ -79,12 +83,18 @@ public enum ShortcutTarget: Hashable, Sendable, CustomStringConvertible {
         case .panel: return "panel"
         case let .profile(id): return "profile:\(id.rawValue)"
         case let .scene(id): return "scene:\(id.rawValue)"
+        case .nextAccount: return "nextAccount"
+        case .previousAccount: return "previousAccount"
         }
     }
 
     public init?(key: String) {
         if key == "panel" {
             self = .panel
+        } else if key == "nextAccount" {
+            self = .nextAccount
+        } else if key == "previousAccount" {
+            self = .previousAccount
         } else if key.hasPrefix("profile:") {
             self = .profile(ProfileID(rawValue: String(key.dropFirst("profile:".count))))
         } else if key.hasPrefix("scene:") {
@@ -161,12 +171,28 @@ public struct ShortcutBindings: Codable, Equatable, Sendable {
         let before = byTarget.count
         byTarget = byTarget.filter { key, _ in
             switch ShortcutTarget(key: key) {
-            case .panel: return true
+            case .panel, .nextAccount, .previousAccount: return true
             case let .profile(id): return profiles.contains(id)
             case let .scene(id): return scenes.contains(id)
             case nil: return false
             }
         }
         return byTarget.count != before
+    }
+}
+
+/// Which open account "next" or "previous" brings forward.
+public enum AccountCycle {
+    /// The open account after (or before) `current` in `order`, wrapping
+    /// around. With no current account among the open ones, the first (or
+    /// last) open account.
+    public static func target(current: ProfileID?, open: Set<ProfileID>, order: [ProfileID], forward: Bool) -> ProfileID? {
+        let cycle = order.filter(open.contains)
+        guard !cycle.isEmpty else { return nil }
+        guard let current, let index = cycle.firstIndex(of: current) else {
+            return forward ? cycle.first : cycle.last
+        }
+        let step = forward ? 1 : cycle.count - 1
+        return cycle[(index + step) % cycle.count]
     }
 }
