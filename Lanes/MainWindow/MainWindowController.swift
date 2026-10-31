@@ -150,6 +150,10 @@ private struct DetailView: View {
             PrivacyPage()
         case .scenes:
             ScenesPage()
+        case .sessions:
+            SessionsPage()
+        case .usage:
+            UsagePage()
         case .health:
             HealthPage()
         case .validation:

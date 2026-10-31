@@ -56,8 +56,6 @@ struct SettingsPage: View {
             PlannedSettings(text: String(localized: "Bir hesabın sınırı dolduğunda ya da yeniden açıldığında haber verme."))
         case .updates:
             UpdateSettings()
-        case .license:
-            PlannedSettings(text: String(localized: "Lisans ve deneme süresi."))
         }
     }
 }

@@ -259,6 +259,32 @@ final class AppModel {
         }
     }
 
+    /// Continues a Claude Code session in Terminal, with the account it
+    /// belongs to and in its project folder when that still exists.
+    func resume(_ session: ClaudeCodeSessionList.Session, of profile: Profile) {
+        let folder = ClaudeCodeSessionList.projectPath(forFolderName: session.projectFolderName) { path in
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
+        }
+        do {
+            try SystemActions.openClaudeCodeInTerminal(
+                for: profile,
+                paths: paths,
+                in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
+                arguments: ["--resume", session.id]
+            )
+            Log.app.info("Resumed a Claude Code session")
+        } catch {
+            notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
+        }
+    }
+
+    /// One account's Claude Code sessions, names and dates only.
+    func claudeCodeSessions(for profile: Profile) -> ClaudeCodeSessionList {
+        let projects = paths.effectiveClaudeCodeConfigDirectory(for: profile).appendingPathComponent("projects", isDirectory: true)
+        return ClaudeCodeSessionList.read(projects)
+    }
+
     func recentClaudeCodeFolders(for profile: Profile) -> [URL] {
         (recentFolders[profile.id]?.paths ?? []).map { URL(fileURLWithPath: $0, isDirectory: true) }
     }

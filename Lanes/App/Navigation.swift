@@ -61,7 +61,7 @@ enum Destination: Hashable {
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .scenes, .health, .privacy, .settings: return true
+        case .overview, .account, .sessions, .usage, .scenes, .health, .privacy, .settings: return true
         default: return showingDeveloperPages
         }
     }
@@ -91,7 +91,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case shortcuts
     case notifications
     case updates
-    case license
     case advanced
 
     var id: String { rawValue }
@@ -105,7 +104,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .shortcuts: return String(localized: "Kısayollar")
         case .notifications: return String(localized: "Bildirimler")
         case .updates: return String(localized: "Güncellemeler")
-        case .license: return String(localized: "Lisans")
         case .advanced: return String(localized: "Gelişmiş")
         }
     }
@@ -119,7 +117,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .shortcuts: return "command"
         case .notifications: return "bell.badge"
         case .updates: return "arrow.triangle.2.circlepath"
-        case .license: return "checkmark.seal"
         case .advanced: return "slider.horizontal.3"
         }
     }
@@ -128,7 +125,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var isBuilt: Bool {
         switch self {
         case .general, .menuBarAndDock, .tabs, .windowBadges, .shortcuts, .updates, .advanced: return true
-        case .notifications, .license: return false
+        case .notifications: return false
         }
     }
 

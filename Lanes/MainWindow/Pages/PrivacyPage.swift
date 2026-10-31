@@ -31,6 +31,10 @@ struct PrivacyPage: View {
                     detail: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde, o hesabın Claude'unun kendi klasörünü kullandığını doğrulamak için. Yalnız klasörün ve doğrudan içindekilerin saatine bakılır, dosyaların kendisi açılmaz."
                 )
                 PrivacyItem(
+                    title: "Claude Code oturum dosyalarının adı ve tarihi",
+                    detail: "Oturumlar ve Kullanım sayfaları için, her hesabın Claude Code klasöründeki projects altında. Dosyaların içi, yani sohbetler, hiç açılmaz."
+                )
+                PrivacyItem(
                     title: "Öndeki uygulama",
                     detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi için. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
                 )
