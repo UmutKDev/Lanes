@@ -17,7 +17,37 @@ final class WebAccounts {
     static let tabbingIdentifier = "LanesAccounts"
 
     /// Accounts with a window open.
-    private(set) var openIDs: Set<ProfileID> = []
+    private(set) var openIDs: Set<ProfileID> = [] {
+        didSet {
+            guard !isTerminating else { return }
+            UserDefaults.standard.set(openIDs.map(\.rawValue).sorted(), forKey: Self.openAccountsKey)
+        }
+    }
+    @ObservationIgnored private var isTerminating = false
+    @ObservationIgnored private var terminationObserver: NSObjectProtocol?
+    static let openAccountsKey = "openWebAccounts"
+
+    init() {
+        // Windows closing because Lanes quits stay remembered, so they
+        // come back next time, like a browser's tabs.
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.isTerminating = true
+            }
+        }
+    }
+
+    /// Reopens the account tabs that were open when Lanes last quit.
+    func restore(from profiles: [Profile]) async {
+        let ids = Set((UserDefaults.standard.stringArray(forKey: Self.openAccountsKey) ?? []).map(ProfileID.init(rawValue:)))
+        for profile in profiles where ids.contains(profile.id) && !profile.isDefault && profile.mode == .insideLanes {
+            await show(profile)
+        }
+    }
     /// The account whose window is key, for the menu bar icon.
     private(set) var keyProfileID: ProfileID?
     @ObservationIgnored private var controllers: [ProfileID: WebAccountWindowController] = [:]

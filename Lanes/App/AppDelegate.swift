@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeShortcuts()
         tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
+        Task { await model.webAccounts.restore(from: model.library.profiles) }
     }
 
     /// Registers the shortcuts again whenever they, the accounts or the
