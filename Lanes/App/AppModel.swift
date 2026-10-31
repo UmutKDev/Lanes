@@ -152,6 +152,7 @@ final class AppModel {
                 }
                 self.frontChanged(to: self.instances.first(where: { $0.pid == pid })?.profileID)
                 guard pid != ProcessInfo.processInfo.processIdentifier else { return }
+                self.hideOtherAccountsIfFocusing(front: pid)
                 if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
                     self.lastFrontProfileID = id
                     self.lastActiveAt[id] = Date()
@@ -214,6 +215,18 @@ final class AppModel {
             InstanceLauncher.terminate(pid: item.pid)
             lastActiveAt[item.id] = nil
             Notifier.post(.idleQuit, body: String(localized: "\(profile.name) \(IdleQuitPolicy.describe(minutes: profile.idleQuitMinutes ?? 0)) kullanılmadığı için kapatıldı. Lanes'ten yeniden açabilirsin."))
+        }
+    }
+
+    // MARK: Focus
+
+    /// With focus mode on, hides every other account's Claude when one comes
+    /// forward. Hiding is what Cmd-H does: nothing quits.
+    private func hideOtherAccountsIfFocusing(front pid: pid_t) {
+        guard Preferences.focusModeEnabled, !Preferences.tabModeEnabled,
+              instances.contains(where: { $0.pid == pid && $0.profileID != nil }) else { return }
+        for instance in instances where instance.pid != pid && instance.profileID != nil {
+            NSRunningApplication(processIdentifier: instance.pid)?.hide()
         }
     }
 

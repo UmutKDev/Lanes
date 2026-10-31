@@ -43,6 +43,22 @@ struct UsagePage: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Section {
+                let front = frontPoints()
+                if front.allSatisfy({ $0.minutes < 1 }) {
+                    Text("Son 7 günde önde geçen süre yok.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Chart(front) { point in
+                        BarMark(
+                            x: .value("Gün", point.day, unit: .day),
+                            y: .value("Dakika", point.minutes)
+                        )
+                        .foregroundStyle(by: .value("Hesap", point.profile.name))
+                    }
+                    .chartForegroundStyleScale(domain: model.library.profiles.map(\.name), range: model.library.profiles.map(\.color.swatch))
+                    .chartYAxisLabel("dakika")
+                    .frame(height: 180)
+                }
                 ForEach(model.library.profiles) { profile in
                     LabeledContent {
                         Text(String(localized: "Bugün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 1))) · 7 gün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 7)))"))
@@ -78,6 +94,31 @@ struct UsagePage: View {
         }
         .formStyle(.grouped)
         .task { load() }
+    }
+
+    struct FrontPoint: Identifiable {
+        var profile: Profile
+        var day: Date
+        var minutes: Double
+        var id: String { "\(profile.id.rawValue)-\(day.timeIntervalSince1970)" }
+    }
+
+    /// Minutes in front per account for the last 7 days. Today's bar
+    /// includes the time the front account has been in front right now.
+    private func frontPoints() -> [FrontPoint] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var points: [FrontPoint] = []
+        for offset in (0..<7).reversed() {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }
+            for profile in model.library.profiles {
+                let seconds = offset == 0
+                    ? model.frontSeconds(for: profile.id, days: 1)
+                    : model.frontTime.seconds(for: profile.id, on: day)
+                points.append(FrontPoint(profile: profile, day: day, minutes: seconds / 60))
+            }
+        }
+        return points
     }
 
     private func load() {

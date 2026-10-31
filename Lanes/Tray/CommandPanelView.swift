@@ -8,6 +8,7 @@ struct CommandPanelView: View {
     @Environment(WindowRouter.self) private var router
     @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     var onClose: () -> Void
+    @State private var query = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -84,9 +85,39 @@ struct CommandPanelView: View {
                 .padding(.vertical, 24)
         } else {
             VStack(spacing: 2) {
-                ForEach(model.library.profiles) { profile in
+                if model.library.profiles.count >= 4 {
+                    TextField("Hesap ara", text: $query, prompt: Text("Hesap ara"))
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 4)
+                        .onSubmit {
+                            guard let first = matchingProfiles.first else { return }
+                            onClose()
+                            model.open(first)
+                        }
+                }
+                ForEach(matchingProfiles) { profile in
                     AccountCardView(profile: profile, onClose: onClose)
                 }
+                if matchingProfiles.isEmpty {
+                    Text("\"\(query)\" ile eşleşen hesap yok.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    /// Accounts whose name, email or note holds the search text, ignoring
+    /// case and accents with Turkish rules.
+    private var matchingProfiles: [Profile] {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return model.library.profiles }
+        let locale = Locale(identifier: "tr_TR")
+        return model.library.profiles.filter { profile in
+            [profile.name, profile.email ?? "", profile.note ?? ""].contains {
+                $0.range(of: text, options: [.caseInsensitive, .diacriticInsensitive], locale: locale) != nil
             }
         }
     }

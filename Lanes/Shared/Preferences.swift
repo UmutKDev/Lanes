@@ -15,6 +15,7 @@ enum Preferences {
         static let tabModeEnabled = "tabModeEnabled"
         static let linkRules = "linkRules"
         static let tabContentHeight = "tabContentHeight"
+        static let focusModeEnabled = "focusModeEnabled"
     }
 
     /// Accounts as tabs under one strip. Off until the user turns it on,
@@ -27,6 +28,12 @@ enum Preferences {
     /// Claude is in front.
     static var showsFrontAccountInMenuBar: Bool {
         UserDefaults.standard.object(forKey: Key.showsFrontAccountInMenuBar) as? Bool ?? true
+    }
+
+    /// When an account's Claude comes forward, the other accounts' Claude
+    /// windows are hidden (Cmd-H), so only one account is on screen.
+    static var focusModeEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Key.focusModeEnabled)
     }
 
     static var showsDockIconWithWindow: Bool {

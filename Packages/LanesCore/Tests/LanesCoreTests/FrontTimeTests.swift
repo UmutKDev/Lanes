@@ -20,6 +20,7 @@ final class FrontTimeTests: XCTestCase {
         XCTAssertEqual(log.days["2026-10-31"]?["work"], 45 * 60)
         XCTAssertEqual(log.seconds(for: work, days: 1, now: date(31, 12), calendar: calendar), 45 * 60)
         XCTAssertEqual(log.seconds(for: work, days: 7, now: date(31, 12), calendar: calendar), 75 * 60)
+        XCTAssertEqual(log.seconds(for: work, on: date(30, 8), calendar: calendar), 30 * 60)
     }
 
     func testPruneDropsOldDaysAndRemovedAccounts() {
