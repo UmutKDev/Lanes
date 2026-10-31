@@ -183,8 +183,8 @@ private struct AdvancedSettings: View {
     var body: some View {
         Form {
             Section("Geliştirme") {
-                Toggle("Faz 0 denemelerini ve yapım aşamasındaki sayfaları göster", isOn: $showsDeveloperPages)
-                Text("Denemeleri yeniden yapmak için. Henüz çalışmayan sayfalar \"Alfa sürümünde geliyor\" yazar.")
+                Toggle("Faz 0 denemelerini göster", isOn: $showsDeveloperPages)
+                Text("Denemeleri yeniden yapmak için.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

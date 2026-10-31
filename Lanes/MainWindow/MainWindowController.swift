@@ -164,10 +164,10 @@ private struct DetailView: View {
             IntegrationsPage()
         case .maintenance:
             MaintenancePage()
+        case .toolbox:
+            ToolboxPage()
         case .validation:
             ValidationPage()
-        default:
-            PlannedPage(destination: destination)
         }
     }
 }

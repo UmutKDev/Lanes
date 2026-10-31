@@ -80,24 +80,8 @@ enum Destination: Hashable {
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .sessions, .usage, .accountMap, .links, .scenes, .health, .privacy, .integrations, .maintenance, .settings: return true
-        default: return showingDeveloperPages
-        }
-    }
-
-    /// One sentence for pages that are not built yet.
-    var plannedSummary: String {
-        switch self {
-        case .sessions: return String(localized: "Tüm hesapların Claude Code oturumları tek listede. Bir oturumu başka bir hesapla sürdürmek de buradan olacak.")
-        case .usage: return String(localized: "Her hesabın kendi kullanım sınırı ve sıfırlanma saati. Hesaplar birbirleriyle toplanmaz ya da sıralanmaz.")
-        case .accountMap: return String(localized: "Hangi klasörün, hangi bağlantının hangi hesapla açılacağını belirleyen kurallar.")
-        case .links: return String(localized: "Lanes'in yönlendirdiği claude:// bağlantılarının geçmişi.")
-        case .toolbox: return String(localized: "Hesaplar arasında paylaşılabilen MCP sunucuları, komutlar ve ayarlar.")
-        case .scenes: return String(localized: "Birden çok hesabı tek tıkla, belirli pencere düzeniyle açan kayıtlı düzenler.")
-        case .health: return String(localized: "Claude sürümü, klonların imza durumu ve bağlantı varsayılanı tek bakışta.")
-        case .maintenance: return String(localized: "Profil klasörlerinin boyutu, önbellek temizliği ve yedekleme.")
-        case .integrations: return String(localized: "Kısayollar, Raycast ve Alfred ile bağlantılar.")
-        default: return ""
+        case .validation: return showingDeveloperPages
+        default: return true
         }
     }
 }
