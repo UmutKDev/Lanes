@@ -354,6 +354,8 @@ final class AppModel {
         if let current = currentFront {
             if current.id == id { return }
             frontTime.record(current.id, from: current.since, to: now)
+            // Leaving the front is the last moment it was used.
+            noteUsed(current.id)
             frontTime.prune(now: now, keeping: Set(library.profiles.map(\.id)))
             if let data = try? JSONEncoder().encode(frontTime) {
                 UserDefaults.standard.set(data, forKey: "frontTime")
@@ -496,6 +498,11 @@ final class AppModel {
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
         monitor.watchExits(of: Set(instances.map(\.pid)))
+        // A closed account's last reading must not linger until the next sample.
+        let openIDs = Set(instances.compactMap(\.profileID))
+        if resourceUsage.keys.contains(where: { !openIDs.contains($0) }) {
+            resourceUsage = resourceUsage.filter { openIDs.contains($0.key) }
+        }
         // A Claude that just started may be a new version: Claude updates
         // itself and relaunches.
         let pids = Set(instances.map(\.pid))

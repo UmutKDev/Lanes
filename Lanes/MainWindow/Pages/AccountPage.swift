@@ -199,8 +199,15 @@ private struct AccountGeneralTab: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let usage = model.resourceUsage[profile.id] {
+                    if model.isRunning(profile), let usage = model.resourceUsage[profile.id] {
                         LabeledContent("Şu an", value: usage.summary)
+                    }
+                    LabeledContent("Önde geçen süre") {
+                        Text(String(localized: "Bugün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 1))) · 7 gün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 7))) · 30 gün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 30)))"))
+                            .monospacedDigit()
+                    }
+                    if !model.isRunning(profile), let last = model.lastUsedAt[profile.id] {
+                        LabeledContent("Son kullanım", value: AccountCardView.relative(last))
                     }
                     Picker("Günlük süre hatırlatması", selection: limitBinding) {
                         Text("Yok").tag(0)

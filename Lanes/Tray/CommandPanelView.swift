@@ -343,12 +343,25 @@ struct AccountCardView: View {
         let base = profile.isDefault
             ? String(localized: "\(state) · Claude uygulaması")
             : "\(state) · \(profile.accountClass.displayName)"
+        if !isRunning, let last = model.lastUsedAt[profile.id] {
+            return String(localized: "\(base) · \(Self.relative(last))")
+        }
         if let progress = model.dailyLimitProgress(for: profile) {
             return String(localized: "\(base) · bugün \(progress.used)/\(progress.limit) dk")
         }
         let today = model.frontSeconds(for: profile.id, days: 1)
         guard today >= 60 else { return base }
         return String(localized: "\(base) · bugün \(FrontTimeLog.describe(seconds: today))")
+    }
+}
+
+extension AccountCardView {
+    /// "2 saat önce" style text for when a closed account was last in front.
+    static func relative(_ date: Date, now: Date = Date()) -> String {
+        guard now.timeIntervalSince(date) >= 60 else { return String(localized: "az önce") }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: now)
     }
 }
 
