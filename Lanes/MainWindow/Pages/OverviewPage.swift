@@ -100,6 +100,13 @@ private struct AccountTile: View {
                     Text(profile.isDefault ? String(localized: "Claude uygulaması") : profile.accountClass.displayName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                        Text(note)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .help(note)
+                    }
                 }
                 Spacer(minLength: 0)
             }

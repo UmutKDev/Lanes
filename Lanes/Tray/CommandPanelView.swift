@@ -9,6 +9,7 @@ struct CommandPanelView: View {
     @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     var onClose: () -> Void
     @State private var query = ""
+    @AppStorage(Preferences.Key.panelSortsByRecent) private var sortsByRecent = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -113,9 +114,10 @@ struct CommandPanelView: View {
     /// case and accents with Turkish rules.
     private var matchingProfiles: [Profile] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return model.library.profiles }
+        let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.profiles
+        guard !text.isEmpty else { return profiles }
         let locale = Locale(identifier: "tr_TR")
-        return model.library.profiles.filter { profile in
+        return profiles.filter { profile in
             [profile.name, profile.email ?? "", profile.note ?? ""].contains {
                 $0.range(of: text, options: [.caseInsensitive, .diacriticInsensitive], locale: locale) != nil
             }
@@ -176,6 +178,8 @@ struct CommandPanelView: View {
                     }
                     Divider()
                 }
+                Toggle("Son kullanılan hesap üstte", isOn: $sortsByRecent)
+                Divider()
                 if model.quittableOpenCount > 0 {
                     Button("Lanes Hesaplarının Tümünü Kapat") {
                         model.quitAllLanesAccounts()
@@ -305,9 +309,16 @@ struct AccountCardView: View {
             onClose()
             model.open(profile)
         }
-        .help(isRunning ? "Öne getir" : "Aç")
+        .help(helpText(isRunning: isRunning))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+    }
+
+    /// The action, and the account's note when it has one.
+    private func helpText(isRunning: Bool) -> String {
+        let action = isRunning ? String(localized: "Öne getir") : String(localized: "Aç")
+        guard let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return action }
+        return "\(action)\n\(note)"
     }
 
     private func subtitle(isRunning: Bool) -> String {

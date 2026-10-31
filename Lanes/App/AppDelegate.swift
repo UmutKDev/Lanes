@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeShortcuts()
         tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
+        model.reopenLastAccountsIfWanted()
         Task { await model.webAccounts.restore(from: model.library.profiles) }
     }
 
