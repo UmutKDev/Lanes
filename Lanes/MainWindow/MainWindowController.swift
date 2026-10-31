@@ -136,9 +136,24 @@ private struct DetailView: View {
     let destination: Destination
 
     var body: some View {
+        let shown = destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview
+        // The overview shows the notice among its own banners. Other pages
+        // show it on top, so a warning appears where the button was pressed.
+        if shown == .overview {
+            page(shown)
+        } else {
+            VStack(spacing: 0) {
+                PageNoticeBar()
+                page(shown)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func page(_ destination: Destination) -> some View {
         // A hidden page left in the history, or one the setting just hid,
         // shows the overview instead.
-        switch destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview {
+        switch destination {
         case .overview:
             OverviewPage()
         case let .account(id):
@@ -168,6 +183,20 @@ private struct DetailView: View {
             ToolboxPage()
         case .validation:
             ValidationPage()
+        }
+    }
+}
+
+/// The app's latest notice, above any page but the overview.
+private struct PageNoticeBar: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        if let notice = model.notice {
+            NoticeRow(notice: notice) { model.notice = nil }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
         }
     }
 }
