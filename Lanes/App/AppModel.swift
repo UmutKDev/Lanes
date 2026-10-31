@@ -84,6 +84,11 @@ final class AppModel {
     @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
     @ObservationIgnored private let sampler = ResourceSampler()
     @ObservationIgnored private var resourceTimer: Timer?
+    /// How long each account was in front, per day.
+    private(set) var frontTime: FrontTimeLog = AppModel.loadFrontTime()
+    /// The account in front now and since when, not yet in frontTime.
+    @ObservationIgnored private var currentFront: (id: ProfileID, since: Date)?
+    @ObservationIgnored private var sleepObservers: [NSObjectProtocol] = []
 
     struct SeparationResult: Equatable {
         /// True when the account's own folder changed after it opened.
@@ -136,15 +141,36 @@ final class AppModel {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            let pid = app?.processIdentifier
+            let isClaude = app?.bundleIdentifier == ClaudeInstallation.bundleIdentifier
             MainActor.assumeIsolated {
-                guard let self, let pid, pid != ProcessInfo.processInfo.processIdentifier else { return }
+                guard let self, let pid else { return }
+                // A Claude that just opened may not be in the list yet.
+                if isClaude, !self.instances.contains(where: { $0.pid == pid }) {
+                    self.refreshInstances()
+                }
+                self.frontChanged(to: self.instances.first(where: { $0.pid == pid })?.profileID)
+                guard pid != ProcessInfo.processInfo.processIdentifier else { return }
                 if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
                     self.lastFrontProfileID = id
                     self.lastActiveAt[id] = Date()
                 }
             }
         }
+        let center = NSWorkspace.shared.notificationCenter
+        sleepObservers = [
+            center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.frontChanged(to: nil) }
+            },
+            center.addObserver(forName: NSWorkspace.screensDidSleepNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.frontChanged(to: nil) }
+            },
+            center.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.frontChangedToCurrentApp() }
+            },
+        ]
+        frontChangedToCurrentApp()
         Task { await stepAsideFromSignInIfNeeded() }
         resourceTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
@@ -189,6 +215,63 @@ final class AppModel {
             lastActiveAt[item.id] = nil
             Notifier.post(.idleQuit, body: String(localized: "\(profile.name) \(IdleQuitPolicy.describe(minutes: profile.idleQuitMinutes ?? 0)) kullanılmadığı için kapatıldı. Lanes'ten yeniden açabilirsin."))
         }
+    }
+
+    // MARK: Time in front
+
+    private func frontChanged(to id: ProfileID?) {
+        let now = Date()
+        if let current = currentFront {
+            if current.id == id { return }
+            frontTime.record(current.id, from: current.since, to: now)
+            frontTime.prune(now: now, keeping: Set(library.profiles.map(\.id)))
+            if let data = try? JSONEncoder().encode(frontTime) {
+                UserDefaults.standard.set(data, forKey: "frontTime")
+            }
+        }
+        currentFront = id.map { (id: $0, since: now) }
+    }
+
+    private func frontChangedToCurrentApp() {
+        let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        frontChanged(to: instances.first(where: { $0.pid == pid })?.profileID)
+    }
+
+    /// Seconds the account was in front over the last `days` days,
+    /// counting the time it has been in front right now.
+    func frontSeconds(for id: ProfileID, days: Int) -> Double {
+        var total = frontTime.seconds(for: id, days: days, now: Date())
+        if let current = currentFront, current.id == id {
+            total += Date().timeIntervalSince(current.since)
+        }
+        return total
+    }
+
+    private static func loadFrontTime() -> FrontTimeLog {
+        guard let data = UserDefaults.standard.data(forKey: "frontTime") else { return FrontTimeLog() }
+        return (try? JSONDecoder().decode(FrontTimeLog.self, from: data)) ?? FrontTimeLog()
+    }
+
+    // MARK: Quitting every account
+
+    /// Memory of every open account's Claude together.
+    var totalMemoryBytes: UInt64 {
+        resourceUsage.values.reduce(0) { $0 + $1.memoryBytes }
+    }
+
+    /// Accounts "Tümünü Kapat" would quit: Lanes's own, open ones. The
+    /// Claude app's account belongs to Claude and stays.
+    var quittableOpenCount: Int {
+        library.profiles.filter { !$0.isDefault && isRunning($0) }.count
+    }
+
+    /// Quits every open Lanes account the way Claude's own Quit does.
+    func quitAllLanesAccounts() {
+        let profiles = library.profiles.filter { !$0.isDefault && isRunning($0) }
+        for profile in profiles {
+            quit(profile)
+        }
+        Log.instances.info("Quit all: \(profiles.count) accounts")
     }
 
     // MARK: Moving the account list

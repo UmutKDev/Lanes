@@ -5,6 +5,7 @@ import SwiftUI
 struct OverviewPage: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
+    @State private var isConfirmingQuitAll = false
 
     private let columns = [GridItem(.adaptive(minimum: 220, maximum: 320), spacing: 16)]
 
@@ -30,8 +31,25 @@ struct OverviewPage: View {
                     )
                 }
 
-                Text("Hesaplar")
-                    .font(.title2.weight(.semibold))
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Hesaplar")
+                        .font(.title2.weight(.semibold))
+                    if model.totalMemoryBytes > 0 {
+                        Text(String(localized: "Açık hesaplar toplam \(ByteCountFormatter.string(fromByteCount: Int64(clamping: model.totalMemoryBytes), countStyle: .memory)) bellek kullanıyor"))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if model.quittableOpenCount > 0 {
+                        Button("Tümünü Kapat") { isConfirmingQuitAll = true }
+                            .help("Lanes'te eklediğin açık hesapların hepsini kapatır. Claude uygulamasının kendi hesabı açık kalır.")
+                    }
+                }
+                .confirmationDialog("Açık \(model.quittableOpenCount) hesap kapatılsın mı?", isPresented: $isConfirmingQuitAll) {
+                    Button("Tümünü Kapat") { model.quitAllLanesAccounts() }
+                } message: {
+                    Text("Her hesabın Claude'u kendi Çık komutuyla kapanır. Giriş ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
+                }
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                     ForEach(model.library.profiles) { profile in
                         AccountTile(profile: profile)
