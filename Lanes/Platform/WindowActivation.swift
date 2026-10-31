@@ -4,10 +4,32 @@ import AppKit
 /// also shows a Dock icon and a menu bar, like a regular app.
 @MainActor
 enum DockPresence {
-    static func windowWillShow() {
-        guard Preferences.showsDockIconWithWindow else { return }
-        if NSApp.activationPolicy() != .regular {
-            NSApp.setActivationPolicy(.regular)
+    /// Returns true when Lanes just turned into a regular app.
+    @discardableResult
+    static func windowWillShow(force: Bool = false) -> Bool {
+        guard force || Preferences.showsDockIconWithWindow else { return false }
+        guard NSApp.activationPolicy() != .regular else { return false }
+        NSApp.setActivationPolicy(.regular)
+        return true
+    }
+
+    /// An app that turns regular while it is already active keeps the
+    /// previous app's menus in the menu bar (seen on macOS 26 with build 70:
+    /// Lanes in front, Finder's menus shown). Handing activation to the
+    /// Dock and taking it back makes the menu bar catch up.
+    @MainActor
+    static func refreshMenuBar(for window: NSWindow) async {
+        guard NSApp.isActive,
+              let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return }
+        NSApp.yieldActivation(to: dock)
+        _ = dock.activate(from: NSRunningApplication.current, options: [])
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        _ = NSRunningApplication.current.activate(from: dock, options: [])
+        window.makeKeyAndOrderFront(nil)
+        for _ in 0..<10 where !NSApp.isActive {
+            try? await Task.sleep(nanoseconds: 30_000_000)
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
         }
     }
 
@@ -70,10 +92,24 @@ enum WindowActivator {
         var showsDockIcon: Bool
     }
 
-    static func bringForward(_ window: NSWindow) async -> Outcome {
-        let start = Date()
+    /// - Parameter alwaysInDock: Show Lanes in the Dock whatever the
+    ///   setting says, as account windows do.
+    static func bringForward(_ window: NSWindow, alwaysInDock: Bool = false) async -> Outcome {
         let previous = NSWorkspace.shared.frontmostApplication
-        DockPresence.windowWillShow()
+        let becameRegular = DockPresence.windowWillShow(force: alwaysInDock)
+        if becameRegular {
+            // The Dock icon needs a moment before activation sticks.
+            try? await Task.sleep(nanoseconds: 60_000_000)
+        }
+        let result = await activate(window, previous: previous)
+        if becameRegular, result.method != .gaveUp {
+            await DockPresence.refreshMenuBar(for: window)
+        }
+        return result
+    }
+
+    private static func activate(_ window: NSWindow, previous: NSRunningApplication?) async -> Outcome {
+        let start = Date()
 
         if let previous, previous != NSRunningApplication.current {
             _ = NSRunningApplication.current.activate(from: previous, options: [])

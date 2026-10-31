@@ -36,6 +36,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     /// each scan, so a Claude that just opened shows once Lanes has seen it.
     private var frontPID: pid_t?
     private var keyWindowObserver: NSObjectProtocol?
+    private var appActiveObserver: NSObjectProtocol?
     private var shownIconKey: String?
     /// Recent presses on the icon, on the system uptime clock that NSEvent
     /// timestamps use.
@@ -126,11 +127,27 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, NSApp.isActive, self.model.webAccounts.keyProfileID != nil else { return }
-                self.frontPID = ProcessInfo.processInfo.processIdentifier
-                self.updateIcon()
+                self?.showAccountTabIfInFront()
             }
         }
+        // The window can become key a moment before Lanes becomes active.
+        appActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.showAccountTabIfInFront()
+            }
+        }
+    }
+
+    private func showAccountTabIfInFront() {
+        guard NSApp.isActive, let key = NSApp.keyWindow,
+              key.tabbingIdentifier == WebAccounts.tabbingIdentifier,
+              model.webAccounts.keyProfileID != nil else { return }
+        frontPID = ProcessInfo.processInfo.processIdentifier
+        updateIcon()
     }
 
     private func updateIcon() {
