@@ -19,7 +19,7 @@ struct OverviewPage: View {
                 }
                 if model.isTranslocated && !model.isTranslocationNoticeDismissed {
                     NoticeRow(
-                        notice: AppModel.Notice(kind: .warning, message: String(localized: "Lanes geçici bir kopyadan çalışıyor, çünkü doğrudan DMG'den ya da İndirilenler'den açıldı. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne sürükle ve oradan aç. Yoksa güncellemeler yüklenemez.")),
+                        notice: AppModel.Notice(kind: .warning, message: String(localized: "Lanes doğrudan DMG'den ya da İndirilenler'deki geçici bir kopyadan çalışıyor. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne sürükle ve oradan aç. Yoksa güncellemeler yüklenemez, DMG çıkarılınca da Lanes kapanır.")),
                         onDismiss: { model.isTranslocationNoticeDismissed = true }
                     )
                 }

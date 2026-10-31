@@ -6,7 +6,7 @@ Lanes'i deneyen herkes için kısa bir kılavuz. Lanes bir Anthropic ürünü de
 
 1. [GitHub Releases](https://github.com/UmutKDev/Lanes/releases/latest) sayfasından son DMG'yi indir.
 2. DMG'yi aç ve Lanes'i Uygulamalar klasörüne sürükle.
-3. Lanes'i Uygulamalar klasöründen aç. DMG'nin içinden ya da İndirilenler'den açarsan macOS uygulamayı geçici bir konuma taşır. Lanes bunu fark eder ve Genel Bakış'ta uyarır.
+3. Lanes'i Uygulamalar klasöründen aç. DMG'nin içinden ya da İndirilenler'den açarsan Lanes güncellenemez, DMG çıkarılınca da kapanır. Lanes bunu fark eder ve Genel Bakış'ta uyarır.
 
 Gerekenler: macOS 26 ya da üstü ve Claude masaüstü uygulaması.
 
