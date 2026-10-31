@@ -12,6 +12,8 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
     let webView: WKWebView
     var onClose: ((ProfileID) -> Void)?
     var onBecomeKey: ((ProfileID) -> Void)?
+    /// The user closed the tab, as opposed to Lanes quitting.
+    var onUserClose: ((ProfileID) -> Void)?
 
     /// Hosts that stay inside the tab: claude.ai itself and the pages its
     /// sign-in passes through. Anything else opens in the default browser.
@@ -70,6 +72,11 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
     }
 
     // MARK: Window
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        onUserClose?(profileID)
+        return true
+    }
 
     func windowWillClose(_ notification: Notification) {
         webView.stopLoading()

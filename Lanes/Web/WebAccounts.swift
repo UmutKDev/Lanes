@@ -17,33 +17,22 @@ final class WebAccounts {
     static let tabbingIdentifier = "LanesAccounts"
 
     /// Accounts with a window open.
-    private(set) var openIDs: Set<ProfileID> = [] {
-        didSet {
-            guard !isTerminating else { return }
-            UserDefaults.standard.set(openIDs.map(\.rawValue).sorted(), forKey: Self.openAccountsKey)
-        }
-    }
-    @ObservationIgnored private var isTerminating = false
-    @ObservationIgnored private var terminationObserver: NSObjectProtocol?
+    private(set) var openIDs: Set<ProfileID> = []
     static let openAccountsKey = "openWebAccounts"
 
-    init() {
-        // Windows closing because Lanes quits stay remembered, so they
-        // come back next time, like a browser's tabs.
-        terminationObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.willTerminateNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.isTerminating = true
-            }
-        }
+    /// Tabs that come back next time, like a browser's. A tab is forgotten
+    /// only when the user closes it; windows closed because Lanes quits or
+    /// relaunches for an update stay remembered.
+    @ObservationIgnored private var rememberedIDs: Set<ProfileID> {
+        get { Set((UserDefaults.standard.stringArray(forKey: Self.openAccountsKey) ?? []).map(ProfileID.init(rawValue:))) }
+        set { UserDefaults.standard.set(newValue.map(\.rawValue).sorted(), forKey: Self.openAccountsKey) }
     }
+
+    init() {}
 
     /// Reopens the account tabs that were open when Lanes last quit.
     func restore(from profiles: [Profile]) async {
-        let ids = Set((UserDefaults.standard.stringArray(forKey: Self.openAccountsKey) ?? []).map(ProfileID.init(rawValue:)))
+        let ids = rememberedIDs
         for profile in profiles where ids.contains(profile.id) && !profile.isDefault && profile.mode == .insideLanes {
             await show(profile)
         }
@@ -71,9 +60,11 @@ final class WebAccounts {
                 start: url ?? Self.home
             )
             controller.onClose = { [weak self] id in self?.didClose(id) }
+            controller.onUserClose = { [weak self] id in self?.rememberedIDs.remove(id) }
             controller.onBecomeKey = { [weak self] id in self?.keyProfileID = id }
             controllers[profile.id] = controller
             openIDs.insert(profile.id)
+            rememberedIDs.insert(profile.id)
             // Joins the other account windows as a tab, like a browser.
             if let window = controller.window,
                let host = controllers.values.compactMap(\.window).first(where: { $0 !== window && $0.isVisible }) {
@@ -98,10 +89,18 @@ final class WebAccounts {
     }
 
     /// Forgets the account's sign-in and everything claude.ai stored for it.
+    /// Only a store that exists is removed: WebKit crashes when asked to
+    /// remove one it never made while no web content runs.
     func removeData(for id: ProfileID) async {
         controllers[id]?.window?.close()
+        rememberedIDs.remove(id)
+        let identifier = Self.storeIdentifier(for: id)
+        // Touching the default store sets WebKit up on the main thread
+        // first, in case no tab has opened since Lanes started.
+        _ = WKWebsiteDataStore.default()
+        guard await WKWebsiteDataStore.allDataStoreIdentifiers.contains(identifier) else { return }
         do {
-            try await WKWebsiteDataStore.remove(forIdentifier: Self.storeIdentifier(for: id))
+            try await WKWebsiteDataStore.remove(forIdentifier: identifier)
         } catch {
             Log.app.error("Could not remove an account's website data: \(error.localizedDescription, privacy: .public)")
         }

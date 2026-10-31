@@ -138,11 +138,11 @@ private struct DetailView: View {
     var body: some View {
         let shown = destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview
         // The overview shows the notice among its own banners. Other pages
-        // show it on top, so a warning appears where the button was pressed.
-        // A safe area inset, not a stack, so the window's toolbar insets
-        // stay as they are when the notice comes and goes.
+        // show it too, so a warning appears where the button was pressed.
+        // It floats over the page's bottom edge: anything that changes the
+        // page's layout or safe area throws off the window's toolbar insets.
         page(shown)
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .overlay(alignment: .bottom) {
                 PageNoticeBar(isHidden: shown == .overview)
             }
     }
@@ -193,10 +193,11 @@ private struct PageNoticeBar: View {
     var body: some View {
         if !isHidden, let notice = model.notice {
             NoticeRow(notice: notice) { model.notice = nil }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-                .background(.bar)
+                .padding(12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(radius: 6, y: 2)
+                .padding(16)
+                .frame(maxWidth: 640)
         }
     }
 }

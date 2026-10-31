@@ -146,6 +146,7 @@ ln -s /Applications "$staging/Applications"
 for attempt in 1 2; do
   hdiutil create -volname "Lanes" -srcfolder "$staging" -fs HFS+ -format UDZO -ov "$dmg"
   if hdiutil verify "$dmg" >/dev/null 2>&1; then
+    echo "DMG doğrulandı."
     break
   fi
   [[ $attempt == 2 ]] && fail "hdiutil bozuk bir DMG yazdı, iki denemede de."

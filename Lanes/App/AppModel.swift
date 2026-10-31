@@ -554,7 +554,9 @@ final class AppModel {
             save()
             removeClone(of: profile.id)
             // Its claude.ai sign-in goes with it; Lanes keeps no copy.
-            Task { await webAccounts.removeData(for: profile.id) }
+            if profile.mode == .insideLanes || webAccounts.isOpen(profile.id) {
+                Task { await webAccounts.removeData(for: profile.id) }
+            }
             recentFolders[profile.id] = nil
             saveRecentFolders()
             pruneShortcuts()
