@@ -37,7 +37,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        DockPresence.windowDidClose()
+        DockPresence.windowDidClose(window)
     }
 }
 

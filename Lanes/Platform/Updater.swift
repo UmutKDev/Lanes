@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Observation
 import Sparkle
 
@@ -11,6 +11,7 @@ final class Updater {
     @ObservationIgnored private let controller: SPUStandardUpdaterController?
     // Sparkle holds its delegate weakly.
     @ObservationIgnored private let delegate: UpdaterDelegate
+    @ObservationIgnored private let userDriverDelegate: UserDriverDelegate
 
     /// False in builds without a feed or key. The settings say so instead of
     /// offering a check that can't run.
@@ -22,8 +23,10 @@ final class Updater {
         isAvailable = !feed.isEmpty && !key.isEmpty
         let delegate = UpdaterDelegate()
         self.delegate = delegate
+        let userDriverDelegate = UserDriverDelegate()
+        self.userDriverDelegate = userDriverDelegate
         controller = isAvailable
-            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: delegate, userDriverDelegate: nil)
+            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: delegate, userDriverDelegate: userDriverDelegate)
             : nil
         automaticallyChecks = controller?.updater.automaticallyChecksForUpdates ?? false
     }
@@ -59,5 +62,28 @@ final class Updater {
 private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
     func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
         UserDefaults.standard.set(true, forKey: Preferences.Key.relaunchedAfterUpdate)
+    }
+}
+
+/// Lanes usually runs in the menu bar alone, so Sparkle's window would open
+/// behind whatever app is in front. It shows like the main window does: with
+/// a Dock icon and in front, and Lanes goes back to the menu bar after.
+/// Sparkle calls it on the main thread.
+private final class UserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        guard handleShowingUpdate else { return }
+        MainActor.assumeIsolated {
+            DockPresence.windowWillShow()
+            NSApp.activate()
+        }
+    }
+
+    func standardUserDriverWillFinishUpdateSession() {
+        // Sparkle's window is still on screen at this point.
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                DockPresence.otherWindowDidClose()
+            }
+        }
     }
 }
