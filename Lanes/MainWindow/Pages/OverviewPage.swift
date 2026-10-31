@@ -90,6 +90,13 @@ private struct AccountTile: View {
                     .font(.caption)
                     .foregroundStyle(isRunning ? Color.green : Color.secondary)
                     .labelStyle(.titleAndIcon)
+                if isRunning, let usage = model.resourceUsage[profile.id] {
+                    Text(usage.summary)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .help("Claude'un bu hesap için kullandığı bellek ve işlemci, yardımcı süreçleriyle birlikte.")
+                }
                 Spacer()
                 Button(isRunning ? "Öne Getir" : "Aç") {
                     model.open(profile)

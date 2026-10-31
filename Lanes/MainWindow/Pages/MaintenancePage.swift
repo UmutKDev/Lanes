@@ -1,6 +1,7 @@
 import AppKit
 import LanesCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// How much room each account takes, and a way to empty Claude's caches.
 struct MaintenancePage: View {
@@ -24,8 +25,55 @@ struct MaintenancePage: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            AccountListTransferSection()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Saves the account list to a file and adds accounts from one, for a new
+/// Mac or a backup. The file holds no sign-in data.
+private struct AccountListTransferSection: View {
+    @Environment(AppModel.self) private var model
+    @State private var result: String?
+
+    var body: some View {
+        Section("Hesap listesini taşı") {
+            HStack {
+                Button("Dışa Aktar…", action: export)
+                Button("İçe Aktar…", action: importFile)
+            }
+            Text("Hesapların adı, rengi, açılış biçimi, notları ve sahneler bir dosyaya yazılır. Giriş bilgileri ve sohbetler dosyaya girmez, bu yüzden başka bir Mac'te her hesapta yeniden giriş yapman gerekir. İçe aktarma yalnız eksik hesapları ve sahneleri ekler, var olanları değiştirmez.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let result {
+                Text(result)
+                    .font(.caption.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func export() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = String(localized: "Lanes hesapları.json")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try model.exportLibrary(to: url)
+            result = String(localized: "Hesap listesi \(url.lastPathComponent) dosyasına yazıldı.")
+        } catch {
+            result = String(localized: "Dışa aktarılamadı: \(error.localizedDescription)")
+        }
+    }
+
+    private func importFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        result = model.importLibrary(from: url)
     }
 }
 

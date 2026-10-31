@@ -175,6 +175,23 @@ private struct AccountGeneralTab: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            if profile.mode.usesClaudeApp {
+                Section("Bellek") {
+                    Picker("Kullanılmayınca kapat", selection: idleBinding) {
+                        Text("Hiçbir zaman").tag(0)
+                        ForEach(IdleQuitPolicy.choices, id: \.self) { minutes in
+                            Text(IdleQuitPolicy.describe(minutes: minutes)).tag(minutes)
+                        }
+                    }
+                    Text("Hesap bu kadar süre öne gelmezse Lanes Claude'unu kapatır, bellek boşalır. Claude o an çalışıyorsa (örneğin uzun bir yanıt ya da Claude Code işi) kapatmaz. Giriş ve sohbetler kalır, yeniden açınca kaldığın yerden devam edersin.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let usage = model.resourceUsage[profile.id] {
+                        LabeledContent("Şu an", value: usage.summary)
+                    }
+                }
+            }
             if profile.isDefault {
                 Section {
                     Text("Bu hesap Claude'un kendi klasörlerini kullanıyor. Lanes'i kaldırsan bile bu hesap olduğu gibi kalır.")
@@ -193,7 +210,18 @@ private struct AccountGeneralTab: View {
     /// The clone with its own icon, or the web version. Plain Claude.app
     /// and Ayrı kimlik are only listed for an account that still uses them,
     /// so it can be moved to the clone.
-    private var modeChoices: [ProfileMode] {
+    private var idleBinding: Binding<Int> {
+        Binding(
+            get: { profile.idleQuitMinutes ?? 0 },
+            set: { minutes in
+                var updated = profile
+                updated.idleQuitMinutes = minutes > 0 ? minutes : nil
+                model.updateProfile(updated)
+            }
+        )
+    }
+
+        private var modeChoices: [ProfileMode] {
         if profile.isDefault { return [.standard] }
         var choices: [ProfileMode] = [.signedClone, .insideLanes]
         if profile.mode == .standard || profile.mode == .separateIdentity { choices.append(profile.mode) }

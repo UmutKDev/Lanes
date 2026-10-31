@@ -47,6 +47,14 @@ struct PrivacyPage: View {
                     detail: "Yalnız sekmeli mod açıkken ve Erişilebilirlik izniyle. Lanes pencereyi sekme çubuğunun altına taşır ve öteki hesapları gizler. Pencerelerin içine, başlıklarına ya da yazılanlara bakmaz."
                 )
                 PrivacyItem(
+                    title: "Açık Claude'ların bellek ve işlemci kullanımı",
+                    detail: "On saniyede bir, macOS'un süreç sayaçlarından, Genel Bakış'ta göstermek ve \"Kullanılmayınca kapat\" seçili hesapları kapatmak için. Claude'un içine bakılmaz."
+                )
+                PrivacyItem(
+                    title: "Sahne pencerelerinin yeri ve boyutu",
+                    detail: "Yalnız bir sahnenin yerleşimini kaydettiğinde ya da yerleşimi kayıtlı bir sahneyi açtığında, Erişilebilirlik izniyle."
+                )
+                PrivacyItem(
                     title: "Sağlık sayfasındaki denetimler",
                     detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz. Klonların imzası yalnız \"İmzaları Denetle\" düğmesine basınca, macOS'un codesign ve spctl araçlarıyla denetlenir."
                 )
