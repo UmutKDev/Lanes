@@ -56,9 +56,19 @@ final class WebAccounts {
         // like any app with a window, whatever the main window setting says.
         if NSApp.activationPolicy() != .regular {
             NSApp.setActivationPolicy(.regular)
+            // The Dock icon needs a moment before macOS lets the app activate.
+            try? await Task.sleep(nanoseconds: 60_000_000)
         }
-        let outcome = await WindowActivator.bringForward(window)
-        return outcome.method != .gaveUp
+        _ = await WindowActivator.bringForward(window)
+        // Ordering the window front is not enough: Lanes has to become the
+        // active app, or the menu bar and Cmd-Tab still name the Claude
+        // that was in front.
+        for _ in 0..<10 where !NSApp.isActive {
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        return NSApp.isActive && window.isKeyWindow
     }
 
     func close(_ id: ProfileID) {
