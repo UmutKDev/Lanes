@@ -156,13 +156,14 @@ private struct AccountTile: View {
             Button("Claude Code'u Terminalde Aç") {
                 model.openClaudeCode(profile)
             }
-            if !profile.isDefault {
-                Divider()
-                Button("Hesabı Çoğalt") {
-                    if let copy = model.duplicateProfile(profile) {
-                        navigation.navigate(to: .account(copy.id))
-                    }
+            Divider()
+            Button("Hesabı Çoğalt") {
+                if let copy = model.duplicateProfile(profile) {
+                    navigation.navigate(to: .account(copy.id))
                 }
+            }
+            .help("Aynı ayarlarla yeni bir hesap ekler. Yeni hesap girişsiz ve boş klasörlerle başlar.")
+            if !profile.isDefault {
                 Button("Arşivle") {
                     model.setArchived(profile, true)
                 }
