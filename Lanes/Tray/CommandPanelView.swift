@@ -79,14 +79,14 @@ struct CommandPanelView: View {
 
     @ViewBuilder
     private var accounts: some View {
-        if model.library.profiles.isEmpty {
+        if model.library.activeProfiles.isEmpty {
             Text("Henüz hesap yok.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
         } else {
             VStack(spacing: 2) {
-                if model.library.profiles.count >= 4 {
+                if model.library.activeProfiles.count >= 4 {
                     TextField("Hesap ara", text: $query, prompt: Text("Hesap ara"))
                         .textFieldStyle(.roundedBorder)
                         .padding(.horizontal, 4)
@@ -114,7 +114,7 @@ struct CommandPanelView: View {
     /// case and accents with Turkish rules.
     private var matchingProfiles: [Profile] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.profiles
+        let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles
         guard !text.isEmpty else { return profiles }
         let locale = Locale(identifier: "tr_TR")
         return profiles.filter { profile in
@@ -163,6 +163,11 @@ struct CommandPanelView: View {
         }
     }
 
+    /// Seconds all accounts spent in front today.
+    private var todayTotal: Double {
+        model.library.profiles.reduce(0) { $0 + model.frontSeconds(for: $1.id, days: 1) }
+    }
+
     private var footer: some View {
         HStack {
             Button {
@@ -171,6 +176,12 @@ struct CommandPanelView: View {
                 Label("Hesap Ekle", systemImage: "plus")
             }
             Spacer()
+            if todayTotal >= 60 {
+                Text("Bugün \(FrontTimeLog.describe(seconds: todayTotal))")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .help("Bugün Claude hesaplarının önde geçirdiği toplam süre. Ayrıntısı Kullanım sayfasında.")
+            }
             Menu {
                 if showsDeveloperPages {
                     Button("Faz 0 Doğrulama") {
@@ -210,7 +221,7 @@ struct CommandPanelView: View {
     /// Invisible buttons that give ⌘1 to ⌘9 to the first nine accounts.
     private var shortcuts: some View {
         ZStack {
-            ForEach(Array(model.library.profiles.prefix(9).enumerated()), id: \.element.id) { index, profile in
+            ForEach(Array(model.library.activeProfiles.prefix(9).enumerated()), id: \.element.id) { index, profile in
                 Button("") {
                     onClose()
                     model.open(profile)
@@ -323,10 +334,12 @@ struct AccountCardView: View {
 
     private func subtitle(isRunning: Bool) -> String {
         let state = isRunning ? String(localized: "Açık") : String(localized: "Kapalı")
-        if profile.isDefault {
-            return String(localized: "\(state) · Claude uygulaması")
-        }
-        return "\(state) · \(profile.accountClass.displayName)"
+        let base = profile.isDefault
+            ? String(localized: "\(state) · Claude uygulaması")
+            : "\(state) · \(profile.accountClass.displayName)"
+        let today = model.frontSeconds(for: profile.id, days: 1)
+        guard today >= 60 else { return base }
+        return String(localized: "\(base) · bugün \(FrontTimeLog.describe(seconds: today))")
     }
 }
 

@@ -51,7 +51,7 @@ struct OverviewPage: View {
                     Text("Her hesabın Claude'u kendi Çık komutuyla kapanır. Giriş ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
                 }
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                    ForEach(model.library.profiles) { profile in
+                    ForEach(model.library.activeProfiles) { profile in
                         AccountTile(profile: profile)
                     }
                     AddAccountTile()

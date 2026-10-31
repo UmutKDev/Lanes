@@ -64,9 +64,21 @@ public struct ProfileLibrary: Codable, Equatable, Sendable {
         profiles.first(where: { $0.id == id })
     }
 
+    /// Accounts that are not archived, in the user's order. The overview,
+    /// the panel, the Dock menu and ⌘1-9 show only these.
+    public var activeProfiles: [Profile] {
+        profiles.filter { !$0.isArchived }
+    }
+
+    /// Archived accounts, in the user's order.
+    public var archivedProfiles: [Profile] {
+        profiles.filter(\.isArchived)
+    }
+
     /// The keyboard shortcut number (1 to 9) for a profile, if it has one.
+    /// Archived accounts have none and don't take a number.
     public func shortcutNumber(for id: ProfileID) -> Int? {
-        guard let index = profiles.firstIndex(where: { $0.id == id }), index < 9 else { return nil }
+        guard let index = activeProfiles.firstIndex(where: { $0.id == id }), index < 9 else { return nil }
         return index + 1
     }
 }
@@ -215,6 +227,31 @@ extension ProfileLibrary {
         let profile = profiles.remove(at: index)
         let clamped = min(max(newIndex, 0), profiles.count)
         profiles.insert(profile, at: clamped)
+    }
+
+    /// Puts the accounts that are not archived in the given order, as the
+    /// sidebar shows them. IDs the list doesn't hold are skipped, and
+    /// active accounts missing from `order` keep their place after the
+    /// ordered ones. Archived accounts go to the end in their own order.
+    public mutating func reorderActive(_ order: [ProfileID]) {
+        var remaining = activeProfiles
+        var ordered: [Profile] = []
+        for id in order {
+            if let index = remaining.firstIndex(where: { $0.id == id }) {
+                ordered.append(remaining.remove(at: index))
+            }
+        }
+        profiles = ordered + remaining + archivedProfiles
+    }
+
+    /// Archives or restores an account. The default account can't be
+    /// archived, since it is the Claude app's own.
+    public mutating func setArchived(_ id: ProfileID, _ archived: Bool) throws {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else {
+            throw ProfileStoreError.unknownProfile(id)
+        }
+        guard !(archived && profiles[index].isDefault) else { return }
+        profiles[index].isArchived = archived
     }
 }
 

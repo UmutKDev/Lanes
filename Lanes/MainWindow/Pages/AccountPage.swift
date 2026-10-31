@@ -95,11 +95,23 @@ private struct AccountHeader: View {
                         Text(verbatim: "⌘\(number)")
                             .monospacedDigit()
                     }
+                    if profile.isArchived {
+                        Text(verbatim: "·")
+                        Text("Arşivde")
+                    }
                 }
                 .font(.callout)
                 .foregroundStyle(.secondary)
             }
             Spacer()
+            if !profile.isDefault {
+                Button(profile.isArchived ? "Arşivden Çıkar" : "Arşivle") {
+                    model.setArchived(profile, !profile.isArchived)
+                }
+                .help(profile.isArchived
+                    ? "Hesabı genel bakışa, panele ve ⌘1-9'a geri getirir."
+                    : "Hesabı genel bakıştan, panelden, Dock menüsünden ve ⌘1-9'dan kaldırır. Girişi ve verileri kalır.")
+            }
             if isRunning && !profile.isDefault {
                 Button("Claude'dan Çık") {
                     model.quit(profile)

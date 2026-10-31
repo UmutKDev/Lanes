@@ -274,7 +274,7 @@ struct TabStripView: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(model.library.profiles) { profile in
+            ForEach(model.library.activeProfiles) { profile in
                 TabButton(profile: profile, isActive: controller.activeProfileID == profile.id, isOpening: controller.openingProfileID == profile.id) {
                     controller.select(profile)
                 }

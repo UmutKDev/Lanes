@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         let menu = NSMenu()
-        for profile in model.library.profiles {
+        for profile in model.library.activeProfiles {
             let title = model.isRunning(profile)
                 ? String(localized: "\(profile.name) (açık)")
                 : profile.name

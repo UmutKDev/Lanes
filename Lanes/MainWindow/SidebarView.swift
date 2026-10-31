@@ -14,7 +14,7 @@ struct SidebarView: View {
             }
 
             Section {
-                ForEach(model.library.profiles) { profile in
+                ForEach(model.library.activeProfiles) { profile in
                     NavigationLink(value: Destination.account(profile.id)) {
                         SidebarAccountRow(profile: profile)
                     }
@@ -31,6 +31,12 @@ struct SidebarView: View {
                             }
                         }
                         .help("Aynı ayarlarla yeni bir hesap ekler. Yeni hesap girişsiz ve boş klasörlerle başlar.")
+                        if !profile.isDefault {
+                            Button("Arşivle") {
+                                model.setArchived(profile, true)
+                            }
+                            .help("Hesabı listelerden ve ⌘1-9'dan kaldırır. Girişi ve verileri kalır, Arşiv bölümünden geri alabilirsin.")
+                        }
                         Divider()
                         Button("Hesabı Kaldır…", role: .destructive) {
                             profilePendingRemoval = profile
@@ -52,6 +58,26 @@ struct SidebarView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Hesap ekle")
+                }
+            }
+
+            if !model.library.archivedProfiles.isEmpty {
+                Section("Arşiv") {
+                    ForEach(model.library.archivedProfiles) { profile in
+                        NavigationLink(value: Destination.account(profile.id)) {
+                            SidebarAccountRow(profile: profile)
+                                .opacity(0.6)
+                        }
+                        .contextMenu {
+                            Button("Arşivden Çıkar") {
+                                model.setArchived(profile, false)
+                            }
+                            Divider()
+                            Button("Hesabı Kaldır…", role: .destructive) {
+                                profilePendingRemoval = profile
+                            }
+                        }
+                    }
                 }
             }
 

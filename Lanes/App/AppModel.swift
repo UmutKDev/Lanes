@@ -141,7 +141,7 @@ final class AppModel {
     func start() {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
-        SpotlightIndex.update(library.profiles)
+        SpotlightIndex.update(library.activeProfiles)
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
         }
@@ -288,8 +288,8 @@ final class AppModel {
     /// The accounts with the most recently used first; never used ones keep
     /// the list's order at the end.
     var profilesByRecentUse: [Profile] {
-        let order = Dictionary(uniqueKeysWithValues: library.profiles.enumerated().map { ($0.element.id, $0.offset) })
-        return library.profiles.sorted { a, b in
+        let order = Dictionary(uniqueKeysWithValues: library.activeProfiles.enumerated().map { ($0.element.id, $0.offset) })
+        return library.activeProfiles.sorted { a, b in
             switch (lastUsedAt[a.id], lastUsedAt[b.id]) {
             case let (x?, y?): return x > y
             case (.some, nil): return true
@@ -893,11 +893,25 @@ final class AppModel {
         }
     }
 
+    /// Moves rows of the sidebar's account list, which shows only the
+    /// accounts that are not archived.
     func moveProfiles(fromOffsets source: IndexSet, toOffset destination: Int) {
-        var profiles = library.profiles
-        profiles.move(fromOffsets: source, toOffset: destination)
-        library.profiles = profiles
+        var active = library.activeProfiles
+        active.move(fromOffsets: source, toOffset: destination)
+        library.reorderActive(active.map(\.id))
         save()
+    }
+
+    /// Puts an account in the archive or takes it out. An archived account
+    /// keeps its sign-in and data; it only leaves the lists and ⌘1-9.
+    func setArchived(_ profile: Profile, _ archived: Bool) {
+        do {
+            try library.setArchived(profile.id, archived)
+            save()
+            Log.app.info("\(archived ? "Archived" : "Restored", privacy: .public) an account")
+        } catch {
+            notice = Notice(kind: .error, message: error.localizedDescription)
+        }
     }
 
     // MARK: Scenes
@@ -1125,7 +1139,7 @@ final class AppModel {
         do {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
-            SpotlightIndex.update(library.profiles)
+            SpotlightIndex.update(library.activeProfiles)
             if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan profil listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }
