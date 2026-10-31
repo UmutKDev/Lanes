@@ -69,9 +69,10 @@ struct CommandPanelView: View {
             return String(localized: "Claude bulunamadı")
         }
         let count = model.runningCount
-        return count == 0
-            ? String(localized: "Açık hesap yok")
-            : String(localized: "\(count) hesap açık")
+        guard count > 0 else { return String(localized: "Açık hesap yok") }
+        guard model.totalMemoryBytes > 0 else { return String(localized: "\(count) hesap açık") }
+        let memory = ByteCountFormatter.string(fromByteCount: Int64(clamping: model.totalMemoryBytes), countStyle: .memory)
+        return String(localized: "\(count) hesap açık · \(memory)")
     }
 
     @ViewBuilder
@@ -141,6 +142,12 @@ struct CommandPanelView: View {
                 if showsDeveloperPages {
                     Button("Faz 0 Doğrulama") {
                         router.showMainWindow(.validation)
+                    }
+                    Divider()
+                }
+                if model.quittableOpenCount > 0 {
+                    Button("Lanes Hesaplarının Tümünü Kapat") {
+                        model.quitAllLanesAccounts()
                     }
                     Divider()
                 }

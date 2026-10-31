@@ -42,7 +42,27 @@ struct UsagePage: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Section("Hesaplar") {
+            Section {
+                ForEach(model.library.profiles) { profile in
+                    LabeledContent {
+                        Text(String(localized: "Bugün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 1))) · 7 gün \(FrontTimeLog.describe(seconds: model.frontSeconds(for: profile.id, days: 7)))"))
+                            .monospacedDigit()
+                    } label: {
+                        HStack(spacing: 8) {
+                            MonogramView(profile: profile, size: 20)
+                            Text(profile.name)
+                        }
+                    }
+                }
+            } header: {
+                Text("Önde geçen süre")
+            } footer: {
+                Text("Hesabın Claude'u öndeki uygulamayken geçen süre. Lanes bunu yalnız macOS'un \"uygulama öne geldi\" bildirimlerinden sayar, Claude'un içine bakmaz. Ekran kapalıyken ya da Mac uykudayken sayılmaz. Son 30 gün bu Mac'te saklanır.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Section("Claude Code oturumları") {
                 ForEach(model.library.profiles) { profile in
                     LabeledContent {
                         Text("\(totals[profile.id] ?? 0) oturum")

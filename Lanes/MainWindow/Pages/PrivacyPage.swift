@@ -40,7 +40,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "Öndeki uygulama",
-                    detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi için. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
+                    detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi ve Kullanım sayfasında her hesabın önde geçen süresini saymak için. Süreler yalnız bu Mac'te, son 30 gün için saklanır. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
                 )
                 PrivacyItem(
                     title: "Sekmeli modda etkin Claude penceresinin yeri ve boyutu",
