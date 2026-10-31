@@ -86,7 +86,7 @@ final class AppModel {
 
     init(paths: ProfilePaths = .standard()) {
         let store = ProfileStore(paths: paths)
-        let startup = store.startup(defaultProfileName: String(localized: "Ana hesap"))
+        let startup = store.startup()
         self.paths = paths
         self.store = store
         self.validation = ValidationModel(paths: paths)
@@ -106,9 +106,9 @@ final class AppModel {
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
-        } else if startup.addedMissingDefault {
+        } else if startup.removedClaudeAccount {
             save()
-            notice = Notice(kind: .warning, message: String(localized: "Profil listesinde Ana hesap yoktu, yeniden eklendi. Claude'un kendi klasörlerini kullanıyor."))
+            notice = Notice(kind: .info, message: String(localized: "Claude uygulamasının kendi hesabı artık Lanes'te değil. Claude uygulaması ve oradaki girişin olduğu gibi duruyor. Lanes'teki her hesap kendi klonuyla, kendi klasörüyle açılır."))
         }
     }
 
@@ -196,8 +196,8 @@ final class AppModel {
         let name = paths.profileID(forCloneBundle: first.applicationBundlePath).flatMap { profile(withID: $0)?.name }
             ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
         Log.instances.info("A clone was opened without its folder")
-        Notifier.post(.strayClone, body: String(localized: "\(name) klonu Ana hesabın verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
-        notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Ana hesabın verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
+        Notifier.post(.strayClone, body: String(localized: "\(name) klonu Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
+        notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
     }
 
     func instance(for profile: Profile) -> RunningInstance? {
@@ -419,7 +419,7 @@ final class AppModel {
         guard isRunning(profile) else { return }
         separationResults[profile.id] = SeparationResult(usesOwnFolder: false, checkedAt: Date())
         Log.instances.error("Separation check: own folder unchanged 30 s after launch")
-        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Ana hesabın verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
+        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Claude uygulamasının verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
     }
 
     func quit(_ profile: Profile) {
@@ -863,7 +863,13 @@ final class AppModel {
     private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
         let kind = Self.kindName(link)
         guard let profile = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
+            // No Lanes account has been in front: the link goes to Claude.app.
+            if let claude {
+                NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Claude uygulamasına iletildi.")), at: 0)
+            } else {
+                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
+            }
             return
         }
         if runsInsideLanes(profile) {

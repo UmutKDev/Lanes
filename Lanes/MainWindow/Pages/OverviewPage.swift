@@ -54,7 +54,7 @@ private struct WelcomeBanner: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Lanes'e hoş geldin")
                     .font(.title3.weight(.semibold))
-                Text("Claude'da şu an açık olan hesabın \"Ana hesap\" olarak eklendi ve hiçbir şeyi değişmedi. Başka bir hesap eklediğinde Lanes onu kendi klasörüyle, ayrı bir Claude penceresinde açar. Lanes giriş bilgilerine hiçbir zaman dokunmaz.\n\nLanes menü çubuğunda yaşar. Bu pencereyi kapattığında çalışmaya devam eder, menü çubuğundaki simgesinden yeniden açabilirsin.")
+                Text("Hesap Ekle ile ilk hesabını ekle. Lanes her hesabı kendi renkli simgesi olan bir Claude kopyasıyla, kendi klasörüyle açar. Claude uygulaması ve oradaki girişin olduğu gibi kalır, Lanes ona dokunmaz. Lanes giriş bilgilerine hiçbir zaman dokunmaz.\n\nLanes menü çubuğunda yaşar. Bu pencereyi kapattığında çalışmaya devam eder, menü çubuğundaki simgesinden yeniden açabilirsin.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

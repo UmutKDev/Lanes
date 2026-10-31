@@ -38,7 +38,7 @@ struct IntegrationsPage: View {
             }
 
             Section("Komut satırı") {
-                let example = "open \"\(LanesCommand.openAccount(model.library.profiles.first?.name ?? "Ana hesap").url.absoluteString)\""
+                let example = "open \"\(LanesCommand.openAccount(model.library.profiles.first?.name ?? "İş").url.absoluteString)\""
                 Text(example)
                     .font(.caption.monospaced())
                     .textSelection(.enabled)

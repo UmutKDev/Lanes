@@ -32,7 +32,7 @@ struct AccountMapPage: View {
             } header: {
                 Text("Kurallar")
             } footer: {
-                Text("\"Öndeki hesap\", en son öne gelen hesabın Claude'udur. Hiçbiri öne gelmediyse Ana hesap kullanılır.")
+                Text("\"Öndeki hesap\", en son öne gelen hesabın Claude'udur. Hiçbiri öne gelmediyse bağlantı Claude uygulamasına gider.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

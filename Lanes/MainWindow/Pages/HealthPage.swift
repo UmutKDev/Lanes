@@ -46,7 +46,7 @@ struct HealthPage: View {
                 ForEach(model.strayClones, id: \.pid) { instance in
                     HealthRow(state: .problem, title: String(localized: "\(URL(fileURLWithPath: instance.applicationBundlePath).deletingPathExtension().lastPathComponent) Lanes dışından açıldı")) {
                         HStack {
-                            Text("Hesabın klasörü olmadan, Ana hesabın verileriyle çalışıyor.")
+                            Text("Hesabın klasörü olmadan, Claude uygulamasının verileriyle çalışıyor.")
                             Button("Kapat") { model.quitStrayClone(instance) }
                         }
                     }
@@ -54,7 +54,7 @@ struct HealthPage: View {
                 let outside = model.instances.filter { $0.profileID == nil && !$0.isStrayClone }
                 if !outside.isEmpty {
                     HealthRow(state: .warning, title: String(localized: "Lanes'in tanımadığı \(outside.count) Claude açık")) {
-                        Text("Lanes dışından, kendi klasörü olmadan açılmış bir Claude ya da başka bir kopya. Ana hesabın verilerini kullanıyor olabilir.")
+                        Text("Lanes dışından, kendi klasörü olmadan açılmış bir Claude ya da başka bir kopya. Claude uygulamasının verilerini kullanıyor olabilir.")
                     }
                 }
             }
@@ -149,7 +149,7 @@ struct HealthPage: View {
                 if !model.legacyClones.isEmpty {
                     HealthRow(state: .warning, title: String(localized: "Faz 0'dan kalan \(model.legacyClones.count) deneme klonu")) {
                         HStack {
-                            Text("~/Applications/Lanes Profiles içinde. Spotlight'tan açılırsa Ana hesabın verileriyle çalışır.")
+                            Text("~/Applications/Lanes Profiles içinde. Spotlight'tan açılırsa Claude uygulamasının verileriyle çalışır.")
                             Button("Çöp Sepeti'ne Taşı") { model.trashLegacyClones() }
                         }
                     }
@@ -235,7 +235,7 @@ struct HealthPage: View {
             }
         } else if let result = model.separationResults[profile.id], !result.usesOwnFolder {
             HealthRow(state: .problem, title: profile.name) {
-                Text("Açıldıktan sonra kendi klasörüne yazmadı. Ana hesabın verilerini kullanıyor olabilir.")
+                Text("Açıldıktan sonra kendi klasörüne yazmadı. Claude uygulamasının verilerini kullanıyor olabilir.")
             }
         } else if model.separationResults[profile.id]?.usesOwnFolder == true {
             HealthRow(state: .good, title: profile.name) {

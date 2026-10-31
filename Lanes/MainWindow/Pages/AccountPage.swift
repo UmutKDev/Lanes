@@ -165,12 +165,13 @@ private struct AccountGeneralTab: View {
         .onDisappear(perform: commitName)
     }
 
-    /// Standart, or Klon with its own Dock icon. Ayrı kimlik is not built;
-    /// an account saved with it opens like Klon and can be switched here.
+    /// The clone with its own icon, or the web version. Plain Claude.app
+    /// and Ayrı kimlik are only listed for an account that still uses them,
+    /// so it can be moved to the clone.
     private var modeChoices: [ProfileMode] {
         if profile.isDefault { return [.standard] }
-        var choices: [ProfileMode] = [.signedClone, .standard, .insideLanes]
-        if profile.mode == .separateIdentity { choices.append(.separateIdentity) }
+        var choices: [ProfileMode] = [.signedClone, .insideLanes]
+        if profile.mode == .standard || profile.mode == .separateIdentity { choices.append(profile.mode) }
         return choices
     }
 
@@ -193,7 +194,7 @@ private struct AccountGeneralTab: View {
         case .standard:
             return ProfileMode.standard.explanation
         case .signedClone, .separateIdentity:
-            return String(localized: "\(ProfileMode.signedClone.explanation) Deneysel: Claude güncellenince ya da hesabın adı, rengi veya harfi değişince klon, hesap kapalıyken bir sonraki açılışta yenilenir. Klonu Finder'dan açma, Lanes'ten aç.")
+            return String(localized: "\(ProfileMode.signedClone.explanation) Claude güncellenince ya da hesabın adı, rengi veya harfi değişince klon, hesap kapalıyken bir sonraki açılışta yenilenir. Klonu Finder'dan açma, Lanes'ten aç.")
         }
     }
 

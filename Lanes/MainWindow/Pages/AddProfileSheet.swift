@@ -34,7 +34,6 @@ struct AddProfileSheet: View {
                     }
                     Picker("Nerede çalışsın", selection: $mode) {
                         Text("Claude uygulaması, kendi simgesiyle").tag(ProfileMode.signedClone)
-                        Text("Claude uygulaması").tag(ProfileMode.standard)
                         Text("Lanes içinde, web sürümü").tag(ProfileMode.insideLanes)
                     }
                     Text(mode.explanation)
@@ -57,7 +56,7 @@ struct AddProfileSheet: View {
                     // link sign-in reaches the main Claude, not the new
                     // window. Typing the emailed code works in any window.
                     SignInStep(number: 1, text: "Google ya da Apple ile değil, e-posta adresinle devam et.")
-                    SignInStep(number: 2, text: "Gelen e-postadaki bağlantıya tıklama. Bağlantı ana hesabın penceresinde açılır.")
+                    SignInStep(number: 2, text: "Gelen e-postadaki bağlantıya tıklama. Bağlantı Claude uygulamasının penceresinde açılır.")
                     SignInStep(number: 3, text: "E-postadaki doğrulama kodunu yeni pencereye yaz.")
                 }
                 }
