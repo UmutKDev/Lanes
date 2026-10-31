@@ -151,6 +151,7 @@ final class AppModel {
         if !pids.subtracting(knownPIDs).isEmpty, let found = ClaudeInstallation.find(paths: paths), found != claude {
             if let old = claude?.version, old != found.version {
                 Log.app.info("Claude changed from \(old, privacy: .public) to \(found.version ?? "?", privacy: .public)")
+                Notifier.post(.claudeUpdated, body: String(localized: "\(old) sürümünden \(found.version ?? "?") sürümüne. Klonlar bir sonraki açılışta yenilenir."))
             }
             claude = found
             refreshCloneStatuses()
@@ -191,6 +192,7 @@ final class AppModel {
         let name = paths.profileID(forCloneBundle: first.applicationBundlePath).flatMap { profile(withID: $0)?.name }
             ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
         Log.instances.info("A clone was opened without its folder")
+        Notifier.post(.strayClone, body: String(localized: "\(name) klonu Ana hesabın verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
         notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Ana hesabın verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
     }
 
@@ -267,11 +269,13 @@ final class AppModel {
             try CloneRecord(profile: current, claudeVersion: claude.version).write(to: paths.cloneRecordFile(for: profile.id))
             Log.app.info("Clone ready in \(Date().timeIntervalSince(start), format: .fixed(precision: 1), privacy: .public) s")
             refreshCloneStatuses()
+            Notifier.post(.cloneRenewed, body: String(localized: "\(current.name) klonu hazır."))
             return CloneMaker.existingBundle(in: folder) ?? destination
         } catch {
             Log.app.error("Clone failed: \(error.localizedDescription, privacy: .public)")
             CloneMaker.removeLeftovers(in: folder)
             notice = Notice(kind: .error, message: String(localized: "\(profile.name) için klon hazırlanamadı. \(CloneMaker.explanation(for: error))"))
+            Notifier.post(.cloneRenewed, body: String(localized: "\(profile.name) için klon hazırlanamadı."))
             refreshCloneStatuses()
             return existing
         }
@@ -870,6 +874,7 @@ final class AppModel {
             try await AppleEvents.sendLink(link, to: pid)
             _ = await InstanceLauncher.activate(pid: pid)
             Log.app.info("Link routed to an account")
+            Notifier.post(.linkRouted, body: String(localized: "\(kind): \(profile.name)"))
             receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) hesabına iletildi."), target: profile.id), at: 0)
         } catch {
             Log.app.error("Link routing failed: \(error.localizedDescription)")

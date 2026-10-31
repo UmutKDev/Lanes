@@ -143,8 +143,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Panes that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .menuBarAndDock, .tabs, .windowBadges, .shortcuts, .updates, .advanced: return true
-        case .notifications: return false
+        case .general, .menuBarAndDock, .tabs, .windowBadges, .shortcuts, .notifications, .updates, .advanced: return true
         }
     }
 

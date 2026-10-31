@@ -53,7 +53,7 @@ struct SettingsPage: View {
         case .shortcuts:
             ShortcutsSettings()
         case .notifications:
-            PlannedSettings(text: String(localized: "Bir hesabın sınırı dolduğunda ya da yeniden açıldığında haber verme."))
+            NotificationSettings()
         case .updates:
             UpdateSettings()
         }
@@ -224,17 +224,5 @@ private struct AdvancedSettings: View {
             }
         }
         .formStyle(.grouped)
-    }
-}
-
-private struct PlannedSettings: View {
-    let text: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Alfa sürümünde geliyor", systemImage: "hammer")
-        } description: {
-            Text(text)
-        }
     }
 }

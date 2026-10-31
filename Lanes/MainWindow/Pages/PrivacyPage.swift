@@ -101,6 +101,10 @@ struct PrivacyPage: View {
                     detail: "Yalnız Hesap Haritası'nda yönlendirme açıkken: başka bir uygulamadan gelen bağlantı, kurala göre seçilen hesabın Claude'una gönderilir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
                 )
                 PrivacyItem(
+                    title: "macOS bildirimleri",
+                    detail: "Yalnız Ayarlar > Bildirimler'de açtığın türler için. Bildirimde hesabın adı ve olayın türü yazar, bağlantı ya da hesabın içinden bir şey yazmaz. Bildirimler Mac'inden çıkmaz."
+                )
+                PrivacyItem(
                     title: "Güncelleme denetimi",
                     detail: "Lanes'in yaptığı tek ağ isteği. GitHub'daki sürüm listesini indirir. İstekte Lanes'in sürümü dışında bir bilgi yok. Yalnız DMG ile dağıtılan sürümlerde çalışır, Ayarlar > Güncellemeler'den kapatılabilir."
                 )
