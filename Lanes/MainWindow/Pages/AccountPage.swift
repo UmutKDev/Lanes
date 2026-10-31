@@ -53,7 +53,12 @@ struct AccountPage: View {
         case .security:
             AccountPlannedTab(text: String(localized: "Bu hesabın hangi klasörlerde ve hangi bağlantılarla açılabileceğini sınırlayan kurallar."))
         case .storage:
-            AccountPlannedTab(text: String(localized: "Bu hesabın klasörlerinin boyutu, önbellek temizliği ve yedekleme."))
+            Form {
+                Section {
+                    AccountStorageView(profile: profile)
+                }
+            }
+            .formStyle(.grouped)
         }
     }
 }

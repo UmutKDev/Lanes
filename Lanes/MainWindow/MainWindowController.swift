@@ -162,6 +162,8 @@ private struct DetailView: View {
             HealthPage()
         case .integrations:
             IntegrationsPage()
+        case .maintenance:
+            MaintenancePage()
         case .validation:
             ValidationPage()
         default:

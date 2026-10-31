@@ -35,6 +35,10 @@ struct PrivacyPage: View {
                     detail: "Oturumlar ve Kullanım sayfaları için, her hesabın Claude Code klasöründeki projects altında. Dosyaların içi, yani sohbetler, hiç açılmaz."
                 )
                 PrivacyItem(
+                    title: "Hesap klasörlerinin boyutu",
+                    detail: "Yalnız Bakım sayfası ya da hesabın Depolama sekmesi açıkken, dosyaların kapladığı yerden. Dosyalar açılmaz. \"Önbelleği Temizle\" yalnız Claude'un yeniden oluşturduğu önbellek klasörlerini siler, hesap kapalıyken ve sen onaylayınca."
+                )
+                PrivacyItem(
                     title: "Öndeki uygulama",
                     detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi için. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
                 )

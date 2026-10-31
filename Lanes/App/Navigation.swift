@@ -80,7 +80,7 @@ enum Destination: Hashable {
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .sessions, .usage, .accountMap, .links, .scenes, .health, .privacy, .integrations, .settings: return true
+        case .overview, .account, .sessions, .usage, .accountMap, .links, .scenes, .health, .privacy, .integrations, .maintenance, .settings: return true
         default: return showingDeveloperPages
         }
     }
@@ -177,8 +177,8 @@ enum AccountTab: String, CaseIterable, Identifiable {
     /// Tabs that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .desktop, .claudeCode: return true
-        case .identity, .security, .storage: return false
+        case .general, .desktop, .claudeCode, .storage: return true
+        case .identity, .security: return false
         }
     }
 
