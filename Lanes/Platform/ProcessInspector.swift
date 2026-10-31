@@ -51,6 +51,29 @@ enum RunningInstanceScanner {
 final class RunningInstanceMonitor {
     var onChange: (() -> Void)?
     private var observers: [NSObjectProtocol] = []
+    /// Exit watchers for running instances. A clone kept out of the Dock is
+    /// an agent app, and NSWorkspace does not report agents quitting.
+    private var exitSources: [pid_t: DispatchSourceProcess] = [:]
+
+    /// Watches these processes, and only these, for exit.
+    func watchExits(of pids: Set<pid_t>) {
+        for (pid, source) in exitSources where !pids.contains(pid) {
+            source.cancel()
+            exitSources[pid] = nil
+        }
+        for pid in pids where exitSources[pid] == nil {
+            let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: .main)
+            source.setEventHandler { [weak self] in
+                MainActor.assumeIsolated {
+                    self?.exitSources[pid]?.cancel()
+                    self?.exitSources[pid] = nil
+                    self?.onChange?()
+                }
+            }
+            exitSources[pid] = source
+            source.resume()
+        }
+    }
 
     func start() {
         guard observers.isEmpty else { return }
@@ -72,5 +95,6 @@ final class RunningInstanceMonitor {
             center.removeObserver(token)
         }
         observers.removeAll()
+        watchExits(of: [])
     }
 }

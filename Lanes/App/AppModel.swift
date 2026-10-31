@@ -148,6 +148,7 @@ final class AppModel {
             }
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
+        monitor.watchExits(of: Set(instances.map(\.pid)))
         // A Claude that just started may be a new version: Claude updates
         // itself and relaunches.
         let pids = Set(instances.map(\.pid))

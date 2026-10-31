@@ -166,7 +166,9 @@ struct HealthPage: View {
                 signatures[profile.id] = nil
                 continue
             }
-            signatures[profile.id] = await CloneSignatureSummary.check(bundle)
+            var summary = await CloneSignatureSummary.check(bundle)
+            summary.signedHere = CloneRecord.read(from: model.paths.cloneRecordFile(for: profile.id))?.hiddenFromDock == true
+            signatures[profile.id] = summary
         }
     }
 
@@ -319,6 +321,8 @@ struct CloneSignatureSummary: Equatable {
     var valid: Bool
     var strict: Bool
     var gatekeeper: Bool
+    /// The clone was signed again on this Mac to stay out of the Dock.
+    var signedHere = false
 
     static func check(_ bundle: URL) async -> CloneSignatureSummary {
         async let deep = ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", bundle.path])
@@ -328,6 +332,11 @@ struct CloneSignatureSummary: Equatable {
     }
 
     var summary: String {
+        if signedHere {
+            return valid
+                ? String(localized: "Dock'ta görünmemesi için bu Mac'te imzalandı, imza geçerli. Anthropic'in imzası olmadığı için Gatekeeper'ın kabul etmemesi beklenen bir durum.")
+                : String(localized: "Bu Mac'te yapılan imza geçersiz. Hesap kapalıyken Dock ayarını kapatıp açarak klonu yenileyebilirsin.")
+        }
         let signature = valid ? String(localized: "İmza geçerli") : String(localized: "İmza geçersiz")
         let gate = gatekeeper ? String(localized: "Gatekeeper kabul ediyor") : String(localized: "Gatekeeper kabul etmiyor")
         let strictText = strict ? String(localized: "sıkı denetim de geçti") : String(localized: "sıkı denetim simge yüzünden geçmedi (beklenen)")
