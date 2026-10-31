@@ -498,6 +498,11 @@ final class AppModel {
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
         monitor.watchExits(of: Set(instances.map(\.pid)))
+        // A closed account's last reading must not linger until the next sample.
+        let openIDs = Set(instances.compactMap(\.profileID))
+        if resourceUsage.keys.contains(where: { !openIDs.contains($0) }) {
+            resourceUsage = resourceUsage.filter { openIDs.contains($0.key) }
+        }
         // A Claude that just started may be a new version: Claude updates
         // itself and relaunches.
         let pids = Set(instances.map(\.pid))

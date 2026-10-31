@@ -199,7 +199,7 @@ private struct AccountGeneralTab: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let usage = model.resourceUsage[profile.id] {
+                    if model.isRunning(profile), let usage = model.resourceUsage[profile.id] {
                         LabeledContent("Şu an", value: usage.summary)
                     }
                     LabeledContent("Önde geçen süre") {
