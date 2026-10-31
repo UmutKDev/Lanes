@@ -56,6 +56,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch target {
             case .panel:
                 return (shortcut, { router.togglePanel() })
+            case .nextAccount:
+                return (shortcut, { model.cycleOpenAccounts(forward: true) })
+            case .previousAccount:
+                return (shortcut, { model.cycleOpenAccounts(forward: false) })
             case let .profile(id):
                 guard model.profile(withID: id) != nil else { return nil }
                 return (shortcut, {
@@ -136,6 +140,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = profile.id.rawValue
             menu.addItem(item)
         }
+        if !model.library.scenes.isEmpty {
+            menu.addItem(.separator())
+            for scene in model.library.scenes {
+                let item = NSMenuItem(title: String(localized: "Sahne: \(scene.name)"), action: #selector(openSceneFromMenu(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = scene.id.rawValue
+                menu.addItem(item)
+            }
+        }
+        if model.quittableOpenCount > 0 {
+            menu.addItem(.separator())
+            let quitAll = NSMenuItem(title: String(localized: "Lanes Hesaplarının Tümünü Kapat"), action: #selector(quitAllFromMenu(_:)), keyEquivalent: "")
+            quitAll.target = self
+            menu.addItem(quitAll)
+        }
         menu.addItem(.separator())
         let add = NSMenuItem(title: String(localized: "Hesap Ekle…"), action: #selector(addProfileFromMenu(_:)), keyEquivalent: "")
         add.target = self
@@ -147,6 +166,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String,
               let profile = model.profile(withID: ProfileID(rawValue: raw)) else { return }
         model.open(profile)
+    }
+
+    @objc private func openSceneFromMenu(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let scene = model.library.scene(withID: SceneID(rawValue: raw)) else { return }
+        model.open(scene)
+    }
+
+    @objc private func quitAllFromMenu(_ sender: NSMenuItem) {
+        model.quitAllLanesAccounts()
     }
 
     @objc private func addProfileFromMenu(_ sender: NSMenuItem) {

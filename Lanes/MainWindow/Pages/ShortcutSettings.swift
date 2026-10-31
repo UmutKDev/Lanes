@@ -127,6 +127,12 @@ struct ShortcutsSettings: View {
                 LabeledContent("Menü çubuğu paneli") {
                     ShortcutRecorder(target: .panel)
                 }
+                LabeledContent("Sonraki açık hesap") {
+                    ShortcutRecorder(target: .nextAccount)
+                }
+                LabeledContent("Önceki açık hesap") {
+                    ShortcutRecorder(target: .previousAccount)
+                }
             } footer: {
                 Text("Kısayollar her uygulamadayken çalışır. Lanes bunun için Erişilebilirlik ya da Giriş İzleme izni istemez: macOS ona yalnız burada kaydettiğin tuşlara basıldığını bildirir. Panel açıkken ⌘1–⌘9 ilk dokuz hesabı da açar.")
                     .font(.caption)
