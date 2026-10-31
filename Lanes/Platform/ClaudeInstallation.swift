@@ -11,9 +11,8 @@ struct ClaudeInstallation: Equatable {
     /// Finds Claude.app, skipping Lanes's own clones: they share Claude's
     /// bundle identifier, and Launch Services may list them first.
     static func find(paths: ProfilePaths) -> ClaudeInstallation? {
-        let clonesPath = InstanceMatcher.normalize(paths.clonesDirectory.path) + "/"
         let candidates = NSWorkspace.shared.urlsForApplications(withBundleIdentifier: bundleIdentifier)
-            .filter { !InstanceMatcher.normalize($0.path).hasPrefix(clonesPath) }
+            .filter { !paths.isClonePath($0.path) }
         let preferred = candidates.first(where: { $0.path.hasPrefix("/Applications/") }) ?? candidates.first
         guard let url = preferred else { return nil }
         // Read from the file each time: Bundle caches its Info.plist, so it

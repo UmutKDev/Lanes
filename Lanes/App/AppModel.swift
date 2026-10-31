@@ -66,6 +66,12 @@ final class AppModel {
     @ObservationIgnored private var lastFrontProfileID: ProfileID?
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var knownPIDs: Set<pid_t> = []
+    /// Whether each clone matches Claude and its profile. Lanes renews a
+    /// clone that doesn't the next time its account opens.
+    private(set) var cloneStatuses: [ProfileID: CloneStatus] = [:]
+    /// Accounts whose clone Lanes is making right now.
+    private(set) var clonesInProgress: Set<ProfileID> = []
+    @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
 
     struct SeparationResult: Equatable {
         /// True when the account's own folder changed after it opened.
@@ -109,6 +115,7 @@ final class AppModel {
         }
         monitor.start()
         refreshInstances()
+        refreshCloneStatuses()
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil,
@@ -144,20 +151,45 @@ final class AppModel {
                 Log.app.info("Claude changed from \(old, privacy: .public) to \(found.version ?? "?", privacy: .public)")
             }
             claude = found
+            refreshCloneStatuses()
         }
         knownPIDs = pids
+        warnAboutStrayClones()
         Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
     }
 
-    /// Claude.app and every clone Lanes made.
+    /// Claude.app and every clone on disk, including Faz 0 clones in the
+    /// old folder, so none of them passes for Claude itself.
     var knownBundlePaths: [String] {
         var bundles: [String] = []
         if let claude { bundles.append(claude.url.path) }
-        for profile in library.profiles where profile.mode != .standard {
-            bundles.append(paths.cloneBundle(for: profile).path)
+        let fileManager = FileManager.default
+        let folders = (try? fileManager.contentsOfDirectory(at: paths.clonesDirectory, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders {
+            if let bundle = CloneMaker.existingBundle(in: folder) {
+                bundles.append(bundle.path)
+            }
         }
-        bundles.append(paths.cloneBundle(for: ValidationModel.cloneTestProfile).path)
+        let legacy = (try? fileManager.contentsOfDirectory(at: paths.legacyClonesDirectory, includingPropertiesForKeys: nil)) ?? []
+        bundles += legacy.filter { $0.pathExtension == "app" }.map(\.path)
         return bundles
+    }
+
+    /// Clones opened from Finder, Spotlight or the Dock, without their
+    /// account's folder.
+    var strayClones: [RunningInstance] {
+        instances.filter(\.isStrayClone)
+    }
+
+    private func warnAboutStrayClones() {
+        let stray = strayClones
+        warnedStrayPIDs.formIntersection(stray.map(\.pid))
+        guard let first = stray.first(where: { !warnedStrayPIDs.contains($0.pid) }) else { return }
+        warnedStrayPIDs.insert(first.pid)
+        let name = paths.profileID(forCloneBundle: first.applicationBundlePath).flatMap { profile(withID: $0)?.name }
+            ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
+        Log.instances.info("A clone was opened without its folder")
+        notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Ana hesabın verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
     }
 
     func instance(for profile: Profile) -> RunningInstance? {
@@ -173,8 +205,103 @@ final class AppModel {
     }
 
     func cloneURLIfPresent(for profile: Profile) -> URL? {
-        let url = paths.cloneBundle(for: profile)
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        CloneMaker.existingBundle(in: paths.cloneFolder(for: profile.id))
+    }
+
+    // MARK: Clones
+
+    func refreshCloneStatuses() {
+        var statuses: [ProfileID: CloneStatus] = [:]
+        for profile in library.profiles where CloneCheck.usesClone(profile) {
+            let folder = paths.cloneFolder(for: profile.id)
+            statuses[profile.id] = CloneCheck.status(
+                for: profile,
+                bundleName: CloneMaker.existingBundle(in: folder)?.lastPathComponent,
+                record: CloneRecord.read(from: paths.cloneRecordFile(for: profile.id)),
+                claudeVersion: claude?.version
+            )
+        }
+        if statuses != cloneStatuses {
+            cloneStatuses = statuses
+        }
+    }
+
+    /// Makes or renews the account's clone when it needs it and the account
+    /// is closed, and returns the clone to open. A running clone is never
+    /// replaced. Returns nil when the account opens with Claude itself or
+    /// the clone could not be made; `notice` then says why.
+    @discardableResult
+    func prepareClone(for profile: Profile) async -> URL? {
+        guard CloneCheck.usesClone(profile), let claude else { return nil }
+        refreshCloneStatuses()
+        let existing = cloneURLIfPresent(for: profile)
+        guard let status = cloneStatuses[profile.id], status.needsWork, !isRunning(profile) else { return existing }
+        guard !clonesInProgress.contains(profile.id) else { return existing }
+        clonesInProgress.insert(profile.id)
+        defer { clonesInProgress.remove(profile.id) }
+
+        let folder = paths.cloneFolder(for: profile.id)
+        let destination = paths.cloneBundle(for: profile)
+        let source = claude.url
+        let clonePaths = self.paths
+        let start = Date()
+        do {
+            CloneMaker.removeLeftovers(in: folder)
+            let temporary = try await Task.detached(priority: .userInitiated) {
+                try CloneMaker.copyForRenewal(of: source, into: folder, paths: clonePaths)
+            }.value
+            // The account may have opened while the copy ran.
+            guard !isRunning(profile) else {
+                try? FileManager.default.removeItem(at: temporary)
+                return existing
+            }
+            let current = self.profile(withID: profile.id) ?? profile
+            try CloneMaker.install(temporary, as: paths.cloneBundle(for: current), icon: MonogramIcon.image(for: current), paths: paths)
+            try CloneRecord(profile: current, claudeVersion: claude.version).write(to: paths.cloneRecordFile(for: profile.id))
+            Log.app.info("Clone ready in \(Date().timeIntervalSince(start), format: .fixed(precision: 1), privacy: .public) s")
+            refreshCloneStatuses()
+            return CloneMaker.existingBundle(in: folder) ?? destination
+        } catch {
+            Log.app.error("Clone failed: \(error.localizedDescription, privacy: .public)")
+            CloneMaker.removeLeftovers(in: folder)
+            notice = Notice(kind: .error, message: String(localized: "\(profile.name) için klon hazırlanamadı. \(CloneMaker.explanation(for: error))"))
+            refreshCloneStatuses()
+            return existing
+        }
+    }
+
+    /// Moves an account's clone folder to the Trash. A running clone stays
+    /// until the account closes.
+    private func removeClone(of id: ProfileID) {
+        let folder = paths.cloneFolder(for: id)
+        guard FileManager.default.fileExists(atPath: folder.path) else { return }
+        if instances.contains(where: { $0.profileID == id && paths.isClonePath($0.applicationBundlePath) }) { return }
+        do {
+            try FileManager.default.trashItem(at: folder, resultingItemURL: nil)
+        } catch {
+            Log.app.error("Could not trash a clone: \(error.localizedDescription, privacy: .public)")
+        }
+        refreshCloneStatuses()
+    }
+
+    /// Faz 0 put its test clones in ~/Applications, where Spotlight finds
+    /// them and opens them without an account folder.
+    var legacyClones: [URL] {
+        let items = (try? FileManager.default.contentsOfDirectory(at: paths.legacyClonesDirectory, includingPropertiesForKeys: nil)) ?? []
+        return items.filter { $0.pathExtension == "app" }
+    }
+
+    func trashLegacyClones() {
+        for clone in legacyClones where !instances.contains(where: { $0.applicationBundlePath == InstanceMatcher.normalize(clone.path) }) {
+            try? FileManager.default.trashItem(at: clone, resultingItemURL: nil)
+        }
+    }
+
+    /// Closes a clone opened without its folder. It only asks the app to
+    /// quit, like ⌘Q, so Claude can save what it needs.
+    func quitStrayClone(_ instance: RunningInstance) {
+        guard instance.isStrayClone else { return }
+        NSRunningApplication(processIdentifier: instance.pid)?.terminate()
     }
 
     // MARK: Opening
@@ -193,11 +320,12 @@ final class AppModel {
             return
         }
         refreshInstances()
+        let clone = isRunning(profile) ? nil : await prepareClone(for: profile)
         let action = LaunchPlanner.action(
             for: profile,
             running: instances,
             claudeApp: claude.url,
-            cloneApp: cloneURLIfPresent(for: profile),
+            cloneApp: clone,
             paths: paths
         )
         var stayedBehind: pid_t?
@@ -210,6 +338,9 @@ final class AppModel {
             }
         case let .launch(plan):
             let launchedAt = Date()
+            if plan.fallsBackToClaude {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) klonu olmadığı için Claude'un kendisiyle, kendi klasörüyle açılıyor. Klonu Sağlık sayfasından yeniden oluşturabilirsin."))
+            }
             do {
                 try await InstanceLauncher.launch(plan)
                 if let folder = paths.desktopDataDirectory(for: profile) {
@@ -334,6 +465,9 @@ final class AppModel {
         do {
             try library.add(profile)
             save()
+            if CloneCheck.usesClone(profile) {
+                Task { await prepareClone(for: profile) }
+            }
             return profile
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
@@ -342,9 +476,20 @@ final class AppModel {
     }
 
     func updateProfile(_ profile: Profile) {
+        let before = self.profile(withID: profile.id)
         do {
             try library.update(profile)
             save()
+            if CloneCheck.usesClone(profile) {
+                refreshCloneStatuses()
+                // A new clone right away; renewing a working one can wait
+                // for the next open.
+                if before.map(CloneCheck.usesClone) == false || cloneStatuses[profile.id] == .missing {
+                    Task { await prepareClone(for: profile) }
+                }
+            } else if before.map(CloneCheck.usesClone) == true {
+                removeClone(of: profile.id)
+            }
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
         }
@@ -358,6 +503,7 @@ final class AppModel {
         do {
             try library.remove(profile.id)
             save()
+            removeClone(of: profile.id)
             recentFolders[profile.id] = nil
             saveRecentFolders()
             pruneShortcuts()

@@ -31,7 +31,17 @@ final class LaunchPlanTests: XCTestCase {
     func testCloneModeUsesCloneWhenPresent() {
         let profile = Profile(name: "İş", color: .orange, mode: .signedClone)
         XCTAssertEqual(LaunchPlanner.plan(for: profile, claudeApp: claudeApp, cloneApp: cloneApp, paths: paths).applicationURL, cloneApp)
-        XCTAssertEqual(LaunchPlanner.plan(for: profile, claudeApp: claudeApp, cloneApp: nil, paths: paths).applicationURL, claudeApp)
+        XCTAssertFalse(LaunchPlanner.plan(for: profile, claudeApp: claudeApp, cloneApp: cloneApp, paths: paths).fallsBackToClaude)
+        let fallback = LaunchPlanner.plan(for: profile, claudeApp: claudeApp, cloneApp: nil, paths: paths)
+        XCTAssertEqual(fallback.applicationURL, claudeApp)
+        XCTAssertTrue(fallback.fallsBackToClaude, "a missing clone is reported, not hidden")
+    }
+
+    func testMainAccountNeverOpensAClone() {
+        let profile = Profile(name: "Kişisel", color: .blue, mode: .signedClone, isDefault: true)
+        let plan = LaunchPlanner.plan(for: profile, claudeApp: claudeApp, cloneApp: cloneApp, paths: paths)
+        XCTAssertEqual(plan.applicationURL, claudeApp)
+        XCTAssertFalse(plan.fallsBackToClaude)
     }
 
     func testRunningProfileIsActivatedNotRelaunched() {

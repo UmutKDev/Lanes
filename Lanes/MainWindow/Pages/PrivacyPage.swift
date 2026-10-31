@@ -44,7 +44,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "Sağlık sayfasındaki denetimler",
-                    detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz."
+                    detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz. Klonların imzası yalnız \"İmzaları Denetle\" düğmesine basınca, macOS'un codesign ve spctl araçlarıyla denetlenir."
                 )
             }
 
@@ -56,9 +56,13 @@ struct PrivacyPage: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                LabeledContent("Faz 0 denemelerinin klonları") {
+                LabeledContent("Klonlar") {
                     PathRow(url: model.paths.clonesDirectory)
                 }
+                Text("Klon biçimindeki her hesap için Claude.app'in bir kopyası ve hangi Claude sürümünden yapıldığını yazan küçük bir clone.json dosyası. Kopyaya yalnız hesabın simgesi eklenir, Claude'un dosyalarına dokunulmaz. Hesap kaldırılınca ya da Standart'a dönünce klon Çöp Sepeti'ne gider.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 PrivacyItem(
                     title: "Sistem günlüğü",
                     detail: "Açılış, tarama, hesap açma, öne getirme ve kaydetme gibi olaylar, hesap adı, klasör ya da bağlantı olmadan. Tanılama bilgisi yalnız sen düğmeye basınca hazırlanır ve Mac'inden çıkmaz."

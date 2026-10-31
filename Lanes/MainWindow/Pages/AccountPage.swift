@@ -124,7 +124,7 @@ private struct AccountGeneralTab: View {
             Section {
                 Picker("Açılış biçimi", selection: binding(\.mode)) {
                     ForEach(modeChoices, id: \.self) { mode in
-                        Text(mode.displayName).tag(mode)
+                        Text(mode == .signedClone ? String(localized: "Klon (Deneysel)") : mode.displayName).tag(mode)
                     }
                 }
                 .disabled(profile.isDefault || modeChoices.count < 2)
@@ -132,6 +132,9 @@ private struct AccountGeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if CloneCheck.usesClone(profile) {
+                    CloneStatusRow(profile: profile)
+                }
             }
             if profile.isDefault {
                 Section {
@@ -148,21 +151,25 @@ private struct AccountGeneralTab: View {
         .onDisappear(perform: commitName)
     }
 
-    /// Only Standart works today: Lanes makes no clones for real accounts
-    /// until Faz 0 checks 3 and 5 settle how. An account saved earlier with
-    /// another mode opens with Claude itself and can be switched back here.
+    /// Standart, or Klon with its own Dock icon. Ayrı kimlik is not built;
+    /// an account saved with it opens like Klon and can be switched here.
     private var modeChoices: [ProfileMode] {
-        profile.mode == .standard ? [.standard] : [.standard, profile.mode]
+        if profile.isDefault { return [.standard] }
+        var choices: [ProfileMode] = [.standard, .signedClone]
+        if profile.mode == .separateIdentity { choices.append(.separateIdentity) }
+        return choices
     }
 
     private var modeCaption: String {
         if profile.isDefault {
             return String(localized: "Ana hesap her zaman Claude'un kendisiyle açılır.")
         }
-        if profile.mode == .standard {
-            return String(localized: "\(ProfileMode.standard.explanation) Her hesabın kendi simgesiyle açılacağı Klon biçimi, Faz 0 denemelerinden sonra gelecek.")
+        switch profile.mode {
+        case .standard:
+            return ProfileMode.standard.explanation
+        case .signedClone, .separateIdentity:
+            return String(localized: "\(ProfileMode.signedClone.explanation) Deneysel: Claude güncellenince ya da hesabın adı, rengi veya harfi değişince klon, hesap kapalıyken bir sonraki açılışta yenilenir. Klonu Finder'dan açma, Lanes'ten aç.")
         }
-        return String(localized: "\(profile.mode.displayName) biçimi henüz hazır değil. Bu hesap şimdilik Claude'un kendisiyle, kendi klasörüyle açılıyor. İstersen Standart'a geçir.")
     }
 
     private func commitName() {
@@ -366,5 +373,79 @@ struct PathRow: View {
     private var abbreviated: String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         return url.path.hasPrefix(home) ? "~" + url.path.dropFirst(home.count) : url.path
+    }
+}
+
+/// One line on whether the account's clone is ready, and a way to renew it.
+struct CloneStatusRow: View {
+    @Environment(AppModel.self) private var model
+    let profile: Profile
+
+    var body: some View {
+        HStack {
+            if model.clonesInProgress.contains(profile.id) {
+                ProgressView().controlSize(.small)
+                Text("Klon hazırlanıyor…")
+            } else {
+                Image(systemName: symbol)
+                    .foregroundStyle(color)
+                Text(text)
+                Spacer()
+                if model.cloneStatuses[profile.id]?.needsWork == true {
+                    Button("Şimdi Hazırla") {
+                        Task { await model.prepareClone(for: profile) }
+                    }
+                    .disabled(model.isRunning(profile))
+                    .help(model.isRunning(profile) ? "Açık bir klon yenilenmez. Hesabı kapatınca yeniden dene." : "Klonu şimdi oluştur ya da yenile")
+                }
+            }
+        }
+        .font(.callout)
+    }
+
+    private var status: CloneStatus {
+        model.cloneStatuses[profile.id] ?? .missing
+    }
+
+    private var symbol: String {
+        switch status {
+        case .ready, .notNeeded: return "checkmark.circle.fill"
+        case .missing: return "exclamationmark.triangle.fill"
+        case .needsRenewal: return "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .ready, .notNeeded: return .green
+        case .missing: return .orange
+        case .needsRenewal: return .secondary
+        }
+    }
+
+    private var text: String {
+        switch status {
+        case .notNeeded, .ready:
+            return String(localized: "Klon hazır.")
+        case .missing:
+            return String(localized: "Klon yok. Hesap açılırken oluşturulur.")
+        case let .needsRenewal(reasons):
+            return String(localized: "Klon bir sonraki açılışta yenilenecek: \(reasons.map(\.displayText).joined(separator: ", ")).")
+        }
+    }
+}
+
+extension CloneRenewalReason {
+    var displayText: String {
+        switch self {
+        case let .claudeUpdated(_, to):
+            return String(localized: "Claude \(to) sürümüne güncellendi")
+        case .renamed:
+            return String(localized: "hesabın adı değişti")
+        case .iconChanged:
+            return String(localized: "simge değişti")
+        case .unknownOrigin:
+            return String(localized: "klonun kaydı yok")
+        }
     }
 }
