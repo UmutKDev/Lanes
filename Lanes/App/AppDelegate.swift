@@ -21,7 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItemController = StatusItemController(model: model, router: router)
         self.statusItemController = statusItemController
         router.statusItemController = statusItemController
-        if model.isFirstLaunch || Updater.takeRelaunchedAfterUpdate() {
+        // A copy running from the DMG or a translocated folder opens its
+        // window so the warning on Overview is seen. Otherwise Lanes would
+        // start in the menu bar alone and look like it never opened.
+        if model.isFirstLaunch || Updater.takeRelaunchedAfterUpdate() || model.isTranslocated {
             router.showMainWindow(.overview)
         }
     }
