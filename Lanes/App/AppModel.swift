@@ -86,7 +86,10 @@ final class AppModel {
 
     init(paths: ProfilePaths = .standard()) {
         let store = ProfileStore(paths: paths)
-        let startup = store.startup()
+        let claudeFolder = paths.claudeDesktopDefaultDataDirectory
+        let startup = store.startup(
+            claudeAppAccountName: FileManager.default.fileExists(atPath: claudeFolder.path) ? String(localized: "Claude uygulaması") : nil
+        )
         self.paths = paths
         self.store = store
         self.validation = ValidationModel(paths: paths)
@@ -106,9 +109,8 @@ final class AppModel {
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
-        } else if startup.removedClaudeAccount {
+        } else if startup.addedClaudeAppAccount {
             save()
-            notice = Notice(kind: .info, message: String(localized: "Claude uygulamasının kendi hesabı artık Lanes'te değil. Claude uygulaması ve oradaki girişin olduğu gibi duruyor. Lanes'teki her hesap kendi klonuyla, kendi klasörüyle açılır."))
         }
     }
 

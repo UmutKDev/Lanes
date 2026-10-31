@@ -14,7 +14,7 @@ struct AccountPage: View {
             VStack(spacing: 0) {
                 AccountHeader(profile: profile)
                 Picker("Bölüm", selection: tabBinding) {
-                    ForEach(AccountTab.visible(showingDeveloperPages: showsDeveloperPages)) { tab in
+                    ForEach(tabs(for: profile)) { tab in
                         Text(tab.title).tag(tab)
                     }
                 }
@@ -30,6 +30,12 @@ struct AccountPage: View {
         }
     }
 
+    /// Claude.app's own account only shows what Lanes can do with it.
+    private func tabs(for profile: Profile) -> [AccountTab] {
+        let visible = AccountTab.visible(showingDeveloperPages: showsDeveloperPages)
+        return profile.isDefault ? visible.filter { [.general, .claudeCode].contains($0) } : visible
+    }
+
     private var tabBinding: Binding<AccountTab> {
         Binding(get: { tab }, set: { navigation.accountTab = $0 })
     }
@@ -41,7 +47,7 @@ struct AccountPage: View {
 
     @ViewBuilder
     private func tabContent(for profile: Profile) -> some View {
-        switch tab {
+        switch tabs(for: profile).contains(tab) ? tab : .general {
         case .general:
             AccountGeneralTab(profile: profile)
         case .desktop:
@@ -77,9 +83,13 @@ private struct AccountHeader: View {
                 HStack(spacing: 6) {
                     Text(isRunning ? "Açık" : "Kapalı")
                     Text(verbatim: "·")
-                    Text(profile.accountClass.displayName)
-                    Text(verbatim: "·")
-                    Text(profile.mode.displayName)
+                    if profile.isDefault {
+                        Text("Claude uygulamasının kendi hesabı")
+                    } else {
+                        Text(profile.accountClass.displayName)
+                        Text(verbatim: "·")
+                        Text(profile.mode.displayName)
+                    }
                     if let number = model.shortcutNumber(for: profile) {
                         Text(verbatim: "·")
                         Text(verbatim: "⌘\(number)")
@@ -90,7 +100,7 @@ private struct AccountHeader: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            if isRunning {
+            if isRunning && !profile.isDefault {
                 Button("Claude'dan Çık") {
                     model.quit(profile)
                 }
@@ -111,6 +121,21 @@ private struct AccountGeneralTab: View {
     @State private var name = ""
 
     var body: some View {
+        if profile.isDefault {
+            Form {
+                Section {
+                    Text("Bu, Claude uygulamasında kullandığın hesap. Lanes onu yalnız gösterir, açar ve öne getirir. Adı, simgesi, girişi ve klasörleri Claude'un kendisine ait, Lanes bunları değiştirmez. Lanes'te eklediğin hesaplar ise kendi renkli simgeli kopyalarıyla, kendi klasörleriyle açılır.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .formStyle(.grouped)
+        } else {
+            editableForm
+        }
+    }
+
+    private var editableForm: some View {
         Form {
             Section {
                 TextField("Ad", text: $name)

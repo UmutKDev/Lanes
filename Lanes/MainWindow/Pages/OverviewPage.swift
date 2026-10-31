@@ -79,7 +79,7 @@ private struct AccountTile: View {
                     Text(profile.name)
                         .font(.headline)
                         .lineLimit(1)
-                    Text(profile.isDefault ? String(localized: "Varsayılan · \(profile.accountClass.displayName)") : profile.accountClass.displayName)
+                    Text(profile.isDefault ? String(localized: "Claude uygulaması") : profile.accountClass.displayName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

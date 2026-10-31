@@ -243,7 +243,7 @@ final class ProfileStartupTests: XCTestCase {
 
         XCTAssertFalse(startup.isFirstLaunch)
         XCTAssertNil(startup.loadError)
-        XCTAssertFalse(startup.removedClaudeAccount)
+        XCTAssertFalse(startup.addedClaudeAppAccount)
         XCTAssertEqual(startup.library, library)
     }
 
@@ -306,17 +306,31 @@ final class ProfileStartupTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: fileURL), Data("bozuk".utf8))
     }
 
-    func testOldMainAccountIsTakenOut() throws {
+    func testClaudeAppAccountIsKeptAndAddedOnlyWhenItsFolderExists() throws {
         var library = ProfileLibrary()
-        try library.add(Profile(name: "Ana hesap", color: .orange, isDefault: true, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
-        try library.add(Profile(name: "İş", color: .blue, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
+        try library.add(Profile(name: "İş", color: .blue, mode: .signedClone, createdAt: Date(timeIntervalSince1970: 1_790_000_000)))
         try ProfileStore(fileURL: fileURL).save(library)
 
-        let startup = ProfileStore(fileURL: fileURL).startup()
+        let without = ProfileStore(fileURL: fileURL).startup()
+        XCTAssertFalse(without.addedClaudeAppAccount)
+        XCTAssertNil(without.library.defaultProfile)
 
-        XCTAssertTrue(startup.removedClaudeAccount)
-        XCTAssertFalse(startup.isFirstLaunch)
-        XCTAssertEqual(startup.library.profiles.map(\.name), ["İş"])
-        XCTAssertNil(startup.library.defaultProfile)
+        let with = ProfileStore(fileURL: fileURL).startup(claudeAppAccountName: "Claude uygulaması")
+        XCTAssertTrue(with.addedClaudeAppAccount)
+        XCTAssertFalse(with.isFirstLaunch)
+        XCTAssertEqual(with.library.profiles.map(\.name), ["Claude uygulaması", "İş"])
+        XCTAssertEqual(with.library.defaultProfile?.mode, .standard)
+    }
+
+    func testFirstLaunchWithClaudeShowsItsAccount() throws {
+        let startup = ProfileStore(fileURL: fileURL).startup(claudeAppAccountName: "Claude uygulaması")
+        XCTAssertTrue(startup.isFirstLaunch)
+        XCTAssertEqual(startup.library.profiles.map(\.isDefault), [true])
+    }
+
+    func testUnreadableListGetsNoClaudeAppAccount() throws {
+        try Data(#"{"version": 99, "profiles": []}"#.utf8).write(to: fileURL)
+        let startup = ProfileStore(fileURL: fileURL).startup(claudeAppAccountName: "Claude uygulaması")
+        XCTAssertTrue(startup.library.profiles.isEmpty)
     }
 }

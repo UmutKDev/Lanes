@@ -230,19 +230,19 @@ public struct ProfileStartup {
     /// `profiles.backup.json`. `loadError` says why. The unreadable file
     /// stays until the next save moves it aside.
     public var restoredFromBackup = false
-    /// True when the list held the old main account, which used Claude's
-    /// own folders, and it was taken out. Claude.app and its sign-in are
-    /// left alone. The library still needs saving.
-    public var removedClaudeAccount = false
+    /// True when Claude.app's own account was put at the top of the list.
+    /// The library still needs saving.
+    public var addedClaudeAppAccount = false
 }
 
 extension ProfileStore {
     /// Loads the list. An unreadable list never turns into a new one.
     ///
-    /// Lanes manages only its own accounts, each in its own folder. Claude.app
-    /// and the account signed in there are not Lanes's, so an old main
-    /// account that used Claude's own folders is taken out of the list.
-    public func startup() -> ProfileStartup {
+    /// Lanes's own accounts each run in their own clone and folder. The
+    /// account in Claude.app itself is only shown, marked as Claude.app's,
+    /// with almost no settings: pass its name when Claude's own folder
+    /// exists, and it is put at the top if the list lacks it.
+    public func startup(claudeAppAccountName: String? = nil) -> ProfileStartup {
         var startup: ProfileStartup
         do {
             startup = ProfileStartup(library: try load(), loadError: nil, isFirstLaunch: false)
@@ -254,9 +254,11 @@ extension ProfileStore {
         }
         if startup.library.profiles.isEmpty {
             startup.isFirstLaunch = startup.loadError == nil
-        } else if let main = startup.library.defaultProfile {
-            try? startup.library.remove(main.id)
-            startup.removedClaudeAccount = true
+        }
+        if startup.loadError == nil || startup.restoredFromBackup,
+           let name = claudeAppAccountName, startup.library.defaultProfile == nil {
+            startup.library.profiles.insert(Profile(name: name, color: .gray, isDefault: true), at: 0)
+            startup.addedClaudeAppAccount = true
         }
         return startup
     }
