@@ -218,6 +218,7 @@ private struct SceneEditor: View {
 private struct SceneLayoutSection: View {
     @Environment(AppModel.self) private var model
     let sceneID: SceneID
+    @State private var result: String?
 
     var body: some View {
         let scene = model.library.scene(withID: sceneID)
@@ -225,11 +226,12 @@ private struct SceneLayoutSection: View {
         Section("Pencere yerleşimi") {
             HStack {
                 Button("Şimdiki Yerleşimi Kaydet") {
-                    model.saveLayout(of: sceneID)
+                    result = model.saveLayout(of: sceneID)
                 }
                 if saved > 0 {
                     Button("Yerleşimi Unut") {
                         model.forgetLayout(of: sceneID)
+                        result = nil
                     }
                 }
             }
@@ -239,6 +241,11 @@ private struct SceneLayoutSection: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if let result, !result.isEmpty {
+                Text(result)
+                    .font(.caption.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

@@ -632,12 +632,14 @@ final class AppModel {
     // MARK: Scene layout
 
     /// Saves where each open account of the scene has its Claude window.
-    func saveLayout(of sceneID: SceneID) {
-        guard var scene = library.scene(withID: sceneID) else { return }
+    /// Saves where the scene's windows are now. Returns a line for the
+    /// editor sheet to show, since a notice would sit behind the sheet.
+    @discardableResult
+    func saveLayout(of sceneID: SceneID) -> String {
+        guard var scene = library.scene(withID: sceneID) else { return "" }
         guard AccessibilityPermission.isGranted else {
             AccessibilityPermission.request()
-            notice = Notice(kind: .info, message: String(localized: "Pencere yerleşimi için Lanes'e Erişilebilirlik izni ver, sonra yeniden kaydet."))
-            return
+            return String(localized: "Pencere yerleşimi için Lanes'e Erişilebilirlik izni ver, sonra yeniden kaydet.")
         }
         refreshInstances()
         var frames: [String: SceneWindowFrame] = [:]
@@ -649,12 +651,12 @@ final class AppModel {
             frames[profile.id.rawValue] = SceneWindowFrame(x: frame.minX, y: frame.minY, width: frame.width, height: frame.height)
         }
         guard !frames.isEmpty else {
-            notice = Notice(kind: .info, message: String(localized: "\(scene.name) sahnesinde açık pencere yok. Önce sahnenin hesaplarını aç."))
-            return
+            return String(localized: "\(scene.name) sahnesinde açık pencere yok. Önce sahnenin hesaplarını aç.")
         }
         scene.windowFrames = frames
         updateScene(scene)
         Log.instances.info("Saved a scene layout with \(frames.count) windows")
+        return String(localized: "Yerleşim kaydedildi.")
     }
 
     func forgetLayout(of sceneID: SceneID) {
