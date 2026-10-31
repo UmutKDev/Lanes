@@ -90,6 +90,13 @@ private struct AccountTile: View {
                     .font(.caption)
                     .foregroundStyle(isRunning ? Color.green : Color.secondary)
                     .labelStyle(.titleAndIcon)
+                if isRunning, let usage = model.resourceUsage[profile.id] {
+                    Text(usage.memory)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .help(usage.summary)
+                }
                 Spacer()
                 Button(isRunning ? "Öne Getir" : "Aç") {
                     model.open(profile)

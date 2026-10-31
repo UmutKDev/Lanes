@@ -11,6 +11,7 @@ enum Notifier {
         case strayClone
         case cloneRenewed
         case linkRouted
+        case idleQuit
 
         var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum Notifier {
             case .strayClone: return String(localized: "Bir klon Lanes dışından açıldı")
             case .cloneRenewed: return String(localized: "Bir klon yenilendi ya da yenilenemedi")
             case .linkRouted: return String(localized: "Bir bağlantı bir hesaba yönlendirildi")
+            case .idleQuit: return String(localized: "Kullanılmayan bir hesap kapatıldı")
             }
         }
 

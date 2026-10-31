@@ -77,6 +77,13 @@ final class AppModel {
     /// opening an account right after adding it, waits for the same copy.
     @ObservationIgnored private var cloneTasks: [ProfileID: Task<URL?, Never>] = [:]
     @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
+    /// Memory and CPU of each open account's Claude, read every few seconds.
+    private(set) var resourceUsage: [ProfileID: ResourceUsage] = [:]
+    /// When each open account was last in front or opened, for quitting
+    /// accounts left unused.
+    @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
+    @ObservationIgnored private let sampler = ResourceSampler()
+    @ObservationIgnored private var resourceTimer: Timer?
 
     struct SeparationResult: Equatable {
         /// True when the account's own folder changed after it opened.
@@ -134,10 +141,81 @@ final class AppModel {
                 guard let self, let pid, pid != ProcessInfo.processInfo.processIdentifier else { return }
                 if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
                     self.lastFrontProfileID = id
+                    self.lastActiveAt[id] = Date()
                 }
             }
         }
         Task { await stepAsideFromSignInIfNeeded() }
+        resourceTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.sampleResources()
+            }
+        }
+        sampleResources()
+    }
+
+    // MARK: Resources and idle accounts
+
+    /// Reads each open account's memory and CPU, then quits accounts that
+    /// asked to be quit after sitting unused.
+    private func sampleResources() {
+        let owned = instances.compactMap { instance in
+            instance.profileID.map { (id: $0, pid: instance.pid) }
+        }
+        let usage = sampler.sample(roots: owned.map(\.pid))
+        var byProfile: [ProfileID: ResourceUsage] = [:]
+        for item in owned {
+            byProfile[item.id] = usage[item.pid]
+        }
+        resourceUsage = byProfile
+        lastActiveAt = lastActiveAt.filter { byProfile[$0.key] != nil }
+
+        let now = Date()
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        for item in owned {
+            guard let profile = profile(withID: item.id), !profile.isDefault else { continue }
+            // An account first seen now gets its whole time from now.
+            let lastActive = lastActiveAt[item.id] ?? now
+            lastActiveAt[item.id] = lastActive
+            guard IdleQuitPolicy.shouldQuit(
+                idleMinutes: profile.idleQuitMinutes,
+                lastActive: lastActive,
+                now: now,
+                isFrontmost: front == item.pid,
+                cpuPercent: byProfile[item.id]?.cpuPercent
+            ) else { continue }
+            Log.instances.info("Quitting an account left unused for \(profile.idleQuitMinutes ?? 0) minutes")
+            InstanceLauncher.terminate(pid: item.pid)
+            lastActiveAt[item.id] = nil
+            Notifier.post(.idleQuit, body: String(localized: "\(profile.name) \(IdleQuitPolicy.describe(minutes: profile.idleQuitMinutes ?? 0)) kullanılmadığı için kapatıldı. Lanes'ten yeniden açabilirsin."))
+        }
+    }
+
+    // MARK: Moving the account list
+
+    /// Writes the account list and scenes, without any sign-in data.
+    func exportLibrary(to url: URL) throws {
+        try LibraryExport(library: library).encoded().write(to: url, options: .atomic)
+        Log.app.info("Exported \(self.library.profiles.count) accounts")
+    }
+
+    /// Adds the accounts and scenes from an exported file that aren't here
+    /// yet. Returns a line describing what happened.
+    func importLibrary(from url: URL) -> String {
+        do {
+            let export = try LibraryExport.decode(Data(contentsOf: url))
+            let result = export.merge(into: library)
+            guard result.addedProfiles + result.addedScenes > 0 else {
+                return String(localized: "Dosyadaki hesaplar ve sahneler zaten burada, hiçbir şey eklenmedi.")
+            }
+            library = result.library
+            save()
+            refreshCloneStatuses()
+            Log.app.info("Imported \(result.addedProfiles) accounts and \(result.addedScenes) scenes")
+            return String(localized: "\(result.addedProfiles) hesap ve \(result.addedScenes) sahne eklendi. Hesaplar ilk açılışta girişsiz başlar, her birinde yeniden giriş yapman gerekir.")
+        } catch {
+            return String(localized: "İçe aktarılamadı: \(error.localizedDescription)")
+        }
     }
 
     // MARK: Instances
@@ -345,6 +423,7 @@ final class AppModel {
     }
 
     func openAndWait(_ profile: Profile) async {
+        lastActiveAt[profile.id] = Date()
         if let id = activationWarningID, notice?.id == id {
             notice = nil
         }
