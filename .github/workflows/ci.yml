@@ -3,7 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
   pull_request:
+    paths-ignore: ["**.md", "docs/**"]
 
 permissions:
   contents: read
@@ -24,18 +26,14 @@ jobs:
 
   app:
     name: Build Lanes (Xcode ${{ matrix.xcode }})
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ startsWith(matrix.xcode, '26') && 'macos-26' || 'xcode-27' }}
     timeout-minutes: 30
+    # Pull requests build with one Xcode so a change is checked quickly;
+    # main builds with every supported Xcode.
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: xcode-27
-            xcode: "27.0"
-          - runner: xcode-27
-            xcode: "27.1"
-          - runner: macos-26
-            xcode: "26.6"
+        xcode: ${{ github.event_name == 'pull_request' && fromJSON('["27.1"]') || fromJSON('["27.0", "27.1", "26.6"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
     steps:
@@ -64,8 +62,9 @@ jobs:
             build 2>&1 | tee build.log
       # Release is what testers get, so it has to compile too. Signing is off:
       # CI has no Developer ID certificate. Only Xcode 27 makes releases.
+      # Pull requests skip it; make release on the Mac builds Release anyway.
       - name: Build Release (unsigned)
-        if: startsWith(matrix.xcode, '27')
+        if: startsWith(matrix.xcode, '27') && github.event_name != 'pull_request'
         shell: bash
         run: |
           xcodebuild \
