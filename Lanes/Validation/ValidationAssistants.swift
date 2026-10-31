@@ -13,8 +13,8 @@ struct LinkDeliveryAssistant: View {
     @State private var isSending = false
 
     var body: some View {
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 if model.instances.count < 2 {
                     Text("Bu deneme için en az iki hesap açık olmalı. Şu an \(model.instances.count) Claude penceresi açık.")
                         .foregroundStyle(.secondary)
@@ -44,19 +44,18 @@ struct LinkDeliveryAssistant: View {
                 }
                 if let status {
                     Text(status)
-                        .font(.caption)
+                        .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
     private func send() {
         guard let pid = targetPID, let instance = model.instances.first(where: { $0.pid == pid }),
-              let link = ClaudeLink(url: URL(string: "claude://claude.ai/new?q=Lanes%20Faz%200%20denemesi%20\(attempt)")!)
+              let url = URL(string: "claude://claude.ai/new?q=Lanes%20Faz%200%20denemesi%20\(attempt)"),
+              let link = ClaudeLink(url: url)
         else { return }
         isSending = true
         status = nil
@@ -104,7 +103,7 @@ struct FlowButtons: View {
     var onPick: (RunningInstance?) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
             ForEach(instances) { instance in
                 Button(instanceLabel(instance, model: model)) {
                     onPick(instance)
@@ -126,13 +125,14 @@ struct LinkHandlerAssistant: View {
     @State private var isWorking = false
 
     var body: some View {
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 LabeledContent("claude:// bağlantılarını açan") {
                     Text(handler?.path ?? String(localized: "Yok"))
                         .textSelection(.enabled)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .help(handler?.path ?? "")
                 }
                 if model.instances.isEmpty {
                     Text("Soru Claude açıkken soruluyor. Önce bir hesabı aç.")
@@ -154,29 +154,27 @@ struct LinkHandlerAssistant: View {
 
                 if tookOver != nil {
                     Text("Lanes'i varsayılan yaparken bir onay penceresi çıktı mı?")
-                    HStack {
+                    HStack(spacing: DS.Space.s) {
                         Button("Çıktı") { record(prompted: true) }
                         Button("Çıkmadı") { record(prompted: false) }
                     }
                 }
                 Text("Deneme bitince Claude'u geri yüklemeyi unutma. Lanes yeniden açıldığında bunu kendisi de yapar.")
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if !model.receivedLinks.isEmpty {
                     Divider()
                     Text("Lanes'e gelen bağlantılar")
-                        .font(.caption.weight(.semibold))
+                        .font(DS.Typography.caption.weight(.semibold))
                     ForEach(model.receivedLinks.prefix(5)) { link in
                         Text(verbatim: "\(link.kind) · \(link.outcome)")
-                            .font(.system(.caption, design: .monospaced))
+                            .font(DS.Typography.path)
                             .lineLimit(1)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -245,13 +243,10 @@ struct CloneAssistant: View {
     private var progress: Progress { model.validation.cloneProgress[checkID] ?? Progress() }
 
     var body: some View {
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 LabeledContent("Deneme klonu") {
-                    Text(cloneURL.path)
-                        .textSelection(.enabled)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    DSPathText(url: cloneURL, font: DS.Typography.rowTitle)
                 }
                 ButtonRow {
                     Button("Klonu Oluştur") {
@@ -291,12 +286,11 @@ struct CloneAssistant: View {
 
                 if let status {
                     Text(status)
-                        .font(.caption)
+                        .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -468,29 +462,42 @@ struct ButtonRow<Content: View>: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack { content }
-            VStack(alignment: .leading) { content }
+            HStack(spacing: DS.Space.s) { content }
+            VStack(alignment: .leading, spacing: DS.Space.s) { content }
         }
     }
 }
 
+/// A yes/no question: the answer beside it, or under it when the page is too
+/// narrow for both on one line. The control keeps its natural width.
 struct YesNoRow: View {
     let title: String
     @Binding var answer: Bool?
 
     var body: some View {
-        HStack {
-            Text(title)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
-            Picker(title, selection: $answer) {
-                Text("Evet").tag(Bool?.some(true))
-                Text("Hayır").tag(Bool?.some(false))
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.Space.m) {
+                Text(title)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                picker
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 130)
+            VStack(alignment: .leading, spacing: DS.Space.xs + 2) {
+                Text(title)
+                    .fixedSize(horizontal: false, vertical: true)
+                picker
+            }
         }
+    }
+
+    private var picker: some View {
+        Picker(title, selection: $answer) {
+            Text("Evet").tag(Bool?.some(true))
+            Text("Hayır").tag(Bool?.some(false))
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
     }
 }
 
@@ -510,8 +517,8 @@ struct ConfigDirectoryAssistant: View {
 
     var body: some View {
         let candidates = model.library.profiles.filter { !$0.isDefault }
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 if candidates.isEmpty {
                     Text("Bu deneme için ana hesap dışında bir hesap gerekiyor.")
                         .foregroundStyle(.secondary)
@@ -538,16 +545,14 @@ struct ConfigDirectoryAssistant: View {
                 }
                 if let status {
                     Text(status)
-                        .font(.caption)
+                        .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Text("Lanes yalnız dosyaların değiştirilme saatine bakar, içeriklerini açmaz.")
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.tertiary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -614,8 +619,8 @@ struct AppManagementAssistant: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 10) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 Text("Üçüncü denemede klonu oluştururken macOS bir izin penceresi gösterdi mi? Pencere \"Lanes başka uygulamaları değiştirmek istiyor\" gibi bir şey söyler.")
                     .fixedSize(horizontal: false, vertical: true)
                 ButtonRow {
@@ -624,8 +629,6 @@ struct AppManagementAssistant: View {
                     Button("Klon izin yüzünden oluşmadı") { record(.failed, "Klon izin yüzünden oluşmadı.") }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -641,20 +644,23 @@ struct InstanceTable: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        GroupBox("Çalışan Claude pencereleri") {
-            VStack(alignment: .leading, spacing: 8) {
+        ValidationCard("Çalışan Claude pencereleri") {
+            VStack(alignment: .leading, spacing: DS.Space.s) {
                 LabeledContent("Claude sürümü", value: model.claude?.version ?? String(localized: "Bulunamadı"))
                 if model.instances.isEmpty {
                     Text("Şu an açık Claude yok.")
                         .foregroundStyle(.secondary)
                 }
                 ForEach(model.instances) { instance in
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
                         Text(instanceLabel(instance, model: model))
                         Text(instance.userDataDirectory ?? String(localized: "Claude'un kendi klasörü"))
-                            .font(.system(.caption, design: .monospaced))
+                            .font(DS.Typography.path)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                             .textSelection(.enabled)
+                            .help(instance.userDataDirectory ?? "")
                     }
                 }
                 ButtonRow {
@@ -669,8 +675,6 @@ struct InstanceTable: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 }
@@ -692,8 +696,8 @@ struct MenuBarAssistant: View {
     }
 
     var body: some View {
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 10) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 let version = ProcessInfo.processInfo.operatingSystemVersion
                 Text("Bu Mac'te macOS \(version.majorVersion).\(version.minorVersion) çalışıyor. Deneme asıl olarak macOS 27'de anlamlı.")
                     .fixedSize(horizontal: false, vertical: true)
@@ -707,8 +711,6 @@ struct MenuBarAssistant: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 }
@@ -723,17 +725,25 @@ struct ActivationAssistant: View {
     var body: some View {
         let validation = model.validation
         let isBusy = validation.isRunningActivationTrials || validation.iconClickRun != nil
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 10) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 Stepper("Deneme sayısı: \(count)", value: $count, in: 5...30, step: 5)
-                    .frame(maxWidth: 260)
+                    .fixedSize()
                     .disabled(isBusy)
                 Text("Otomatik denemede pencere birkaç kez kapanıp panelden yeniden açılır. Bitene kadar fareye ve klavyeye dokunma.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Button(validation.isRunningActivationTrials ? "Sürüyor…" : "Denemeyi Başlat") {
+                Button {
                     let count = count
                     Task { await router.runActivationTrials(count: count) }
+                } label: {
+                    // Keeps the wider title's width, so the button does not
+                    // change size when a run starts or ends.
+                    ZStack {
+                        Text("Sürüyor…").hidden()
+                        Text("Denemeyi Başlat").hidden()
+                        validation.isRunningActivationTrials ? Text("Sürüyor…") : Text("Denemeyi Başlat")
+                    }
                 }
                 .disabled(isBusy)
 
@@ -742,8 +752,11 @@ struct ActivationAssistant: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let run = validation.iconClickRun {
-                    HStack {
+                    HStack(spacing: DS.Space.s) {
                         Text("Ölçüm sürüyor: \(run.trials.count)/\(run.target)")
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .lineLimit(1)
                         Button("Durdur") {
                             router.stopIconClickTrials()
                         }
@@ -755,8 +768,6 @@ struct ActivationAssistant: View {
                     .disabled(isBusy)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 }

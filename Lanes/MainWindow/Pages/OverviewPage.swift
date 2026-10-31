@@ -9,54 +9,43 @@ struct OverviewPage: View {
     /// The kind of account the tiles are narrowed to; nil shows all.
     @State private var classFilter: AccountClass?
 
-    private let columns = [GridItem(.adaptive(minimum: 220, maximum: 320), spacing: 16)]
+    /// Columns grow with the window; no maximum, so wide windows get more
+    /// and wider tiles instead of an empty band on the right.
+    private let columns = [GridItem(.adaptive(minimum: DS.Metrics.tileMinWidth), spacing: DS.Space.grid)]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if model.isFirstLaunch {
-                    WelcomeBanner()
-                }
-                if let notice = model.notice {
-                    NoticeRow(notice: notice) { model.notice = nil }
-                }
-                if model.isTranslocated && !model.isTranslocationNoticeDismissed {
-                    NoticeRow(
-                        notice: AppModel.Notice(kind: .warning, message: String(localized: "Lanes doğrudan DMG'den ya da İndirilenler'deki geçici bir kopyadan çalışıyor. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne sürükle ve oradan aç. Yoksa güncellemeler yüklenemez, DMG çıkarılınca da Lanes kapanır.")),
-                        onDismiss: { model.isTranslocationNoticeDismissed = true }
-                    )
-                }
-                if model.claude == nil && !model.isMissingClaudeNoticeDismissed {
-                    NoticeRow(
-                        notice: AppModel.Notice(kind: .warning, message: String(localized: "Claude bu Mac'te bulunamadı. Lanes, hesapları açmak için Claude'un yüklü olmasını bekliyor.")),
-                        onDismiss: { model.isMissingClaudeNoticeDismissed = true }
-                    )
-                }
+        DSPage(maxWidth: DS.Metrics.wideWidth) {
+            if model.isFirstLaunch {
+                WelcomeBanner()
+            }
+            if let notice = model.notice {
+                DSNoticeRow(notice: notice) { model.notice = nil }
+            }
+            if model.isTranslocated && !model.isTranslocationNoticeDismissed {
+                DSNoticeRow(
+                    kind: .warning,
+                    message: String(localized: "Lanes doğrudan DMG'den ya da İndirilenler'deki geçici bir kopyadan çalışıyor. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne sürükle ve oradan aç. Yoksa güncellemeler yüklenemez, DMG çıkarılınca da Lanes kapanır."),
+                    onDismiss: { model.isTranslocationNoticeDismissed = true }
+                )
+            }
+            if model.claude == nil && !model.isMissingClaudeNoticeDismissed {
+                DSNoticeRow(
+                    kind: .warning,
+                    message: String(localized: "Claude bu Mac'te bulunamadı. Lanes, hesapları açmak için Claude'un yüklü olmasını bekliyor."),
+                    onDismiss: { model.isMissingClaudeNoticeDismissed = true }
+                )
+            }
 
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Hesaplar")
-                        .font(.title2.weight(.semibold))
-                    if model.totalMemoryBytes > 0 {
-                        Text(String(localized: "Açık hesaplar toplam \(ByteCountFormatter.string(fromByteCount: Int64(clamping: model.totalMemoryBytes), countStyle: .memory)) bellek kullanıyor"))
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if model.closedActiveProfiles.count > 1 {
-                        Button("Tümünü Aç") { model.openAllClosedAccounts() }
-                            .help("Kapalı hesapların hepsini sırayla açar. Arşivdeki hesaplar açılmaz.")
-                    }
-                    if model.quittableOpenCount > 0 {
-                        Button("Tümünü Kapat") { isConfirmingQuitAll = true }
-                            .help("Lanes'te eklediğin açık hesapların hepsini kapatır. Claude uygulamasının kendi hesabı açık kalır.")
-                    }
+            LazyVGrid(columns: columns, alignment: .leading, spacing: DS.Space.grid) {
+                ForEach(filteredProfiles) { profile in
+                    AccountTile(profile: profile)
                 }
-                .confirmationDialog("Açık \(model.quittableOpenCount) hesap kapatılsın mı?", isPresented: $isConfirmingQuitAll) {
-                    Button("Tümünü Kapat") { model.quitAllLanesAccounts() }
-                } message: {
-                    Text("Her hesabın Claude'u kendi Çık komutuyla kapanır. Giriş ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
-                }
-                if usedClasses.count > 1 {
+            }
+        }
+        .navigationSubtitle(memorySubtitle)
+        .toolbar {
+            if usedClasses.count > 1 {
+                ToolbarItem(placement: .principal) {
                     Picker("Hesap türü", selection: $classFilter) {
                         Text("Tümü").tag(AccountClass?.none)
                         ForEach(usedClasses, id: \.self) { kind in
@@ -65,21 +54,39 @@ struct OverviewPage: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .fixedSize()
-                }
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                    ForEach(filteredProfiles) { profile in
-                        AccountTile(profile: profile)
-                    }
-                    AddAccountTile()
                 }
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button("Tümünü Aç") { model.openAllClosedAccounts() }
+                    .help("Kapalı hesapların hepsini sırayla açar. Arşivdeki hesaplar açılmaz.")
+                    .disabled(model.closedActiveProfiles.count <= 1)
+                Button("Tümünü Kapat") { isConfirmingQuitAll = true }
+                    .help("Lanes'te eklediğin açık hesapların hepsini kapatır. Claude uygulamasının kendi hesabı açık kalır.")
+                    .disabled(model.quittableOpenCount == 0)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Hesap Ekle", systemImage: "plus") {
+                    navigation.isAddingProfile = true
+                }
+                .help("Yeni bir Claude hesabı ekle")
+                .dsPrimaryAction()
+            }
+        }
+        .confirmationDialog("Açık \(model.quittableOpenCount) hesap kapatılsın mı?", isPresented: $isConfirmingQuitAll) {
+            Button("Tümünü Kapat") { model.quitAllLanesAccounts() }
+        } message: {
+            Text("Her hesabın Claude'u kendi Çık komutuyla kapanır. Giriş ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
         }
         .onChange(of: usedClasses) { _, classes in
             if let classFilter, !classes.contains(classFilter) { self.classFilter = nil }
         }
+    }
+
+    /// The live memory sentence, shown as the window subtitle. Empty while
+    /// no account uses memory.
+    private var memorySubtitle: String {
+        guard model.totalMemoryBytes > 0 else { return "" }
+        return String(localized: "Açık hesaplar toplam \(ByteCountFormatter.string(fromByteCount: Int64(clamping: model.totalMemoryBytes), countStyle: .memory)) bellek kullanıyor")
     }
 
     /// Kinds of the Lanes accounts, in their usual order. The Claude app's
@@ -98,21 +105,25 @@ struct OverviewPage: View {
 
 private struct WelcomeBanner: View {
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: "square.stack.3d.up.fill")
-                .font(.system(size: 34))
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Lanes'e hoş geldin")
-                    .font(.title3.weight(.semibold))
-                Text("Hesap Ekle ile ilk hesabını ekle. Lanes her hesabı kendi renkli simgesi olan bir Claude kopyasıyla, kendi klasörüyle açar. Claude uygulaması ve oradaki girişin olduğu gibi kalır, Lanes ona dokunmaz. Lanes giriş bilgilerine hiçbir zaman dokunmaz.\n\nLanes menü çubuğunda yaşar. Bu pencereyi kapattığında çalışmaya devam eder, menü çubuğundaki simgesinden yeniden açabilirsin.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        DSCard {
+            HStack(alignment: .top, spacing: DS.Space.l) {
+                Image(systemName: "square.stack.3d.up.fill")
+                    .font(.largeTitle)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.tint)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Lanes'e hoş geldin")
+                        .font(DS.Typography.heroTitle)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Hesap Ekle ile ilk hesabını ekle. Lanes her hesabı kendi renkli simgesi olan bir Claude kopyasıyla, kendi klasörüyle açar. Claude uygulaması ve oradaki girişin olduğu gibi kalır, Lanes ona dokunmaz. Lanes giriş bilgilerine hiçbir zaman dokunmaz.\n\nLanes menü çubuğunda yaşar. Bu pencereyi kapattığında çalışmaya devam eder, menü çubuğundaki simgesinden yeniden açabilirsin.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -123,61 +134,67 @@ private struct AccountTile: View {
 
     var body: some View {
         let isRunning = model.isRunning(profile)
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                MonogramView(profile: profile, size: 40, isRunning: isRunning)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(profile.name)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(kindLine)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .help(kindLine)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
-                        Text(note)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                            .help(note)
-                    }
+        let usage = model.resourceUsage[profile.id]
+        DSCard {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
+                // The identity block opens the account page with one click.
+                Button {
+                    navigation.navigate(to: .account(profile.id))
+                } label: {
+                    identity
                 }
+                .buttonStyle(.plain)
+
                 Spacer(minLength: 0)
-            }
-            HStack {
-                Label(isRunning ? "Açık" : "Kapalı", systemImage: isRunning ? "circle.fill" : "circle")
-                    .font(.caption)
-                    .foregroundStyle(isRunning ? Color.green : Color.secondary)
-                    .labelStyle(.titleAndIcon)
-                if isRunning, let usage = model.resourceUsage[profile.id] {
-                    Text(usage.memory)
-                        .font(.caption.monospacedDigit())
+
+                HStack(spacing: DS.Space.s) {
+                    // The one running indicator of the tile.
+                    DSStatusBadge(isRunning: isRunning)
+                    // Always laid out, so the row never reflows on launch or quit.
+                    Text(verbatim: usage?.memory ?? " ")
+                        .font(DS.Typography.caption)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .help(usage.summary)
+                        .truncationMode(.tail)
+                        .opacity(isRunning ? 1 : 0)
+                        .help(usage?.summary ?? "")
+                        .layoutPriority(-1)
+                    Spacer(minLength: 0)
+                    Button {
+                        model.open(profile)
+                    } label: {
+                        // Reserves the wider title so the button never resizes.
+                        ZStack {
+                            Text("Öne Getir").hidden()
+                            Text("Aç").hidden()
+                            (isRunning ? Text("Öne Getir") : Text("Aç"))
+                        }
+                        .lineLimit(1)
+                    }
+                    .controlSize(.small)
+                    .dsPrimaryAction(tint: profile.color.buttonTint)
+                    .fixedSize()
+                    .accessibilityLabel(isRunning ? Text("Öne Getir") : Text("Aç"))
                 }
-                Spacer()
-                Button(isRunning ? "Öne Getir" : "Aç") {
-                    model.open(profile)
-                }
-                .controlSize(.small)
-                .buttonStyle(.borderedProminent)
-                .tint(profile.color.swatch)
             }
+            // Every line above is single-line and always present, so all
+            // tiles share one height. The ideal height lets the spacer push
+            // the action row to the bottom when the grid proposes no height.
+            .frame(
+                maxWidth: .infinity,
+                minHeight: tileContentHeight,
+                idealHeight: tileContentHeight,
+                alignment: .topLeading
+            )
         }
-        .padding(14)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1)
-        )
-        .contentShape(Rectangle())
+        .dsHoverHighlight()
         // Simultaneous, so a single click still reaches the tile's buttons.
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             navigation.navigate(to: .account(profile.id))
         })
+        .animation(DS.Motion.standard, value: isRunning)
         .contextMenu {
             Button(isRunning ? "Öne Getir" : "Aç") {
                 model.open(profile)
@@ -194,7 +211,6 @@ private struct AccountTile: View {
                     navigation.navigate(to: .account(copy.id))
                 }
             }
-            .help("Aynı ayarlarla yeni bir hesap ekler. Yeni hesap girişsiz ve boş klasörlerle başlar.")
             if !profile.isDefault {
                 Button("Arşivle") {
                     model.setArchived(profile, true)
@@ -208,6 +224,45 @@ private struct AccountTile: View {
             }
         }
     }
+
+    private var identity: some View {
+        HStack(spacing: DS.Space.m) {
+            // The running state is shown once, by the status badge below.
+            MonogramView(profile: profile, size: DS.Monogram.tile, isRunning: false)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(profile.name)
+                    .font(DS.Typography.sectionTitle)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(profile.name)
+                Text(kindLine)
+                    .font(DS.Typography.rowSubtitle)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(kindLine)
+                // Always laid out, so tiles with and without a note match.
+                Text(verbatim: note ?? " ")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(note ?? "")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: DS.Radius.inner, style: .continuous))
+    }
+
+    /// Tile height inside the card padding.
+    private var tileContentHeight: CGFloat {
+        DS.Metrics.tileMinHeight - DS.Space.card * 2
+    }
+
+    private var note: String? {
+        guard let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return nil }
+        return note
+    }
 }
 
 extension AccountTile {
@@ -217,30 +272,5 @@ extension AccountTile {
         let today = model.frontSeconds(for: profile.id, days: 1)
         guard today >= 60 else { return kind }
         return String(localized: "\(kind) · bugün \(FrontTimeLog.describe(seconds: today))")
-    }
-}
-
-private struct AddAccountTile: View {
-    @Environment(NavigationModel.self) private var navigation
-
-    var body: some View {
-        Button {
-            navigation.isAddingProfile = true
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: "plus.circle")
-                    .font(.system(size: 26))
-                Text("Hesap Ekle")
-            }
-            .frame(maxWidth: .infinity, minHeight: 96)
-            .foregroundStyle(.secondary)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-                    .foregroundStyle(.tertiary)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }

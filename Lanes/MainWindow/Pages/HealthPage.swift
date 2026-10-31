@@ -15,14 +15,15 @@ struct HealthPage: View {
 
     var body: some View {
         Form {
-            Section("Claude") {
+            summarySection
+
+            Section {
                 if let claude = model.claude {
                     HealthRow(state: .good, title: String(localized: "Claude \(claude.version ?? "?")")) {
-                        PathRow(url: claude.url)
+                        DSPathText(url: claude.url)
+                    } accessory: {
+                        DSRevealButton(url: claude.url)
                     }
-                    Text("Claude kendini güncelleyip yeniden açılınca sürüm yeniden okunur.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 } else {
                     HealthRow(state: .problem, title: String(localized: "Claude bulunamadı")) {
                         Text("Claude'u Uygulamalar klasörüne kurduğunda Lanes onu kendiliğinden bulur.")
@@ -30,6 +31,12 @@ struct HealthPage: View {
                 }
                 linkHandlerRow
                 permissionRow
+            } header: {
+                Text("Claude")
+            } footer: {
+                if model.claude != nil {
+                    Text("Claude kendini güncelleyip yeniden açılınca sürüm yeniden okunur.")
+                }
             }
 
             Section("Açık hesaplar") {
@@ -45,10 +52,11 @@ struct HealthPage: View {
                 }
                 ForEach(model.strayClones, id: \.pid) { instance in
                     HealthRow(state: .problem, title: String(localized: "\(URL(fileURLWithPath: instance.applicationBundlePath).deletingPathExtension().lastPathComponent) Lanes dışından açıldı")) {
-                        HStack {
-                            Text("Hesabın klasörü olmadan, Claude uygulamasının verileriyle çalışıyor.")
-                            Button("Kapat") { model.quitStrayClone(instance) }
-                        }
+                        Text("Hesabın klasörü olmadan, Claude uygulamasının verileriyle çalışıyor.")
+                    } accessory: {
+                        Button("Kapat") { model.quitStrayClone(instance) }
+                            .controlSize(.small)
+                            .fixedSize()
                     }
                 }
                 let outside = model.instances.filter { $0.profileID == nil && !$0.isStrayClone }
@@ -63,16 +71,12 @@ struct HealthPage: View {
 
             Section("Claude Code") {
                 if !lookedForClaudeCommand {
-                    HStack {
-                        ProgressView().controlSize(.small)
-                        Text("claude komutu aranıyor…")
-                            .foregroundStyle(.secondary)
+                    HealthRow(state: .loading, title: String(localized: "claude komutu aranıyor…")) {
+                        EmptyView()
                     }
                 } else if let claudeCommand {
                     HealthRow(state: .good, title: String(localized: "claude komutu kurulu")) {
-                        Text(claudeCommand.abbreviatingHome)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
+                        DSPathText(url: URL(fileURLWithPath: claudeCommand))
                     }
                 } else {
                     HealthRow(state: .warning, title: String(localized: "claude komutu bulunamadı")) {
@@ -91,19 +95,43 @@ struct HealthPage: View {
                         Text("Genellikle kaldırılmış hesaplardan kalır. İçlerinde o hesapların girişleri olabilir. Lanes bunları silmez, istersen Finder'dan kendin silebilirsin.")
                     }
                     ForEach(orphans, id: \.self) { folder in
-                        HStack {
-                            Text(folder.lastPathComponent)
-                                .font(.caption.monospaced())
-                            Spacer()
-                            Button("Finder'da Göster") {
-                                NSWorkspace.shared.activateFileViewerSelecting([folder])
-                            }
+                        HStack(spacing: DS.Space.s) {
+                            Text(verbatim: folder.lastPathComponent)
+                                .font(DS.Typography.path)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .textSelection(.enabled)
+                                .help(folder.path)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            DSRevealButton(url: folder)
                         }
+                        // Lines up with the titles of the rows above.
+                        .padding(.leading, HealthRowMetrics.titleInset)
                     }
                 }
             }
         }
-        .formStyle(.grouped)
+        .systemForm()
+        .toolbar {
+            if !cloneProfiles.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        let profiles = cloneProfiles
+                        Task { await checkSignatures(profiles) }
+                    } label: {
+                        Label {
+                            Text("İmzaları Denetle")
+                        } icon: {
+                            Image(systemName: "arrow.clockwise")
+                                .symbolEffect(.rotate, isActive: checkingSignatures)
+                        }
+                    }
+                    .help("İmzaları Denetle")
+                    .disabled(checkingSignatures)
+                }
+            }
+        }
         .task {
             model.refreshInstances()
             orphans = model.orphanProfileFolders()
@@ -114,45 +142,141 @@ struct HealthPage: View {
         }
     }
 
+    // MARK: Summary
+
+    /// One line on top: everything fine, or how many checks need a look.
+    /// The symbol keeps one slot and the count changes in place.
+    private var summarySection: some View {
+        let failing = failingChecks
+        let status: DSStatus = failing.contains(.error) ? .error : (failing.isEmpty ? .ok : .warning)
+        let isChecking = permission == nil || !lookedForClaudeCommand
+        return Section {
+            HStack(spacing: DS.Space.m) {
+                ZStack {
+                    Image(systemName: DSStatus.ok.symbol).hidden()
+                    Image(systemName: DSStatus.warning.symbol).hidden()
+                    Image(systemName: DSStatus.error.symbol).hidden()
+                    Image(systemName: status.symbol)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(status.tint)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .font(.largeTitle)
+                .accessibilityHidden(true)
+                Group {
+                    if failing.isEmpty {
+                        Text("Her şey yolunda")
+                    } else {
+                        Text("\(failing.count) sorun")
+                    }
+                }
+                .font(DS.Typography.heroTitle)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                ProgressView()
+                    .controlSize(.small)
+                    .opacity(isChecking ? 1 : 0)
+                    .accessibilityHidden(!isChecking)
+            }
+            .padding(.vertical, DS.Space.xs)
+            .animation(DS.Motion.standard, value: failing.count)
+            .animation(DS.Motion.standard, value: status)
+        }
+    }
+
+    /// The checks on this page that are not fine, by how serious they are.
+    /// Mirrors the rows below, so the count matches what the page shows.
+    private var failingChecks: [DSStatus] {
+        var failing: [DSStatus] = []
+        if model.claude == nil {
+            failing.append(.error)
+        }
+        let handlerStatus = linkHandlerStatus
+        if handlerStatus != .ok {
+            failing.append(handlerStatus)
+        }
+        if permission == .denied {
+            failing.append(.error)
+        }
+        for instance in model.instances {
+            guard let id = instance.profileID, let profile = model.profile(withID: id), !profile.isDefault,
+                  let result = model.separationResults[id], !result.usesOwnFolder
+            else { continue }
+            failing.append(.error)
+        }
+        failing += model.strayClones.map { _ in DSStatus.error }
+        if model.instances.contains(where: { $0.profileID == nil && !$0.isStrayClone }) {
+            failing.append(.warning)
+        }
+        if lookedForClaudeCommand, claudeCommand == nil {
+            failing.append(.warning)
+        }
+        if !orphans.isEmpty {
+            failing.append(.warning)
+        }
+        if !model.legacyClones.isEmpty {
+            failing.append(.warning)
+        }
+        return failing
+    }
+
+    /// The same decision as `linkHandlerRow`, as a status only.
+    private var linkHandlerStatus: DSStatus {
+        let handler = LinkHandlerRegistry.currentHandler()
+        if let handler, let claude = model.claude, handler.standardizedFileURL == claude.url.standardizedFileURL {
+            return .ok
+        }
+        if LinkHandlerRegistry.lanesIsHandler {
+            return model.isLinkRoutingOn ? .ok : .warning
+        }
+        return .warning
+    }
+
+    // MARK: Clones
+
+    private var cloneProfiles: [Profile] {
+        model.library.profiles.filter(CloneCheck.usesClone)
+    }
+
     @ViewBuilder
     private var cloneSection: some View {
-        let cloneProfiles = model.library.profiles.filter(CloneCheck.usesClone)
-        if !cloneProfiles.isEmpty || !model.legacyClones.isEmpty {
-            Section("Klonlar") {
-                ForEach(cloneProfiles) { profile in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(profile.name)
+        let profiles = cloneProfiles
+        let legacyClones = model.legacyClones
+        if !profiles.isEmpty || !legacyClones.isEmpty {
+            Section {
+                ForEach(profiles) { profile in
+                    VStack(alignment: .leading, spacing: DS.Space.xs) {
+                        DSAccountLabel(profile: profile)
+                            .font(DS.Typography.rowTitle)
                         CloneStatusRow(profile: profile)
                         if let signature = signatures[profile.id] {
                             Text(signature.summary)
-                                .font(.caption)
+                                .font(DS.Typography.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .padding(.leading, HealthRowMetrics.titleInset)
+                                .transition(.opacity)
                         }
+                    }
+                    .animation(DS.Motion.standard, value: signatures[profile.id])
+                }
+                if !legacyClones.isEmpty {
+                    HealthRow(state: .warning, title: String(localized: "Faz 0'dan kalan \(legacyClones.count) deneme klonu")) {
+                        Text("~/Applications/Lanes Profiles içinde. Spotlight'tan açılırsa Claude uygulamasının verileriyle çalışır.")
+                    } accessory: {
+                        Button("Çöp Sepeti'ne Taşı") { model.trashLegacyClones() }
+                            .controlSize(.small)
+                            .fixedSize()
                     }
                 }
-                if !cloneProfiles.isEmpty {
-                    HStack {
-                        Button("İmzaları Denetle") {
-                            Task { await checkSignatures(cloneProfiles) }
-                        }
-                        .disabled(checkingSignatures)
-                        if checkingSignatures {
-                            ProgressView().controlSize(.small)
-                        }
-                    }
+            } header: {
+                Text("Klonlar")
+            } footer: {
+                if !profiles.isEmpty {
                     Text("Klonlarda Anthropic'in imzası korunur. Özel simge paketin köküne bir Finder bilgisi eklediği için codesign'ın sıkı denetimi geçmez. Bu beklenen bir durum, macOS'un açılış denetimi (Gatekeeper) klonu kabul eder. Dock'ta gösterilmeyen klonlar bu Mac'te yeniden imzalanır, onlarda Anthropic'in imzası yoktur.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if !model.legacyClones.isEmpty {
-                    HealthRow(state: .warning, title: String(localized: "Faz 0'dan kalan \(model.legacyClones.count) deneme klonu")) {
-                        HStack {
-                            Text("~/Applications/Lanes Profiles içinde. Spotlight'tan açılırsa Claude uygulamasının verileriyle çalışır.")
-                            Button("Çöp Sepeti'ne Taşı") { model.trashLegacyClones() }
-                        }
-                    }
                 }
             }
         }
@@ -171,6 +295,8 @@ struct HealthPage: View {
             signatures[profile.id] = summary
         }
     }
+
+    // MARK: Rows
 
     @ViewBuilder
     private var linkHandlerRow: some View {
@@ -198,10 +324,8 @@ struct HealthPage: View {
     private var permissionRow: some View {
         switch permission {
         case nil:
-            HStack {
-                ProgressView().controlSize(.small)
-                Text("Otomasyon izni denetleniyor…")
-                    .foregroundStyle(.secondary)
+            HealthRow(state: .loading, title: String(localized: "Otomasyon izni denetleniyor…")) {
+                EmptyView()
             }
         case .granted?:
             HealthRow(state: .good, title: String(localized: "Otomasyon izni verilmiş")) {
@@ -226,12 +350,16 @@ struct HealthPage: View {
         }
     }
 
+    /// The folder appears with "~" and its ID cut short, so a narrow window
+    /// wraps it between folders, never inside an ID. The tooltip has it whole.
     @ViewBuilder
     private func accountRow(_ profile: Profile) -> some View {
         let folder = model.paths.effectiveDesktopDataDirectory(for: profile)
+        let shown = folder.path.shortPath
         if profile.isDefault {
             HealthRow(state: .good, title: profile.name) {
-                Text("Claude'un kendi klasörü: \(folder.path.abbreviatingHome)")
+                Text("Claude'un kendi klasörü: \(shown)")
+                    .help(folder.path)
             }
         } else if let result = model.separationResults[profile.id], !result.usesOwnFolder {
             HealthRow(state: .problem, title: profile.name) {
@@ -239,11 +367,13 @@ struct HealthPage: View {
             }
         } else if model.separationResults[profile.id]?.usesOwnFolder == true {
             HealthRow(state: .good, title: profile.name) {
-                Text("Kendi klasörünü kullanıyor: \(folder.path.abbreviatingHome)")
+                Text("Kendi klasörünü kullanıyor: \(shown)")
+                    .help(folder.path)
             }
         } else {
             HealthRow(state: .info, title: profile.name) {
-                Text("Klasörü: \(folder.path.abbreviatingHome). Lanes bu oturumda açılışını görmedi, ayrılık denetlenmedi.")
+                Text("Klasörü: \(shown). Lanes bu oturumda açılışını görmedi, ayrılık denetlenmedi.")
+                    .help(folder.path)
             }
         }
     }
@@ -257,45 +387,66 @@ struct HealthPage: View {
     }
 }
 
-private struct HealthRow<Detail: View>: View {
+private enum HealthRowMetrics {
+    /// Where a row's title starts: past the status icon and its gap.
+    static let titleInset: CGFloat = DS.Metrics.statusIcon + DS.Space.m
+}
+
+/// A check: fixed status icon column, title, caption detail, and an optional
+/// trailing action. Built like `DSStatusRow`, plus a spoken state on the icon.
+/// Loading uses the same geometry, so a finished check does not move.
+private struct HealthRow<Detail: View, Accessory: View>: View {
     enum Status {
-        case good, info, warning, problem
+        case good, info, warning, problem, loading
     }
 
     let state: Status
     let title: String
-    @ViewBuilder var detail: Detail
+    private let detail: Detail
+    private let accessory: Accessory
+
+    init(
+        state: Status,
+        title: String,
+        @ViewBuilder detail: () -> Detail,
+        @ViewBuilder accessory: () -> Accessory
+    ) {
+        self.state = state
+        self.title = title
+        self.detail = detail()
+        self.accessory = accessory()
+    }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: symbol)
-                .foregroundStyle(tint)
+        HStack(alignment: .top, spacing: DS.Space.m) {
+            DSStatusIcon(status: dsStatus)
+                .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(accessibilityState))
-            VStack(alignment: .leading, spacing: 3) {
+                .accessibilityHidden(state == .loading)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
                 Text(title)
+                    .font(DS.Typography.rowTitle)
+                    .foregroundStyle(state == .loading ? HierarchicalShapeStyle.secondary : HierarchicalShapeStyle.primary)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
                 detail
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            accessory
         }
+        .animation(DS.Motion.standard, value: state)
     }
 
-    private var symbol: String {
+    private var dsStatus: DSStatus {
         switch state {
-        case .good: return "checkmark.circle.fill"
-        case .info: return "info.circle"
-        case .warning: return "exclamationmark.triangle.fill"
-        case .problem: return "xmark.octagon.fill"
-        }
-    }
-
-    private var tint: Color {
-        switch state {
-        case .good: return .green
-        case .info: return .secondary
-        case .warning: return .orange
-        case .problem: return .red
+        case .good: return .ok
+        case .info: return .info
+        case .warning: return .warning
+        case .problem: return .error
+        case .loading: return .loading
         }
     }
 
@@ -305,13 +456,63 @@ private struct HealthRow<Detail: View>: View {
         case .info: return String(localized: "Bilgi")
         case .warning: return String(localized: "Uyarı")
         case .problem: return String(localized: "Sorun")
+        case .loading: return title
         }
+    }
+}
+
+extension HealthRow where Accessory == EmptyView {
+    init(state: Status, title: String, @ViewBuilder detail: () -> Detail) {
+        self.init(state: state, title: title, detail: detail, accessory: { EmptyView() })
     }
 }
 
 private extension String {
     var abbreviatingHome: String {
         (self as NSString).abbreviatingWithTildeInPath
+    }
+
+    /// "~" for the home folder, and every folder named by a UUID cut to its
+    /// first block ("1A2B3C4D…").
+    var shortPath: String {
+        abbreviatingHome
+            .split(separator: "/", omittingEmptySubsequences: false)
+            .map { part -> String in
+                let name = String(part)
+                guard UUID(uuidString: name) != nil, let head = name.split(separator: "-").first else { return name }
+                return "\(head)…"
+            }
+            .joined(separator: "/")
+    }
+}
+
+// MARK: - Form layout shared by the system pages
+
+extension View {
+    /// Grouped Form for Health, Maintenance and Privacy: `dsForm()`, with
+    /// side margins that keep the sections at `DS.Metrics.readableWidth`,
+    /// centred, when the window is wide.
+    func systemForm() -> some View {
+        modifier(SystemFormLayout())
+    }
+}
+
+struct SystemFormLayout: ViewModifier {
+    @State private var width: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .dsForm()
+            .contentMargins(.horizontal, sideMargin, for: .scrollContent)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.width
+            } action: { newValue in
+                width = newValue
+            }
+    }
+
+    private var sideMargin: CGFloat {
+        max(0, ((width - DS.Metrics.readableWidth) / 2).rounded(.down))
     }
 }
 

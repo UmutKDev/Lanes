@@ -4,51 +4,81 @@ import SwiftUI
 
 /// Records a global shortcut for one target. Click, then press the keys.
 /// Esc cancels, Delete clears.
+///
+/// A fixed-size key field with a clear button whose slot is always laid
+/// out, so nothing in the row moves while recording. Errors go to `message`,
+/// which the row shows under its title.
 struct ShortcutRecorder: View {
     @Environment(AppModel.self) private var model
     let target: ShortcutTarget
+    @Binding private var message: String?
     @State private var isRecording = false
     @State private var monitor: Any?
-    @State private var message: String?
+
+    /// Width of the key field. Wide enough for "⌃⌥⇧⌘F12" and "Tuşlara bas…".
+    private let fieldWidth: CGFloat = 140
+
+    init(target: ShortcutTarget, message: Binding<String?>) {
+        self.target = target
+        self._message = message
+    }
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            HStack(spacing: 6) {
-                Button {
-                    if isRecording { stop() } else { start() }
-                } label: {
-                    Text(label)
-                        .font(.body.monospacedDigit())
-                        .frame(minWidth: 120)
-                }
-                .help(isRecording ? "Esc ile vazgeç, Sil ile kaldır" : "Kısayol kaydetmek için tıkla")
-                if current != nil, !isRecording {
-                    Button {
-                        try? model.setShortcut(nil, for: target)
-                        message = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Kısayolu kaldır")
-                }
+        HStack(spacing: DS.Space.xs) {
+            Button {
+                if isRecording { stop() } else { start() }
+            } label: {
+                field
             }
-            if let message {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if isUnavailable {
-                Text("Başka bir uygulama bu tuşları kullanıyor, kısayol çalışmıyor.")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
+            .buttonStyle(.plain)
+            .help(isRecording ? "Esc ile vazgeç, Sil ile kaldır" : "Kısayol kaydetmek için tıkla")
+
+            DSIconButton("Kısayolu kaldır", systemImage: "xmark.circle.fill") {
+                try? model.setShortcut(nil, for: target)
+                message = nil
             }
+            .opacity(canClear ? 1 : 0)
+            .disabled(!canClear)
+            .accessibilityHidden(!canClear)
         }
+        .animation(DS.Motion.standard, value: isRecording)
         .onDisappear { stop() }
+    }
+
+    /// Looks like a key field, not a button: a soft fill when idle, the
+    /// accent colour with a pulsing record symbol while listening.
+    private var field: some View {
+        HStack(spacing: DS.Space.xs + 2) {
+            Image(systemName: isRecording ? "record.circle" : "keyboard")
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.pulse, isActive: isRecording)
+                .foregroundStyle(isRecording ? Color.white : Color.secondary)
+                // VoiceOver reads only the shortcut text, as before.
+                .accessibilityHidden(true)
+            Text(label)
+                .font(current == nil || isRecording ? DS.Typography.rowTitle : DS.Typography.rowTitle.monospacedDigit())
+                .foregroundStyle(labelColor)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, DS.Space.s)
+        .padding(.vertical, DS.Space.xs)
+        .frame(width: fieldWidth)
+        .background(
+            isRecording ? Color.accentColor : DS.Palette.codeFill,
+            in: RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous))
+    }
+
+    private var labelColor: Color {
+        if isRecording { return .white }
+        return current == nil ? .secondary : .primary
+    }
+
+    private var canClear: Bool {
+        current != nil && !isRecording
     }
 
     private var current: KeyShortcut? {
@@ -58,11 +88,6 @@ struct ShortcutRecorder: View {
     private var label: String {
         if isRecording { return String(localized: "Tuşlara bas…") }
         return current?.description ?? String(localized: "Kaydet")
-    }
-
-    private var isUnavailable: Bool {
-        guard let current else { return false }
-        return HotKeyCenter.shared.unavailable.contains { $0.sameKeys(as: current) }
     }
 
     private func start() {
@@ -118,53 +143,111 @@ struct ShortcutRecorder: View {
     }
 }
 
+/// One settings row: the title (and any recorder error or conflict under it)
+/// on the left, the recorder on the right.
+private struct ShortcutRow<Title: View>: View {
+    @Environment(AppModel.self) private var model
+    let target: ShortcutTarget
+    private let title: Title
+    @State private var message: String?
+
+    init(target: ShortcutTarget, @ViewBuilder title: () -> Title) {
+        self.target = target
+        self.title = title()
+    }
+
+    var body: some View {
+        LabeledContent {
+            ShortcutRecorder(target: target, message: $message)
+                .fixedSize()
+        } label: {
+            title
+            if let message {
+                problem(Text(message), tint: DS.Palette.danger)
+            } else if isUnavailable {
+                problem(Text("Başka bir uygulama bu tuşları kullanıyor, kısayol çalışmıyor."), tint: DS.Palette.warning)
+            }
+        }
+        .animation(DS.Motion.standard, value: message)
+    }
+
+    private func problem(_ text: Text, tint: Color) -> some View {
+        Label {
+            text
+                .font(DS.Typography.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(DS.Typography.caption)
+                .foregroundStyle(tint)
+        }
+    }
+
+    private var isUnavailable: Bool {
+        guard let current = model.shortcuts.shortcut(for: target) else { return false }
+        return HotKeyCenter.shared.unavailable.contains { $0.sameKeys(as: current) }
+    }
+}
+
 struct ShortcutsSettings: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         Form {
             Section {
-                LabeledContent("Menü çubuğu paneli") {
-                    ShortcutRecorder(target: .panel)
+                ShortcutRow(target: .panel) {
+                    Text("Menü çubuğu paneli")
+                        .lineLimit(1)
                 }
-                LabeledContent("Sonraki açık hesap") {
-                    ShortcutRecorder(target: .nextAccount)
+                ShortcutRow(target: .nextAccount) {
+                    Text("Sonraki açık hesap")
+                        .lineLimit(1)
                 }
-                LabeledContent("Önceki açık hesap") {
-                    ShortcutRecorder(target: .previousAccount)
+                ShortcutRow(target: .previousAccount) {
+                    Text("Önceki açık hesap")
+                        .lineLimit(1)
                 }
+            } header: {
+                Text("Kısayollar")
             } footer: {
                 Text("Kısayollar her uygulamadayken çalışır. Lanes bunun için Erişilebilirlik ya da Giriş İzleme izni istemez: macOS ona yalnız burada kaydettiğin tuşlara basıldığını bildirir. Panel açıkken ⌘1–⌘9 ilk dokuz hesabı da açar.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            Section("Hesaplar") {
+            Section {
+                if model.library.profiles.isEmpty {
+                    Text("Henüz hesap yok.")
+                        .foregroundStyle(.secondary)
+                }
                 ForEach(model.library.profiles) { profile in
-                    LabeledContent {
-                        ShortcutRecorder(target: .profile(profile.id))
-                    } label: {
-                        HStack(spacing: 8) {
-                            MonogramView(profile: profile, size: 20)
-                            Text(profile.name)
-                        }
+                    ShortcutRow(target: .profile(profile.id)) {
+                        DSAccountLabel(profile: profile, size: DS.Monogram.small)
                     }
                 }
+            } header: {
+                Text("Hesaplar")
+            } footer: {
                 Text("Hesap kapalıysa açar, açıksa penceresini öne getirir.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             if !model.library.scenes.isEmpty {
-                Section("Sahneler") {
+                Section {
                     ForEach(model.library.scenes) { scene in
-                        LabeledContent(scene.name) {
-                            ShortcutRecorder(target: .scene(scene.id))
+                        ShortcutRow(target: .scene(scene.id)) {
+                            Label {
+                                Text(scene.name)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            } icon: {
+                                Image(systemName: "rectangle.3.group")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                } header: {
+                    Text("Sahneler")
                 }
             }
         }
-        .formStyle(.grouped)
+        .settingsForm()
     }
 }
 
@@ -173,14 +256,14 @@ struct WindowBadgeSettings: View {
 
     var body: some View {
         Form {
-            Section("Menü çubuğu") {
+            Section {
                 Toggle("Simge öndeki Claude'un hesabını göstersin", isOn: $showsFrontAccount)
+            } header: {
+                Text("Menü çubuğu")
+            } footer: {
                 Text("Öndeki pencere Lanes'in açtığı bir hesaba aitse menü çubuğundaki simge o hesabın rengini ve harfini alır. Başka bir uygulamaya geçince simge eski hâline döner. Lanes Claude pencerelerine bir şey eklemez.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .formStyle(.grouped)
+        .settingsForm()
     }
 }

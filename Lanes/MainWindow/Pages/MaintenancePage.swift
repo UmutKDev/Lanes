@@ -8,26 +8,32 @@ struct MaintenancePage: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        let firstID = model.library.profiles.first?.id
         Form {
-            Section {
-                Text("Boyutlar dosyaların yalnız kapladığı yerden toplanır, hiçbir dosya açılmaz. Önbellek, Claude'un yeniden indirebildiği sayfa ve kod kopyalarıdır. Silinince giriş ve sohbetler yerinde kalır, Claude ilk açılışta biraz yavaş olabilir.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
             ForEach(model.library.profiles) { profile in
-                Section(profile.name) {
+                Section {
                     AccountStorageView(profile: profile)
+                } header: {
+                    Text(profile.name)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                } footer: {
+                    // Explains the sizes once, under the first account.
+                    if profile.id == firstID {
+                        Text("Boyutlar dosyaların yalnız kapladığı yerden toplanır, hiçbir dosya açılmaz. Önbellek, Claude'un yeniden indirebildiği sayfa ve kod kopyalarıdır. Silinince giriş ve sohbetler yerinde kalır, Claude ilk açılışta biraz yavaş olabilir.")
+                    }
                 }
             }
-            Section("Yedekleme") {
+            Section {
+                PathRow(url: model.paths.root)
+            } header: {
+                Text("Yedekleme")
+            } footer: {
                 Text("Lanes hesap klasörlerini kendisi yedeklemez, çünkü içlerinde giriş bilgileri var. Time Machine ~/Library/Application Support/Lanes klasörünü de yedekler.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             AccountListTransferSection()
         }
-        .formStyle(.grouped)
+        .systemForm()
     }
 }
 
@@ -38,19 +44,23 @@ private struct AccountListTransferSection: View {
     @State private var result: String?
 
     var body: some View {
-        Section("Hesap listesini taşı") {
-            HStack {
+        Section {
+            ButtonRow {
                 Button("Dışa Aktar…", action: export)
                 Button("İçe Aktar…", action: importFile)
             }
-            Text("Hesapların adı, rengi, açılış biçimi, notları ve sahneler bir dosyaya yazılır. Giriş bilgileri ve sohbetler dosyaya girmez, bu yüzden başka bir Mac'te her hesapta yeniden giriş yapman gerekir. İçe aktarma yalnız eksik hesapları ve sahneleri ekler, var olanları değiştirmez.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if let result {
-                Text(result)
-                    .font(.caption.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text("Hesap listesini taşı")
+        } footer: {
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text("Hesapların adı, rengi, açılış biçimi, notları ve sahneler bir dosyaya yazılır. Giriş bilgileri ve sohbetler dosyaya girmez, bu yüzden başka bir Mac'te her hesapta yeniden giriş yapman gerekir. İçe aktarma yalnız eksik hesapları ve sahneleri ekler, var olanları değiştirmez.")
+                // The result line keeps its place, so the page does not grow
+                // when a transfer finishes.
+                Text(verbatim: result ?? " ")
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+                    .opacity(result == nil ? 0 : 1)
+                    .accessibilityHidden(result == nil)
             }
         }
     }
@@ -78,15 +88,18 @@ private struct AccountListTransferSection: View {
 }
 
 /// One account's folders with their sizes, and cache cleanup. Used on the
-/// Maintenance page and on the account's Storage tab.
+/// Maintenance page and on the account's Storage tab. It emits rows only;
+/// the caller wraps them in a `Section`.
 struct AccountStorageView: View {
     @Environment(AppModel.self) private var model
     let profile: Profile
     @State private var sizes: StorageSizes?
+    @State private var isMeasuring = false
     @State private var confirmingCleanup = false
     @State private var cleanupMessage: String?
 
     var body: some View {
+        let isRunning = model.isRunning(profile)
         Group {
             row(String(localized: "Claude verisi"), url: model.paths.effectiveDesktopDataDirectory(for: profile), size: sizes?.desktop)
             row(String(localized: "Önbellek"), url: nil, size: sizes?.cache)
@@ -94,16 +107,38 @@ struct AccountStorageView: View {
             if CloneCheck.usesClone(profile) {
                 row(String(localized: "Klon"), url: model.paths.cloneFolder(for: profile.id), size: sizes?.clone)
             }
-            HStack {
-                Button("Önbelleği Temizle…") { confirmingCleanup = true }
-                    .disabled(model.isRunning(profile) || (sizes?.cache ?? 0) == 0)
-                    .help(model.isRunning(profile) ? "Önce bu hesabın Claude'unu kapat." : "Claude'un önbellek klasörlerini sil")
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                HStack(spacing: DS.Space.s) {
+                    Button("Önbelleği Temizle…") { confirmingCleanup = true }
+                        // Off while measuring too, as when the sizes were
+                        // cleared during a re-measure: the old cache size is
+                        // still on screen, but the folders may be gone.
+                        .disabled(isRunning || isMeasuring || (sizes?.cache ?? 0) == 0)
+                        .help(isRunning ? "Önce bu hesabın Claude'unu kapat." : "Claude'un önbellek klasörlerini sil")
+                        .fixedSize()
+                    // Says why the button is off while the account is open.
+                    // Always laid out, so opening or quitting moves nothing.
+                    Text("Önce bu hesabın Claude'unu kapat.")
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .opacity(isRunning ? 1 : 0)
+                        .accessibilityHidden(!isRunning)
+                    Spacer(minLength: 0)
+                    ProgressView()
+                        .controlSize(.small)
+                        .opacity(isMeasuring && sizes != nil ? 1 : 0)
+                        .accessibilityHidden(!(isMeasuring && sizes != nil))
+                }
                 if let cleanupMessage {
                     Text(cleanupMessage)
-                        .font(.caption)
+                        .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .animation(DS.Motion.standard, value: isRunning)
         }
         .task(id: profile.id) { await measure() }
         .confirmationDialog("\(profile.name) hesabının önbelleği silinsin mi?", isPresented: $confirmingCleanup) {
@@ -115,34 +150,42 @@ struct AccountStorageView: View {
         }
     }
 
+    /// Title, then a right-aligned size column and a folder button. Rows
+    /// without a folder keep an invisible button, so all sizes line up.
     @ViewBuilder
     private func row(_ title: String, url: URL?, size: Int64?) -> some View {
         LabeledContent(title) {
-            HStack {
-                if let size {
-                    Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+            HStack(spacing: DS.Space.s) {
+                ZStack(alignment: .trailing) {
+                    Text(verbatim: size.map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) } ?? "")
                         .monospacedDigit()
-                } else {
-                    ProgressView().controlSize(.small)
+                        .contentTransition(.numericText())
+                        .lineLimit(1)
+                    ProgressView()
+                        .controlSize(.small)
+                        .opacity(size == nil ? 1 : 0)
+                        .accessibilityHidden(size != nil)
                 }
+                .frame(minWidth: 70, alignment: .trailing)
                 if let url {
-                    Button {
+                    DSIconButton("Finder'da göster", systemImage: "folder") {
                         NSWorkspace.shared.activateFileViewerSelecting([url])
-                    } label: {
-                        Image(systemName: "folder")
                     }
-                    .buttonStyle(.borderless)
-                    .help("Finder'da göster")
+                } else {
+                    DSIconButton("Finder'da göster", systemImage: "folder") {}
+                        .hidden()
                 }
             }
         }
     }
 
     private func measure() async {
+        isMeasuring = true
+        defer { isMeasuring = false }
         let desktop = model.paths.effectiveDesktopDataDirectory(for: profile)
         let claudeCode = model.paths.effectiveClaudeCodeConfigDirectory(for: profile)
         let clone = CloneCheck.usesClone(profile) ? model.paths.cloneFolder(for: profile.id) : nil
-        sizes = await Task.detached(priority: .utility) {
+        let measured = await Task.detached(priority: .utility) {
             StorageSizes(
                 desktop: FolderSize.of(desktop),
                 cache: CacheFolders.urls(in: desktop).reduce(0) { $0 + FolderSize.of($1) },
@@ -150,6 +193,9 @@ struct AccountStorageView: View {
                 clone: clone.map(FolderSize.of) ?? 0
             )
         }.value
+        withAnimation(DS.Motion.standard) {
+            sizes = measured
+        }
     }
 
     private func cleanCache() async {
@@ -168,7 +214,7 @@ struct AccountStorageView: View {
         cleanupMessage = failed
             ? String(localized: "Bazı klasörler silinemedi.")
             : String(localized: "\(ByteCountFormatter.string(fromByteCount: freed, countStyle: .file)) boşaldı.")
-        sizes = nil
+        // The old sizes stay until the new ones arrive, with a small spinner.
         await measure()
     }
 }

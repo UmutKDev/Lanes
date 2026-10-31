@@ -29,7 +29,7 @@ final class TabStripController: NSObject, NSWindowDelegate {
     /// True while an account is opening from a tab.
     private(set) var openingProfileID: ProfileID?
 
-    static let stripHeight: CGFloat = 40
+    static let stripHeight: CGFloat = DS.TabStrip.height
 
     init(model: AppModel, router: WindowRouter) {
         self.model = model
@@ -90,9 +90,17 @@ final class TabStripController: NSObject, NSWindowDelegate {
         panel.minSize = NSSize(width: 480, height: Self.stripHeight)
         panel.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: Self.stripHeight)
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: TabStripView(controller: self)
+        // The strip draws its own glass capsule; the window itself is clear.
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        let hostingView = NSHostingView(rootView: TabStripView(controller: self)
             .environment(model)
             .environment(router))
+        // A titled window gives SwiftUI a titlebar-high top safe area, which
+        // pushed the 40-pt strip down and clipped it.
+        hostingView.safeAreaRegions = []
+        panel.contentView = hostingView
         panel.delegate = self
         if !panel.setFrameUsingName("LanesTabStrip") {
             panel.setFrame(defaultStripFrame(), display: false)
@@ -271,35 +279,50 @@ struct TabStripView: View {
     @Environment(AppModel.self) private var model
     @Environment(WindowRouter.self) private var router
     let controller: TabStripController
+    /// Natural width of all tabs. The scroll area never grows past it, so
+    /// "+" stays next to the last tab until the tabs need to scroll.
+    @State private var tabsWidth: CGFloat? = nil
 
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(model.library.activeProfiles) { profile in
-                TabButton(profile: profile, isActive: controller.activeProfileID == profile.id, isOpening: controller.openingProfileID == profile.id) {
-                    controller.select(profile)
+        HStack(spacing: DS.TabStrip.spacing) {
+            ScrollView(.horizontal) {
+                GlassEffectContainer(spacing: DS.TabStrip.spacing) {
+                    HStack(spacing: DS.TabStrip.spacing) {
+                        ForEach(model.library.activeProfiles) { profile in
+                            TabButton(profile: profile, isActive: controller.activeProfileID == profile.id, isOpening: controller.openingProfileID == profile.id) {
+                                controller.select(profile)
+                            }
+                        }
+                    }
+                    // Full strip height, tabs centred: room for the active
+                    // tab's interactive glass without clipping it.
+                    .frame(height: TabStripController.stripHeight)
+                }
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.width
+                } action: { width in
+                    tabsWidth = width
                 }
             }
-            Button {
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .frame(maxWidth: tabsWidth ?? .infinity)
+            .frame(height: TabStripController.stripHeight)
+            // Without priority the HStack would split the free space between
+            // the tabs and the Spacer, and tabs would scroll too early.
+            .layoutPriority(1)
+            DSIconButton("Hesap Ekle", systemImage: "plus") {
                 router.showAddProfile()
-            } label: {
-                Image(systemName: "plus")
-                    .frame(width: 26, height: 26)
             }
-            .buttonStyle(.borderless)
-            .help("Hesap Ekle")
-            Spacer(minLength: 8)
-            Button {
+            Spacer(minLength: DS.Space.s)
+            DSIconButton("Sekme ayarları", systemImage: "gearshape") {
                 router.showSettings(.tabs)
-            } label: {
-                Image(systemName: "gearshape")
-                    .frame(width: 26, height: 26)
             }
-            .buttonStyle(.borderless)
-            .help("Sekme ayarları")
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, DS.TabStrip.inset)
+        .frame(maxWidth: .infinity)
         .frame(height: TabStripController.stripHeight)
-        .background(.bar)
+        .glassEffect(.regular, in: .capsule)
     }
 }
 
@@ -314,35 +337,36 @@ private struct TabButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                MonogramView(profile: profile, size: 18, isRunning: model.isRunning(profile))
+            HStack(spacing: DS.Space.xs + 2) {
+                MonogramView(profile: profile, size: DS.Monogram.tiny, isRunning: model.isRunning(profile))
+                    .opacity(isOpening ? 0.35 : 1)
+                    .overlay {
+                        if isOpening {
+                            ProgressView().controlSize(.mini)
+                        }
+                    }
                 Text(profile.name)
+                    .font(.callout)
                     .lineLimit(1)
-                    .font(.callout.weight(isActive ? .semibold : .regular))
-                if isOpening {
-                    ProgressView().controlSize(.mini)
-                }
+                    .truncationMode(.tail)
             }
-            .padding(.horizontal, 10)
-            .frame(height: 28)
-            .frame(maxWidth: 220)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(isActive ? profile.color.swatch.opacity(0.22) : (isHovered ? Color.primary.opacity(0.07) : .clear))
-            )
-            .overlay(alignment: .bottom) {
-                if isActive {
-                    Capsule()
-                        .fill(profile.color.swatch)
-                        .frame(height: 2)
-                        .padding(.horizontal, 8)
-                }
+            .padding(.horizontal, DS.Space.s + 2)
+            .frame(minWidth: DS.TabStrip.tabMinWidth, maxWidth: DS.TabStrip.tabMaxWidth)
+            .frame(height: DS.TabStrip.tabHeight)
+            .background {
+                Capsule()
+                    .fill(DS.Palette.hoverFill)
+                    .opacity(!isActive && isHovered ? 1 : 0)
             }
-            .contentShape(Rectangle())
+            .modifier(ActiveTabGlass(isActive: isActive, tint: profile.color.swatch))
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
+        .animation(DS.Motion.hover, value: isHovered)
+        .animation(DS.Motion.standard, value: isActive)
         .help(model.isRunning(profile) ? "\(profile.name) sekmesine geç" : "\(profile.name) hesabını aç")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
         .contextMenu {
             if model.isRunning(profile) {
                 Button("Claude'dan Çık") {
@@ -356,6 +380,21 @@ private struct TabButton: View {
             Button("Hesap Ayarları…") {
                 router.showAccount(profile)
             }
+        }
+    }
+}
+
+/// The active tab sits on tinted, interactive glass; the others have none.
+private struct ActiveTabGlass: ViewModifier {
+    let isActive: Bool
+    let tint: Color
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isActive {
+            content.glassEffect(.regular.tint(tint.opacity(0.35)).interactive(), in: .capsule)
+        } else {
+            content
         }
     }
 }
