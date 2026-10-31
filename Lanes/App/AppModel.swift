@@ -73,6 +73,9 @@ final class AppModel {
     private(set) var cloneStatuses: [ProfileID: CloneStatus] = [:]
     /// Accounts whose clone Lanes is making right now.
     private(set) var clonesInProgress: Set<ProfileID> = []
+    /// The clone being made for each account, so a second request, such as
+    /// opening an account right after adding it, waits for the same copy.
+    @ObservationIgnored private var cloneTasks: [ProfileID: Task<URL?, Never>] = [:]
     @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
 
     struct SeparationResult: Equatable {
@@ -241,11 +244,21 @@ final class AppModel {
     /// the clone could not be made; `notice` then says why.
     @discardableResult
     func prepareClone(for profile: Profile) async -> URL? {
+        if let running = cloneTasks[profile.id] {
+            return await running.value
+        }
+        let task = Task { await makeClone(for: profile) }
+        cloneTasks[profile.id] = task
+        let url = await task.value
+        cloneTasks[profile.id] = nil
+        return url
+    }
+
+    private func makeClone(for profile: Profile) async -> URL? {
         guard CloneCheck.usesClone(profile), let claude else { return nil }
         refreshCloneStatuses()
         let existing = cloneURLIfPresent(for: profile)
         guard let status = cloneStatuses[profile.id], status.needsWork, !isRunning(profile) else { return existing }
-        guard !clonesInProgress.contains(profile.id) else { return existing }
         clonesInProgress.insert(profile.id)
         defer { clonesInProgress.remove(profile.id) }
 
