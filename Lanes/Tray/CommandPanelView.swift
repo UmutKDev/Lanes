@@ -116,11 +116,8 @@ struct CommandPanelView: View {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles
         guard !text.isEmpty else { return profiles }
-        let locale = Locale(identifier: "tr_TR")
         return profiles.filter { profile in
-            [profile.name, profile.email ?? "", profile.note ?? ""].contains {
-                $0.range(of: text, options: [.caseInsensitive, .diacriticInsensitive], locale: locale) != nil
-            }
+            SearchText.matches(text, in: [profile.name, profile.email ?? "", profile.note ?? ""])
         }
     }
 
@@ -191,6 +188,16 @@ struct CommandPanelView: View {
                 }
                 Toggle("Son kullanılan hesap üstte", isOn: $sortsByRecent)
                 Divider()
+                if !model.library.archivedProfiles.isEmpty {
+                    Menu("Arşivdeki Hesaplar") {
+                        ForEach(model.library.archivedProfiles) { profile in
+                            Button(model.isRunning(profile) ? String(localized: "\(profile.name) (açık)") : profile.name) {
+                                onClose()
+                                model.open(profile)
+                            }
+                        }
+                    }
+                }
                 if model.closedActiveProfiles.count > 1 {
                     Button("Kapalı Hesapların Tümünü Aç") {
                         onClose()
