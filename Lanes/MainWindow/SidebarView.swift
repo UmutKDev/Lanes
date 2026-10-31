@@ -139,11 +139,8 @@ struct SidebarView: View {
     private func matching(_ profiles: [Profile]) -> [Profile] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return profiles }
-        let locale = Locale(identifier: "tr_TR")
         return profiles.filter { profile in
-            [profile.name, profile.email ?? "", profile.note ?? ""].contains {
-                $0.range(of: text, options: [.caseInsensitive, .diacriticInsensitive], locale: locale) != nil
-            }
+            SearchText.matches(text, in: [profile.name, profile.email ?? "", profile.note ?? ""])
         }
     }
 

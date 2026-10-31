@@ -131,6 +131,9 @@ private struct AccountTile: View {
                         .font(.headline)
                         .lineLimit(1)
                     Text(kindLine)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help(kindLine)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
