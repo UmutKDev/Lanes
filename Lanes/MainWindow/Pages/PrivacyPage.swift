@@ -24,7 +24,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "claude:// bağlantılarını hangi uygulamanın açtığı",
-                    detail: "macOS'un varsayılan uygulama ayarından. Normal kullanımda Lanes bu ayarı Claude'da bırakır, yalnız Faz 0 denemesi geçici olarak değiştirir."
+                    detail: "macOS'un varsayılan uygulama ayarından. Lanes bu ayarı yalnız Hesap Haritası'nda yönlendirmeyi açınca kendine alır, kapatınca Claude'a geri verir."
                 )
                 PrivacyItem(
                     title: "Klasörlerin değişme saati",
@@ -72,7 +72,11 @@ struct PrivacyPage: View {
             Section("Lanes'in gönderdikleri") {
                 PrivacyItem(
                     title: "Claude'a \"yeniden aç\" komutu",
-                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorabilir. Lanes Claude'a bağlantı ya da metin göndermez."
+                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorabilir."
+                )
+                PrivacyItem(
+                    title: "Yönlendirilen claude:// bağlantıları",
+                    detail: "Yalnız Hesap Haritası'nda yönlendirme açıkken: başka bir uygulamadan gelen bağlantı, kurala göre seçilen hesabın Claude'una gönderilir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
                 )
                 PrivacyItem(
                     title: "Güncelleme denetimi",

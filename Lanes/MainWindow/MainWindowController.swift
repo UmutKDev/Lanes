@@ -152,6 +152,10 @@ private struct DetailView: View {
             ScenesPage()
         case .sessions:
             SessionsPage()
+        case .accountMap:
+            AccountMapPage()
+        case .links:
+            LinksPage()
         case .usage:
             UsagePage()
         case .health:

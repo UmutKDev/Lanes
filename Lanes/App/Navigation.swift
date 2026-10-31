@@ -61,7 +61,7 @@ enum Destination: Hashable {
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .sessions, .usage, .scenes, .health, .privacy, .settings: return true
+        case .overview, .account, .sessions, .usage, .accountMap, .links, .scenes, .health, .privacy, .settings: return true
         default: return showingDeveloperPages
         }
     }

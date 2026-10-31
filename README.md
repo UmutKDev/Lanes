@@ -71,7 +71,7 @@ Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizl
 - **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı, öndeki uygulamanın süreç numarası. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati. Sağlık sayfasında Otomasyon izninin durumu (izin sorulmadan), `claude` komutunun yeri ve Profiles altındaki klasörlerin adları.
 - **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine yalnız Claude yazar), Terminal komut dosyaları ve Faz 0 sonuçları. Faz 0 klonları `~/Applications/Lanes Profiles` altında.
 - **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
-- **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Lanes'in yaptığı tek ağ isteği bu.
+- **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu, yönlendirme açıkken kurala göre seçilen hesaba `claude://` bağlantıları (giriş bağlantıları asla) ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Lanes'in yaptığı tek ağ isteği bu denetim.
 - **Dokunmadıkları:** Giriş bilgileri, çerezler, Anahtar Zinciri, sohbetler, Claude'un ayar dosyaları ve hesap klasörlerinin içi.
 
 ## Lisans

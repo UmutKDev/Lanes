@@ -108,9 +108,13 @@ struct HealthPage: View {
             HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Claude açıyor")) {
                 Text("Girişler ve bağlantılar her zamanki gibi çalışır.")
             }
+        } else if LinkHandlerRegistry.lanesIsHandler, model.isLinkRoutingOn {
+            HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Lanes yönlendiriyor")) {
+                Text("Hesap Haritası'ndaki kurallara göre. Giriş bağlantıları yönlendirilmez.")
+            }
         } else if LinkHandlerRegistry.lanesIsHandler {
             HealthRow(state: .warning, title: String(localized: "claude:// bağlantılarını Lanes açıyor")) {
-                Text("Lanes bağlantıları şimdilik yönlendirmiyor ve varsayılanı açılışta Claude'a geri verir.")
+                Text("Yönlendirme kapalıyken Lanes varsayılanı açılışta Claude'a geri verir.")
             }
         } else {
             HealthRow(state: .warning, title: String(localized: "claude:// bağlantılarını açan: \(handler?.deletingPathExtension().lastPathComponent ?? String(localized: "yok"))")) {

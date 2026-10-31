@@ -92,7 +92,7 @@ private struct GeneralSettings: View {
             }
             Section("Bağlantılar") {
                 LabeledContent("claude:// bağlantılarını açan", value: handlerName)
-                Text("Lanes bağlantıları şimdilik yönlendirmiyor. Faz 0 denemeleri bittiğinde bağlantıların hangi hesapla açılacağını Hesap Haritası'ndan seçebileceksin.")
+                Text("Bağlantıların hangi hesapla açılacağını Hesap Haritası'ndan seçebilirsin. Yönlendirme kapalıyken bağlantıları her zaman Claude açar.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

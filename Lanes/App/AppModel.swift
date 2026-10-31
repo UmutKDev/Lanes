@@ -21,6 +21,8 @@ final class AppModel {
         var kind: String
         var receivedAt: Date
         var outcome: String
+        /// The account it went to, when Lanes routed it.
+        var target: ProfileID? = nil
     }
 
     let paths: ProfilePaths
@@ -57,6 +59,12 @@ final class AppModel {
     private(set) var recentFolders: [ProfileID: RecentFolders]
     /// What the last separation check after opening an account found.
     private(set) var separationResults: [ProfileID: SeparationResult] = [:]
+    /// Which account routable links open in.
+    private(set) var linkRules: LinkRules
+    /// The account whose Claude was last in front, for links that follow
+    /// the front account. Lanes itself coming forward doesn't change it.
+    @ObservationIgnored private var lastFrontProfileID: ProfileID?
+    @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var knownPIDs: Set<pid_t> = []
 
     struct SeparationResult: Equatable {
@@ -74,6 +82,7 @@ final class AppModel {
         self.library = startup.library
         self.shortcuts = AppModel.loadShortcuts()
         self.recentFolders = AppModel.loadRecentFolders()
+        self.linkRules = AppModel.loadLinkRules()
         validation.currentClaude = { [weak self] in self?.claude }
 
         if startup.restoredFromBackup {
@@ -100,6 +109,19 @@ final class AppModel {
         }
         monitor.start()
         refreshInstances()
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            MainActor.assumeIsolated {
+                guard let self, let pid, pid != ProcessInfo.processInfo.processIdentifier else { return }
+                if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
+                    self.lastFrontProfileID = id
+                }
+            }
+        }
         Task { await stepAsideFromSignInIfNeeded() }
     }
 
@@ -339,6 +361,9 @@ final class AppModel {
             recentFolders[profile.id] = nil
             saveRecentFolders()
             pruneShortcuts()
+            var rules = linkRules
+            rules.prune(profiles: Set(library.profiles.map(\.id)))
+            if rules != linkRules { setLinkRules(rules) }
             notice = Notice(kind: .info, message: String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında duruyor."))
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
@@ -531,12 +556,54 @@ final class AppModel {
 
     // MARK: Links
 
-    /// Lanes declares `claude://` so Faz 0 can test taking it over. Until
-    /// routing is turned on, it must never keep the default: Claude's own
-    /// sign-in depends on receiving those links.
+    /// Lanes declares `claude://` so it can route links. With routing off
+    /// it must never keep the default: Claude's own sign-in depends on
+    /// receiving those links. With routing on it takes the default back
+    /// whenever it lost it.
     func stepAsideFromSignInIfNeeded() async {
-        guard !Preferences.linkRoutingEnabled else { return }
-        await giveLinksBackToClaude()
+        if Preferences.linkRoutingEnabled {
+            await takeLinks()
+        } else {
+            await giveLinksBackToClaude()
+        }
+    }
+
+    var isLinkRoutingOn: Bool {
+        Preferences.linkRoutingEnabled
+    }
+
+    func setLinkRouting(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Preferences.Key.linkRoutingEnabled)
+        Task {
+            if enabled {
+                await takeLinks()
+            } else {
+                await giveLinksBackToClaude()
+            }
+        }
+    }
+
+    func setLinkRules(_ rules: LinkRules) {
+        linkRules = rules
+        if let data = try? JSONEncoder().encode(rules) {
+            UserDefaults.standard.set(data, forKey: Preferences.Key.linkRules)
+        }
+    }
+
+    private static func loadLinkRules() -> LinkRules {
+        guard let data = UserDefaults.standard.data(forKey: Preferences.Key.linkRules) else { return LinkRules() }
+        return (try? JSONDecoder().decode(LinkRules.self, from: data)) ?? LinkRules()
+    }
+
+    private func takeLinks() async {
+        guard !LinkHandlerRegistry.lanesIsHandler else { return }
+        do {
+            try await LinkHandlerRegistry.setHandler(Bundle.main.bundleURL)
+            Log.app.info("Link routing: Lanes holds the claude:// default")
+        } catch {
+            Log.app.error("Link routing: could not take the default: \(error.localizedDescription)")
+            notice = Notice(kind: .warning, message: String(localized: "Lanes claude:// bağlantılarını üstlenemedi: \(error.localizedDescription)"))
+        }
     }
 
     /// Hands the `claude://` default back to Claude if Lanes holds it.
@@ -567,7 +634,21 @@ final class AppModel {
                 outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
                 notice = Notice(kind: .warning, message: String(localized: "Lanes'in tanımadığı bir bağlantı geldi ve iletilmedi. Bağlantıları yeniden Claude açacak, bağlantıyı bir kez daha aç."))
             }
-            Task { await giveLinksBackToClaude() }
+            Task {
+                await giveLinksBackToClaude()
+                // Routing stays on: after a pause long enough to finish
+                // signing in, Lanes takes the default again.
+                if Preferences.linkRoutingEnabled {
+                    try? await Task.sleep(nanoseconds: 180_000_000_000)
+                    if Preferences.linkRoutingEnabled { await takeLinks() }
+                }
+            }
+        case .openWithClaude where Preferences.linkRoutingEnabled:
+            if let link, case let .routable(route) = link.kind {
+                Task { await deliver(link, route: route) }
+                return
+            }
+            outcome = String(localized: "İletilmedi.")
         case .openWithClaude:
             if let claude {
                 outcome = String(localized: "Claude'a iletildi.")
@@ -578,6 +659,43 @@ final class AppModel {
             }
         }
         receivedLinks.insert(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome), at: 0)
+    }
+
+    /// Sends a routable link to the account the rules pick, opening it first
+    /// when it is closed.
+    private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
+        let kind = Self.kindName(link)
+        guard let profile = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
+            return
+        }
+        var justOpened = false
+        if !isRunning(profile) {
+            await openAndWait(profile)
+            justOpened = true
+            for _ in 0..<20 where !isRunning(profile) {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                refreshInstances()
+            }
+        }
+        guard let pid = instance(for: profile)?.pid else {
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id), at: 0)
+            return
+        }
+        if justOpened {
+            // A Claude that just started needs a moment before it takes links.
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+        }
+        do {
+            try await AppleEvents.sendLink(link, to: pid)
+            _ = await InstanceLauncher.activate(pid: pid)
+            Log.app.info("Link routed to an account")
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) hesabına iletildi."), target: profile.id), at: 0)
+        } catch {
+            Log.app.error("Link routing failed: \(error.localizedDescription)")
+            notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
+        }
     }
 
     /// Names a link's kind without any part of the link.

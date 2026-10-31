@@ -13,6 +13,7 @@ enum Preferences {
         static let recentClaudeCodeFolders = "recentClaudeCodeFolders"
         static let showsFrontAccountInMenuBar = "showsFrontAccountInMenuBar"
         static let tabModeEnabled = "tabModeEnabled"
+        static let linkRules = "linkRules"
         static let tabContentHeight = "tabContentHeight"
     }
 
