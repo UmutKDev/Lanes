@@ -141,7 +141,7 @@ struct HealthPage: View {
                             ProgressView().controlSize(.small)
                         }
                     }
-                    Text("Klonlarda Anthropic'in imzası korunur. Özel simge paketin köküne bir Finder bilgisi eklediği için codesign'ın sıkı denetimi geçmez. Bu beklenen bir durum, macOS'un açılış denetimi (Gatekeeper) klonu kabul eder.")
+                    Text("Klonlarda Anthropic'in imzası korunur. Özel simge paketin köküne bir Finder bilgisi eklediği için codesign'ın sıkı denetimi geçmez. Bu beklenen bir durum, macOS'un açılış denetimi (Gatekeeper) klonu kabul eder. Dock'ta gösterilmeyen klonlar bu Mac'te yeniden imzalanır, onlarda Anthropic'in imzası yoktur.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

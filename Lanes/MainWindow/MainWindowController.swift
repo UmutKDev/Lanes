@@ -139,14 +139,12 @@ private struct DetailView: View {
         let shown = destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview
         // The overview shows the notice among its own banners. Other pages
         // show it on top, so a warning appears where the button was pressed.
-        if shown == .overview {
-            page(shown)
-        } else {
-            VStack(spacing: 0) {
-                PageNoticeBar()
-                page(shown)
+        // A safe area inset, not a stack, so the window's toolbar insets
+        // stay as they are when the notice comes and goes.
+        page(shown)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                PageNoticeBar(isHidden: shown == .overview)
             }
-        }
     }
 
     @ViewBuilder
@@ -190,13 +188,15 @@ private struct DetailView: View {
 /// The app's latest notice, above any page but the overview.
 private struct PageNoticeBar: View {
     @Environment(AppModel.self) private var model
+    let isHidden: Bool
 
     var body: some View {
-        if let notice = model.notice {
+        if !isHidden, let notice = model.notice {
             NoticeRow(notice: notice) { model.notice = nil }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 4)
+                .background(.bar)
         }
     }
 }
