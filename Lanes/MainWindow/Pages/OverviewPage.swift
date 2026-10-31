@@ -40,6 +40,10 @@ struct OverviewPage: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    if model.closedActiveProfiles.count > 1 {
+                        Button("Tümünü Aç") { model.openAllClosedAccounts() }
+                            .help("Kapalı hesapların hepsini sırayla açar. Arşivdeki hesaplar açılmaz.")
+                    }
                     if model.quittableOpenCount > 0 {
                         Button("Tümünü Kapat") { isConfirmingQuitAll = true }
                             .help("Lanes'te eklediğin açık hesapların hepsini kapatır. Claude uygulamasının kendi hesabı açık kalır.")
@@ -143,11 +147,32 @@ private struct AccountTile: View {
             navigation.navigate(to: .account(profile.id))
         })
         .contextMenu {
+            Button(isRunning ? "Öne Getir" : "Aç") {
+                model.open(profile)
+            }
             Button("Hesap Sayfası") {
                 navigation.navigate(to: .account(profile.id))
             }
             Button("Claude Code'u Terminalde Aç") {
                 model.openClaudeCode(profile)
+            }
+            Divider()
+            Button("Hesabı Çoğalt") {
+                if let copy = model.duplicateProfile(profile) {
+                    navigation.navigate(to: .account(copy.id))
+                }
+            }
+            .help("Aynı ayarlarla yeni bir hesap ekler. Yeni hesap girişsiz ve boş klasörlerle başlar.")
+            if !profile.isDefault {
+                Button("Arşivle") {
+                    model.setArchived(profile, true)
+                }
+                if isRunning {
+                    Divider()
+                    Button("Claude'dan Çık") {
+                        model.quit(profile)
+                    }
+                }
             }
         }
     }

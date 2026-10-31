@@ -404,6 +404,31 @@ final class AppModel {
         Log.instances.info("Quit all: \(profiles.count) accounts")
     }
 
+    /// Accounts in the lists (not archived) whose Claude is closed.
+    var closedActiveProfiles: [Profile] {
+        library.activeProfiles.filter { !isRunning($0) }
+    }
+
+    /// Opens every closed account that is not archived, one after another,
+    /// like a scene does.
+    func openAllClosedAccounts() {
+        let profiles = closedActiveProfiles
+        guard !profiles.isEmpty else { return }
+        Log.instances.info("Open all: \(profiles.count) accounts")
+        Task {
+            for profile in profiles {
+                await openAndWait(profile)
+            }
+        }
+    }
+
+    /// Today's minutes in front and the daily limit, for accounts that have
+    /// a limit.
+    func dailyLimitProgress(for profile: Profile) -> (used: Int, limit: Int)? {
+        guard let limit = profile.dailyLimitMinutes, limit > 0 else { return nil }
+        return (Int(frontSeconds(for: profile.id, days: 1) / 60), limit)
+    }
+
     /// Posts a reminder once a day when an account passes its daily limit.
     private func checkDailyLimits(now: Date) {
         let today = FrontTimeLog.dayKey(now)

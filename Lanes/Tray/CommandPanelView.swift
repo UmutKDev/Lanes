@@ -191,6 +191,12 @@ struct CommandPanelView: View {
                 }
                 Toggle("Son kullanılan hesap üstte", isOn: $sortsByRecent)
                 Divider()
+                if model.closedActiveProfiles.count > 1 {
+                    Button("Kapalı Hesapların Tümünü Aç") {
+                        onClose()
+                        model.openAllClosedAccounts()
+                    }
+                }
                 if model.quittableOpenCount > 0 {
                     Button("Lanes Hesaplarının Tümünü Kapat") {
                         model.quitAllLanesAccounts()
@@ -337,6 +343,9 @@ struct AccountCardView: View {
         let base = profile.isDefault
             ? String(localized: "\(state) · Claude uygulaması")
             : "\(state) · \(profile.accountClass.displayName)"
+        if let progress = model.dailyLimitProgress(for: profile) {
+            return String(localized: "\(base) · bugün \(progress.used)/\(progress.limit) dk")
+        }
         let today = model.frontSeconds(for: profile.id, days: 1)
         guard today >= 60 else { return base }
         return String(localized: "\(base) · bugün \(FrontTimeLog.describe(seconds: today))")
