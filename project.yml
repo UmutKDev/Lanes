@@ -55,6 +55,9 @@ targets:
           - CFBundleURLName: com.umutkdev.Lanes.claude
             CFBundleURLSchemes: [claude]
             LSHandlerRank: Alternate
+          - CFBundleURLName: com.umutkdev.Lanes.lanes
+            CFBundleURLSchemes: [lanes]
+            LSHandlerRank: Owner
     entitlements:
       path: Lanes/Lanes.entitlements
       properties:

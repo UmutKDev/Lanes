@@ -73,6 +73,13 @@ struct PrivacyPage: View {
                 )
             }
 
+            Section("Lanes'e gelenler") {
+                PrivacyItem(
+                    title: "lanes:// adresleri ve Kestirmeler eylemleri",
+                    detail: "Yalnız bir hesabı ya da sahneyi açar, bir sayfayı gösterir. Hiçbiri bir şeyi silmez, kapatmaz ya da ayar değiştirmez. Kestirmeler'e hesapların ve sahnelerin yalnız adı verilir."
+                )
+            }
+
             Section("Lanes'in gönderdikleri") {
                 PrivacyItem(
                     title: "Claude'a \"yeniden aç\" komutu",

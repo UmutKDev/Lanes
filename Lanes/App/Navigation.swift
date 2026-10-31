@@ -57,11 +57,30 @@ enum Destination: Hashable {
         }
     }
 
+    /// Pages a `lanes://show?page=` address can name.
+    init?(pageName: String) {
+        switch pageName.lowercased() {
+        case "overview": self = .overview
+        case "sessions": self = .sessions
+        case "usage": self = .usage
+        case "accountmap", "map": self = .accountMap
+        case "links": self = .links
+        case "toolbox": self = .toolbox
+        case "scenes": self = .scenes
+        case "health": self = .health
+        case "maintenance": self = .maintenance
+        case "privacy": self = .privacy
+        case "integrations": self = .integrations
+        case "settings": self = .settings
+        default: return nil
+        }
+    }
+
     /// Whether the sidebar lists the page. Pages that are not built yet and
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .sessions, .usage, .accountMap, .links, .scenes, .health, .privacy, .settings: return true
+        case .overview, .account, .sessions, .usage, .accountMap, .links, .scenes, .health, .privacy, .integrations, .settings: return true
         default: return showingDeveloperPages
         }
     }
