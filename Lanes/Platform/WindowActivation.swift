@@ -11,9 +11,35 @@ enum DockPresence {
         }
     }
 
-    static func windowDidClose() {
+    /// Called while `closing` is still on screen. Another Lanes window, such
+    /// as Sparkle's update window, keeps Lanes a regular app and comes
+    /// forward. Going back to the menu bar alone would deactivate Lanes and
+    /// leave that window behind Claude.
+    static func windowDidClose(_ closing: NSWindow? = nil) {
+        if let other = otherWindows(except: closing).first {
+            other.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+            return
+        }
         if NSApp.activationPolicy() != .accessory {
             NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    /// Back to the menu bar alone once no Lanes window is left, for windows
+    /// that don't go through `windowDidClose`, like Sparkle's.
+    static func otherWindowDidClose() {
+        guard otherWindows(except: nil).isEmpty else { return }
+        if NSApp.activationPolicy() != .accessory {
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    /// Visible, titled windows: the main window and Sparkle's. The menu bar
+    /// panel and the status item have no title bar.
+    private static func otherWindows(except closing: NSWindow?) -> [NSWindow] {
+        NSApp.windows.filter { window in
+            window !== closing && window.isVisible && window.styleMask.contains(.titled)
         }
     }
 }
@@ -74,6 +100,18 @@ enum WindowActivator {
         if await waitUntilInFront(window, timeout: 0.3) {
             return outcome(.ignoringOtherApps, window, start)
         }
+
+        // Right after launch the switch to a regular app can take longer
+        // than the steps above wait. Seen in the M2 clean-install test: the
+        // window came up in front but Finder stayed the active app, so the
+        // menu bar and Cmd-Q went to Finder. One more try once it settles.
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        if await waitUntilInFront(window, timeout: 1.0) {
+            return outcome(.ignoringOtherApps, window, start)
+        }
+        Log.app.error("Main window shown but Lanes did not become active")
         return outcome(.gaveUp, window, start)
     }
 
