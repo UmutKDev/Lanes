@@ -190,6 +190,16 @@ private struct AccountGeneralTab: View {
                     if let usage = model.resourceUsage[profile.id] {
                         LabeledContent("Şu an", value: usage.summary)
                     }
+                    Picker("Günlük süre hatırlatması", selection: limitBinding) {
+                        Text("Yok").tag(0)
+                        ForEach([30, 60, 120, 240, 480], id: \.self) { minutes in
+                            Text(IdleQuitPolicy.describe(minutes: minutes)).tag(minutes)
+                        }
+                    }
+                    Text("Hesap bir günde bu kadar süre önde kalınca Lanes bir bildirim gösterir. Hesabı kapatmaz.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             if profile.isDefault {
@@ -210,6 +220,18 @@ private struct AccountGeneralTab: View {
     /// The clone with its own icon, or the web version. Plain Claude.app
     /// and Ayrı kimlik are only listed for an account that still uses them,
     /// so it can be moved to the clone.
+    private var limitBinding: Binding<Int> {
+        Binding(
+            get: { profile.dailyLimitMinutes ?? 0 },
+            set: { minutes in
+                var updated = profile
+                updated.dailyLimitMinutes = minutes > 0 ? minutes : nil
+                model.updateProfile(updated)
+                if minutes > 0 { Task { _ = await Notifier.requestPermission() } }
+            }
+        )
+    }
+
     private var idleBinding: Binding<Int> {
         Binding(
             get: { profile.idleQuitMinutes ?? 0 },

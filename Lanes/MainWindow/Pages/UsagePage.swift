@@ -1,6 +1,8 @@
+import AppKit
 import Charts
 import LanesCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// How much each account was used with Claude Code lately, counted from
 /// session file dates. Claude's own plan limits are only visible inside
@@ -70,6 +72,7 @@ struct UsagePage: View {
                         }
                     }
                 }
+                Button("CSV Olarak Dışa Aktar…", action: exportCSV)
             } header: {
                 Text("Önde geçen süre")
             } footer: {
@@ -94,6 +97,20 @@ struct UsagePage: View {
         }
         .formStyle(.grouped)
         .task { load() }
+    }
+
+    /// Saves the last 30 days of time in front per account, for example to
+    /// bill a client.
+    private func exportCSV() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.nameFieldStringValue = String(localized: "Lanes önde geçen süre.csv")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try Data(model.frontTimeCSV().utf8).write(to: url, options: .atomic)
+        } catch {
+            model.notice = AppModel.Notice(kind: .error, message: String(localized: "CSV yazılamadı: \(error.localizedDescription)"))
+        }
     }
 
     struct FrontPoint: Identifiable {

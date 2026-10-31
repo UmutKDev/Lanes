@@ -12,6 +12,8 @@ enum Notifier {
         case cloneRenewed
         case linkRouted
         case idleQuit
+        case dailyLimit
+        case memoryHigh
 
         var id: String { rawValue }
 
@@ -24,6 +26,8 @@ enum Notifier {
             case .cloneRenewed: return String(localized: "Bir klon yenilendi ya da yenilenemedi")
             case .linkRouted: return String(localized: "Bir bağlantı bir hesaba yönlendirildi")
             case .idleQuit: return String(localized: "Kullanılmayan bir hesap kapatıldı")
+            case .dailyLimit: return String(localized: "Bir hesap günlük süresini doldurdu")
+            case .memoryHigh: return String(localized: "Açık hesaplar çok bellek kullanıyor")
             }
         }
 
@@ -43,8 +47,10 @@ enum Notifier {
 
     /// Shows a notification when its kind is on. The text never holds a
     /// link or anything from inside an account.
-    static func post(_ kind: Kind, body: String) {
-        guard kind.isEnabled else { return }
+    /// `force` is for reminders the user set up on purpose, such as a daily
+    /// limit, which show whether or not their kind is on.
+    static func post(_ kind: Kind, body: String, force: Bool = false) {
+        guard force || kind.isEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = kind.title
         content.body = body

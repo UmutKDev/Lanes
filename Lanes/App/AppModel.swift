@@ -84,6 +84,9 @@ final class AppModel {
     @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
     @ObservationIgnored private let sampler = ResourceSampler()
     @ObservationIgnored private var resourceTimer: Timer?
+    /// The day each account's daily limit reminder last showed.
+    @ObservationIgnored private var limitRemindedOn: [ProfileID: String] = [:]
+    @ObservationIgnored private var lastMemoryAlert: Date?
     /// How long each account was in front, per day.
     private(set) var frontTime: FrontTimeLog = AppModel.loadFrontTime()
     /// The account in front now and since when, not yet in frontTime.
@@ -211,6 +214,8 @@ final class AppModel {
         lastActiveAt = lastActiveAt.filter { byProfile[$0.key] != nil }
 
         let now = Date()
+        checkDailyLimits(now: now)
+        checkMemory(now: now)
         let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
         for item in owned {
             guard let profile = profile(withID: item.id), !profile.isDefault else { continue }
@@ -397,6 +402,34 @@ final class AppModel {
             quit(profile)
         }
         Log.instances.info("Quit all: \(profiles.count) accounts")
+    }
+
+    /// Posts a reminder once a day when an account passes its daily limit.
+    private func checkDailyLimits(now: Date) {
+        let today = FrontTimeLog.dayKey(now)
+        for profile in library.profiles {
+            guard let limit = profile.dailyLimitMinutes, limit > 0, limitRemindedOn[profile.id] != today else { continue }
+            if frontSeconds(for: profile.id, days: 1) >= Double(limit * 60) {
+                limitRemindedOn[profile.id] = today
+                Notifier.post(.dailyLimit, body: String(localized: "\(profile.name) bugün \(IdleQuitPolicy.describe(minutes: limit)) önde kaldı."), force: true)
+            }
+        }
+    }
+
+    /// Posts a warning when the open accounts together pass the memory
+    /// limit set in Settings, at most once an hour.
+    private func checkMemory(now: Date) {
+        let limit = UserDefaults.standard.double(forKey: Preferences.Key.memoryAlertGigabytes)
+        guard limit > 0, Double(totalMemoryBytes) >= limit * 1_073_741_824 else { return }
+        if let last = lastMemoryAlert, now.timeIntervalSince(last) < 3600 { return }
+        lastMemoryAlert = now
+        let memory = ByteCountFormatter.string(fromByteCount: Int64(clamping: totalMemoryBytes), countStyle: .memory)
+        Notifier.post(.memoryHigh, body: String(localized: "Açık hesaplar toplam \(memory) bellek kullanıyor. Kullanmadıklarını kapatabilirsin."), force: true)
+    }
+
+    /// The last 30 days of time in front as CSV, for a spreadsheet.
+    func frontTimeCSV() -> String {
+        frontTime.csv(accounts: library.profiles.map { (id: $0.id, name: $0.name) }, days: FrontTimeLog.keptDays, now: Date())
     }
 
     // MARK: Moving the account list

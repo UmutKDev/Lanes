@@ -33,6 +33,27 @@ final class FrontTimeTests: XCTestCase {
         XCTAssertEqual(log.days["2026-10-31"], ["work": 3600])
     }
 
+    func testCSVHasOneRowPerDayAndAccount() {
+        var log = FrontTimeLog()
+        log.record(work, from: date(31, 10), to: date(31, 11, 30), calendar: calendar)
+        let csv = log.csv(accounts: [(id: work, name: "İş, Müşteri"), (id: ProfileID(rawValue: "x"), name: "Kişisel")], days: 2, now: date(31, 12), calendar: calendar)
+        XCTAssertEqual(csv, """
+        Gün,Hesap,Dakika
+        2026-10-30,"İş, Müşteri",0
+        2026-10-30,Kişisel,0
+        2026-10-31,"İş, Müşteri",90
+        2026-10-31,Kişisel,0
+
+        """)
+    }
+
+    func testDailyLimitRoundTrips() throws {
+        var profile = Profile(name: "Müşteri", color: .green)
+        XCTAssertFalse(String(decoding: try JSONEncoder().encode(profile), as: UTF8.self).contains("dailyLimitMinutes"))
+        profile.dailyLimitMinutes = 120
+        XCTAssertEqual(try JSONDecoder().decode(Profile.self, from: try JSONEncoder().encode(profile)).dailyLimitMinutes, 120)
+    }
+
     func testDescribe() {
         XCTAssertEqual(FrontTimeLog.describe(seconds: 0), "0 dk")
         XCTAssertEqual(FrontTimeLog.describe(seconds: 20), "1 dk'dan az")

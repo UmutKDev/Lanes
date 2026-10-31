@@ -20,6 +20,7 @@ enum Preferences {
         static let lastOpenAccounts = "lastOpenAccounts"
         static let panelSortsByRecent = "panelSortsByRecent"
         static let lastUsedAccounts = "lastUsedAccounts"
+        static let memoryAlertGigabytes = "memoryAlertGigabytes"
     }
 
     /// Accounts as tabs under one strip. Off until the user turns it on,

@@ -5,6 +5,7 @@ import UserNotifications
 struct NotificationSettings: View {
     @State private var status: UNAuthorizationStatus?
     @State private var enabled: Set<Notifier.Kind> = Set(Notifier.Kind.allCases.filter(\.isEnabled))
+    @AppStorage(Preferences.Key.memoryAlertGigabytes) private var memoryAlert: Double = 0
 
     var body: some View {
         Form {
@@ -16,6 +17,22 @@ struct NotificationSettings: View {
                 Text("Bildirimlerde bağlantı, sohbet ya da hesabın içinden bir şey yer almaz. Yalnız hesabın adı ve olayın türü yazar.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            Section {
+                Picker("Bellek uyarısı", selection: $memoryAlert) {
+                    Text("Kapalı").tag(0.0)
+                    ForEach([4.0, 8.0, 12.0, 16.0, 24.0], id: \.self) { gigabytes in
+                        Text("\(Int(gigabytes)) GB üstünde").tag(gigabytes)
+                    }
+                }
+                .onChange(of: memoryAlert) { _, value in
+                    if value > 0 { Task { _ = await Notifier.requestPermission() } }
+                }
+            } footer: {
+                Text("Açık hesapların Claude'ları birlikte bu kadar belleği geçince, en çok saatte bir bildirim gösterilir. Hesaplara göre günlük süre hatırlatması her hesabın Genel sekmesinde.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if status == .denied {
                 Section {
