@@ -19,7 +19,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("Kestirmeler ve Spotlight")
             } footer: {
-                footerText("Kestirmeler uygulamasında \"Claude Hesabını Aç\" ve \"Lanes Sahnesini Aç\" eylemleri var. Spotlight'ta Lanes yazınca da çıkarlar. Siri'ye \"Lanes ile Claude hesabı aç\" diyebilirsin.")
+                Text("Kestirmeler uygulamasında \"Claude Hesabını Aç\" ve \"Lanes Sahnesini Aç\" eylemleri var. Spotlight'ta Lanes yazınca da çıkarlar. Siri'ye \"Lanes ile Claude hesabı aç\" diyebilirsin.")
             }
 
             Section {
@@ -34,9 +34,9 @@ struct IntegrationsPage: View {
             } header: {
                 Text("lanes:// adresleri")
             } footer: {
-                VStack(alignment: .leading, spacing: DS.Space.xs) {
-                    footerText("Raycast, Alfred, bir betik ya da bir bağlantı bu adreslerle Lanes'e iş verebilir. Adresler yalnız hesap ve sahne açar, pencere gösterir. Hiçbir şeyi silmez, kapatmaz ya da ayar değiştirmez, çünkü herhangi bir web sayfası da onları açabilir.")
-                    footerText("Hesap adı yerine listedeki sırası da yazılabilir: lanes://open?account=2")
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Raycast, Alfred, bir betik ya da bir bağlantı bu adreslerle Lanes'e iş verebilir. Adresler yalnız hesap ve sahne açar, pencere gösterir. Hiçbir şeyi silmez, kapatmaz ya da ayar değiştirmez, çünkü herhangi bir web sayfası da onları açabilir.")
+                    Text("Hesap adı yerine listedeki sırası da yazılabilir: lanes://open?account=2")
                 }
             }
 
@@ -45,7 +45,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("Komut satırı")
             } footer: {
-                footerText("Terminalden ya da bir betikten macOS'un open komutuyla.")
+                Text("Terminalden ya da bir betikten macOS'un open komutuyla.")
             }
         }
         .libraryForm()
@@ -53,14 +53,6 @@ struct IntegrationsPage: View {
 
     private var cliExample: String {
         "open \"\(LanesCommand.openAccount(model.library.profiles.first?.name ?? "İş").url.absoluteString)\""
-    }
-
-    private func footerText(_ key: LocalizedStringKey) -> some View {
-        Text(key)
-            .font(DS.Typography.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

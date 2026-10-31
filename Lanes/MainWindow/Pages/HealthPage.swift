@@ -13,6 +13,17 @@ struct HealthPage: View {
     @State private var signatures: [ProfileID: CloneSignatureSummary] = [:]
     @State private var checkingSignatures = false
 
+    /// Reveals an orphan folder without creating it. If it is gone (deleted
+    /// in Finder since the page opened), beeps and rescans the list.
+    private func revealOrphan(_ folder: URL) {
+        if FileManager.default.fileExists(atPath: folder.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([folder])
+        } else {
+            NSSound.beep()
+            orphans = model.orphanProfileFolders()
+        }
+    }
+
     var body: some View {
         Form {
             summarySection
@@ -104,7 +115,12 @@ struct HealthPage: View {
                                 .textSelection(.enabled)
                                 .help(folder.path)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            DSRevealButton(url: folder)
+                            // Not DSRevealButton: that creates a missing
+                            // folder first, which would bring back an orphan
+                            // the user just deleted in Finder.
+                            DSIconButton("Finder'da Göster", systemImage: "folder") {
+                                revealOrphan(folder)
+                            }
                         }
                         // Lines up with the titles of the rows above.
                         .padding(.leading, HealthRowMetrics.titleInset)
@@ -511,8 +527,12 @@ struct SystemFormLayout: ViewModifier {
             }
     }
 
-    private var sideMargin: CGFloat {
-        max(0, ((width - DS.Metrics.readableWidth) / 2).rounded(.down))
+    /// Nil (the Form's own inset) until the window is wide enough that the
+    /// centred column needs a wider margin than that, so a narrow window
+    /// never loses the default inset. Same rule as `LibraryFormLayout`.
+    private var sideMargin: CGFloat? {
+        let margin = ((width - DS.Metrics.readableWidth) / 2).rounded(.down)
+        return margin > DS.Space.page ? margin : nil
     }
 }
 

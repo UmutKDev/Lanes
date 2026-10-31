@@ -60,7 +60,14 @@ struct NotificationSettings: View {
         }
         .settingsForm()
         .animation(DS.Motion.standard, value: status)
-        .task { status = await Notifier.authorizationStatus() }
+        .task {
+            // First answer arrives after the pane has drawn; apply it without animation
+            // so the denied Section at the top does not slide the rows down on open.
+            let first = await Notifier.authorizationStatus()
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { status = first }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task { status = await Notifier.authorizationStatus() }
         }

@@ -66,7 +66,7 @@ struct ToolboxPage: View {
     }
 
     /// Accounts as rows, the four items as columns: one switch per cell, or
-    /// a person symbol when the account has its own item of that name.
+    /// a "Kendi" caption when the account has its own item of that name.
     private var shareMatrix: some View {
         Grid(alignment: .leading, horizontalSpacing: DS.Space.m, verticalSpacing: DS.Space.s) {
             GridRow {
@@ -101,9 +101,11 @@ struct ToolboxPage: View {
         let state = states[key(profile, item)] ?? toolbox.state(of: item, inAccountFolder: folder)
         switch state {
         case .own:
-            Image(systemName: "person.crop.circle")
-                .symbolRenderingMode(.hierarchical)
+            Text("Kendi")
+                .font(DS.Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize()
                 .help("Hesabın kendi \(item.rawValue) öğesi var")
                 .accessibilityLabel(Text("Hesabın kendi \(item.rawValue) öğesi var"))
         case .shared, .absent:

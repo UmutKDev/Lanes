@@ -28,12 +28,17 @@ struct SettingsPage: View {
                 idealWidth: DS.Metrics.paneListIdeal,
                 maxWidth: DS.Metrics.paneListMax
             )
-            paneContent
-                .id(pane)
-                .transition(.opacity)
-                .frame(minWidth: DS.Metrics.paneContentMin, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // One layout slot for the cross-fade: the outgoing and incoming
+            // panes overlap in the ZStack instead of sitting side by side in
+            // the HStack while the outgoing one fades out.
+            ZStack {
+                paneContent
+                    .id(pane)
+                    .transition(.opacity)
+            }
+            .frame(minWidth: DS.Metrics.paneContentMin, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .animation(DS.Motion.standard, value: pane)
         }
-        .animation(DS.Motion.standard, value: pane)
     }
 
     private var paneBinding: Binding<SettingsPane?> {

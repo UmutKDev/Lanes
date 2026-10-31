@@ -603,7 +603,6 @@ struct DSNoticeRow: View {
                 .foregroundStyle(kind.tint)
             Text(verbatim: message)
                 .font(.callout)
-                .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)

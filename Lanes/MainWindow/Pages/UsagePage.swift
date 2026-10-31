@@ -55,6 +55,10 @@ struct UsagePage: View {
                 Label("Son 14 günde Claude Code oturumu yok.", systemImage: "chart.bar.xaxis")
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
+                    // Same slot as the chart and the placeholder, so the
+                    // rows below never move when the load finds nothing.
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.sessionsChartHeight)
             } else {
                 sessionsChart(profiles: profiles)
             }

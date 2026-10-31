@@ -101,11 +101,13 @@ struct SidebarView: View {
                 ContentUnavailableView.search(text: trimmedQuery)
             }
         }
-        // Rows scrolling up meet a hard edge under the search field instead
-        // of showing through behind it.
-        .scrollEdgeEffectStyle(.hard, for: .top)
+        // Rows meet a hard edge under the search field and above the bottom
+        // "Hesap Ekle" bar instead of showing through behind either.
+        .scrollEdgeEffectStyle(.hard, for: .vertical)
         .searchable(text: $query, placement: .sidebar, prompt: Text("Hesap ara"))
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // safeAreaBar (unlike safeAreaInset) gives the bottom edge a scroll
+        // edge effect, so rows do not show through the glass button.
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             Button {
                 navigation.isAddingProfile = true
             } label: {

@@ -166,7 +166,8 @@ private struct AccountIdentityRow: View {
     var body: some View {
         let isRunning = model.isRunning(profile)
         HStack(spacing: DS.Space.l) {
-            MonogramView(profile: profile, size: DS.Monogram.hero, isRunning: isRunning)
+            // The running state is shown once, by the status badge below.
+            MonogramView(profile: profile, size: DS.Monogram.hero, isRunning: false)
             VStack(alignment: .leading, spacing: DS.Space.xs) {
                 Text(verbatim: profile.name)
                     .font(DS.Typography.heroTitle)
@@ -609,6 +610,10 @@ private struct CommandLineBlock: View {
                     .textSelection(.enabled)
                     .padding(.vertical, DS.Space.s)
             }
+            // A legacy scroller ("Always show scroll bars" or a mouse) would
+            // sit inside the block over the command; the hover help, text
+            // selection and the copy button still give the whole command.
+            .scrollIndicators(.never)
             .help(text)
             DSCopyButton(text: text)
         }
@@ -672,8 +677,12 @@ struct AccountFormLayout: ViewModifier {
             }
     }
 
-    private var sideMargin: CGFloat {
-        max(0, ((width - DS.Metrics.readableWidth) / 2).rounded(.down))
+    /// Nil (the Form's own inset) until the window is wide enough that the
+    /// centred column needs a wider margin than that, so a narrow window
+    /// never loses the default inset.
+    private var sideMargin: CGFloat? {
+        let margin = ((width - DS.Metrics.readableWidth) / 2).rounded(.down)
+        return margin > DS.Space.page ? margin : nil
     }
 }
 
