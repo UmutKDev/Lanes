@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let model: AppModel
     let router: WindowRouter
     private var statusItemController: StatusItemController?
+    private var tabStripController: TabStripController?
 
     override init() {
         let model = AppModel()
@@ -28,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             router.showMainWindow(.overview)
         }
         observeShortcuts()
+        tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
     }
 

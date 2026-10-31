@@ -46,6 +46,8 @@ struct SettingsPage: View {
             MenuBarAndDockSettings()
         case .advanced:
             AdvancedSettings()
+        case .tabs:
+            TabSettings()
         case .windowBadges:
             WindowBadgeSettings()
         case .shortcuts:

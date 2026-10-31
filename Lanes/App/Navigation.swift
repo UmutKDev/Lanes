@@ -86,6 +86,7 @@ enum Destination: Hashable {
 enum SettingsPane: String, CaseIterable, Identifiable {
     case general
     case menuBarAndDock
+    case tabs
     case windowBadges
     case shortcuts
     case notifications
@@ -99,6 +100,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .general: return String(localized: "Genel")
         case .menuBarAndDock: return String(localized: "Menü Çubuğu ve Dock")
+        case .tabs: return String(localized: "Sekmeler")
         case .windowBadges: return String(localized: "Pencere Göstergeleri")
         case .shortcuts: return String(localized: "Kısayollar")
         case .notifications: return String(localized: "Bildirimler")
@@ -112,6 +114,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .general: return "gearshape"
         case .menuBarAndDock: return "menubar.dock.rectangle"
+        case .tabs: return "rectangle.topthird.inset.filled"
         case .windowBadges: return "macwindow.badge.plus"
         case .shortcuts: return "command"
         case .notifications: return "bell.badge"
@@ -124,7 +127,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Panes that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .menuBarAndDock, .windowBadges, .shortcuts, .updates, .advanced: return true
+        case .general, .menuBarAndDock, .tabs, .windowBadges, .shortcuts, .updates, .advanced: return true
         case .notifications, .license: return false
         }
     }

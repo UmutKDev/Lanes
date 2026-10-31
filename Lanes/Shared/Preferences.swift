@@ -12,6 +12,14 @@ enum Preferences {
         static let shortcuts = "shortcuts"
         static let recentClaudeCodeFolders = "recentClaudeCodeFolders"
         static let showsFrontAccountInMenuBar = "showsFrontAccountInMenuBar"
+        static let tabModeEnabled = "tabModeEnabled"
+        static let tabContentHeight = "tabContentHeight"
+    }
+
+    /// Accounts as tabs under one strip. Off until the user turns it on,
+    /// because it needs the Accessibility permission.
+    static var tabModeEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Key.tabModeEnabled)
     }
 
     /// The menu bar icon takes the colour and letter of the account whose

@@ -35,6 +35,10 @@ struct PrivacyPage: View {
                     detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi için. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
                 )
                 PrivacyItem(
+                    title: "Sekmeli modda etkin Claude penceresinin yeri ve boyutu",
+                    detail: "Yalnız sekmeli mod açıkken ve Erişilebilirlik izniyle. Lanes pencereyi sekme çubuğunun altına taşır ve öteki hesapları gizler. Pencerelerin içine, başlıklarına ya da yazılanlara bakmaz."
+                )
+                PrivacyItem(
                     title: "Sağlık sayfasındaki denetimler",
                     detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz."
                 )
