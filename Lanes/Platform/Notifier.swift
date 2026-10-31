@@ -31,6 +31,12 @@ enum Notifier {
             }
         }
 
+        /// Reminders the user turns on where they set them (a daily limit,
+        /// a memory limit) have no switch of their own.
+        static var switchable: [Kind] {
+            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh }
+        }
+
         var isEnabled: Bool {
             UserDefaults.standard.bool(forKey: preferenceKey)
         }

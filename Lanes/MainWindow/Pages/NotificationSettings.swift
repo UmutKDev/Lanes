@@ -10,7 +10,7 @@ struct NotificationSettings: View {
     var body: some View {
         Form {
             Section {
-                ForEach(Notifier.Kind.allCases) { kind in
+                ForEach(Notifier.Kind.switchable) { kind in
                     Toggle(kind.title, isOn: binding(for: kind))
                 }
             } footer: {
