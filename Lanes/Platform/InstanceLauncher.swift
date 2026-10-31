@@ -48,6 +48,21 @@ enum InstanceLauncher {
             try? await Task.sleep(nanoseconds: 150_000_000)
             if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
         }
+        // Last resort: ask Launch Services to open the app's bundle. For a
+        // running app it activates it and reopens its window, like a Dock
+        // click. Only for a bundle no other running instance shares, so it
+        // can't bring up another account.
+        if let bundleURL = app.bundleURL,
+           NSWorkspace.shared.runningApplications.filter({ $0.bundleURL == bundleURL }).count == 1 {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            configuration.createsNewApplicationInstance = false
+            _ = try? await NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration)
+            for _ in 0..<5 {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
+            }
+        }
         return NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
     }
 

@@ -106,9 +106,10 @@ private struct AccountTile: View {
                 .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1)
         )
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
+        // Simultaneous, so a single click still reaches the tile's buttons.
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
             navigation.navigate(to: .account(profile.id))
-        }
+        })
         .contextMenu {
             Button("Hesap Sayfası") {
                 navigation.navigate(to: .account(profile.id))
