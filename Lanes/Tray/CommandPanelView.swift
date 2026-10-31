@@ -20,6 +20,11 @@ struct CommandPanelView: View {
             }
             accounts
                 .padding(8)
+            if !model.library.scenes.isEmpty {
+                Divider().padding(.horizontal, 12)
+                scenes
+                    .padding(8)
+            }
             Divider().padding(.horizontal, 12)
             footer
         }
@@ -81,6 +86,45 @@ struct CommandPanelView: View {
                 ForEach(model.library.profiles) { profile in
                     AccountCardView(profile: profile, onClose: onClose)
                 }
+            }
+        }
+    }
+
+    /// Saved groups of accounts, one click opens them all.
+    private var scenes: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Sahneler")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+            ForEach(model.library.scenes) { scene in
+                Button {
+                    onClose()
+                    model.open(scene)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: Destination.scenes.symbol)
+                            .frame(width: 20)
+                        Text(scene.name)
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        HStack(spacing: -4) {
+                            ForEach(scene.profiles(in: model.library)) { profile in
+                                MonogramView(profile: profile, size: 16)
+                            }
+                        }
+                        if let shortcut = model.shortcuts.shortcut(for: .scene(scene.id)) {
+                            Text(shortcut.description)
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Sahnedeki hesapları aç")
             }
         }
     }
@@ -170,6 +214,23 @@ struct AccountCardView: View {
                 Button("Claude Code'u Terminalde Aç") {
                     onClose()
                     model.openClaudeCode(profile)
+                }
+                Button("Claude Code'u Klasörde Aç…") {
+                    onClose()
+                    if let folder = ClaudeCodeFolderPicker.choose() {
+                        model.openClaudeCode(profile, in: folder)
+                    }
+                }
+                let recent = model.recentClaudeCodeFolders(for: profile)
+                if !recent.isEmpty {
+                    Menu("Son Klasörler") {
+                        ForEach(recent, id: \.self) { folder in
+                            Button(folder.lastPathComponent) {
+                                onClose()
+                                model.openClaudeCode(profile, in: folder)
+                            }
+                        }
+                    }
                 }
                 Button("Claude Code Komutunu Kopyala") {
                     SystemActions.copy(model.claudeCodeCommand(for: profile))

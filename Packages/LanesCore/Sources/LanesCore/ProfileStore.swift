@@ -12,12 +12,17 @@ public struct ProfileLibrary: Codable, Equatable, Sendable {
 
     public var version: Int
     public var profiles: [Profile]
+    /// Saved groups of accounts. Written only when there is one, so a list
+    /// without scenes looks exactly as before. Older builds keep the field
+    /// as one they cannot read.
+    public var scenes: [ProfileScene] = []
     /// Top-level fields this build does not know, kept for the next save.
     private var keptFields: [String: JSONValue] = [:]
 
-    public init(version: Int = ProfileLibrary.currentVersion, profiles: [Profile] = []) {
+    public init(version: Int = ProfileLibrary.currentVersion, profiles: [Profile] = [], scenes: [ProfileScene] = []) {
         self.version = version
         self.profiles = profiles
+        self.scenes = scenes
     }
 
     public init(from decoder: Decoder) throws {
@@ -25,18 +30,30 @@ public struct ProfileLibrary: Codable, Equatable, Sendable {
         // The first files had a version from the start, so a missing one can only mean 1.
         version = try container.decodeIfPresent(Int.self, forKey: AnyCodingKey("version")) ?? 1
         profiles = try container.decodeIfPresent([Profile].self, forKey: AnyCodingKey("profiles")) ?? []
-        for key in container.allKeys where key.stringValue != "version" && key.stringValue != "profiles" {
+        // Scenes that don't read are kept as they were, like unknown fields.
+        if container.contains(AnyCodingKey("scenes")) {
+            if let scenes = try? container.decode([ProfileScene].self, forKey: AnyCodingKey("scenes")) {
+                self.scenes = scenes
+            } else {
+                keptFields["scenes"] = try container.decode(JSONValue.self, forKey: AnyCodingKey("scenes"))
+            }
+        }
+        for key in container.allKeys where !["version", "profiles", "scenes"].contains(key.stringValue) {
             keptFields[key.stringValue] = try container.decode(JSONValue.self, forKey: key)
         }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: AnyCodingKey.self)
-        for (key, value) in keptFields {
+        // Scenes made in this build replace ones it could not read.
+        for (key, value) in keptFields where !(key == "scenes" && !scenes.isEmpty) {
             try container.encode(value, forKey: AnyCodingKey(key))
         }
         try container.encode(version, forKey: AnyCodingKey("version"))
         try container.encode(profiles, forKey: AnyCodingKey("profiles"))
+        if !scenes.isEmpty {
+            try container.encode(scenes, forKey: AnyCodingKey("scenes"))
+        }
     }
 
     public var defaultProfile: Profile? {
@@ -59,6 +76,8 @@ public enum ProfileStoreError: Error, Equatable {
     case unknownProfile(ProfileID)
     case moreThanOneDefault
     case unsupportedVersion(Int)
+    case duplicateSceneID(SceneID)
+    case unknownScene(SceneID)
 }
 
 /// Reads and writes `profiles.json`. Writes are atomic, so a crash halfway never
@@ -133,6 +152,12 @@ public struct ProfileStore: Sendable {
         if library.profiles.filter(\.isDefault).count > 1 {
             throw ProfileStoreError.moreThanOneDefault
         }
+        var seenScenes = Set<SceneID>()
+        for scene in library.scenes {
+            guard seenScenes.insert(scene.id).inserted else {
+                throw ProfileStoreError.duplicateSceneID(scene.id)
+            }
+        }
     }
 
     static var encoder: JSONEncoder {
@@ -175,6 +200,10 @@ extension ProfileLibrary {
             throw ProfileStoreError.unknownProfile(id)
         }
         profiles.remove(at: index)
+        // A scene keeps its name and other accounts.
+        for sceneIndex in scenes.indices {
+            scenes[sceneIndex].profileIDs.removeAll { $0 == id }
+        }
     }
 
     /// Moves a profile to a new position. Dragging rows in the sidebar calls

@@ -30,6 +30,14 @@ struct PrivacyPage: View {
                     title: "Klasörlerin değişme saati",
                     detail: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde, o hesabın Claude'unun kendi klasörünü kullandığını doğrulamak için. Yalnız klasörün ve doğrudan içindekilerin saatine bakılır, dosyaların kendisi açılmaz."
                 )
+                PrivacyItem(
+                    title: "Öndeki uygulama",
+                    detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi için. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
+                )
+                PrivacyItem(
+                    title: "Sağlık sayfasındaki denetimler",
+                    detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz."
+                )
             }
 
             Section("Lanes'in yazdıkları") {
@@ -49,7 +57,7 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "Lanes'in kendi ayarları",
-                    detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes)."
+                    detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes). Kısayollar ve her hesabın Claude Code'u açtığı son beş klasör de burada durur. Sahneler hesap listesiyle birlikte profiles.json dosyasında."
                 )
             }
 

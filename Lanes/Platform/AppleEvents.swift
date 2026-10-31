@@ -39,6 +39,37 @@ enum AppleEvents {
         try await send(eventClass: "GURL", eventID: "GURL", to: pid, directObject: link.url.absoluteString)
     }
 
+    enum Permission: Equatable {
+        case granted
+        case denied
+        /// macOS will ask the first time Lanes sends an event.
+        case notAskedYet
+        /// Only a running Claude can be checked.
+        case claudeNotRunning
+        case unknown(Int32)
+    }
+
+    /// Whether Lanes may send Claude its reopen event, without ever asking
+    /// the user. Runs off the main thread, the check can block.
+    static func reopenPermission(bundleIdentifier: String) async -> Permission {
+        await Task.detached(priority: .utility) {
+            let target = NSAppleEventDescriptor(bundleIdentifier: bundleIdentifier)
+            let status = AEDeterminePermissionToAutomateTarget(
+                target.aeDesc,
+                AppleEvents.fourCharCode("aevt"),
+                AppleEvents.fourCharCode("rapp"),
+                false
+            )
+            switch status {
+            case noErr: return Permission.granted
+            case OSStatus(AppleEvents.notPermittedCode): return .denied
+            case -1744: return .notAskedYet // errAEEventWouldRequireUserConsent
+            case OSStatus(procNotFound): return .claudeNotRunning
+            default: return .unknown(status)
+            }
+        }.value
+    }
+
     /// Sends a reopen event, the same event a Dock icon click sends.
     static func sendReopen(to pid: pid_t) async throws {
         try await send(eventClass: "aevt", eventID: "rapp", to: pid, directObject: nil)

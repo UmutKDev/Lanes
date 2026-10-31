@@ -1,3 +1,4 @@
+import AppKit
 import LanesCore
 import SwiftUI
 
@@ -271,10 +272,63 @@ private struct AccountClaudeCodeTab: View {
                     Button("Terminalde Aç") {
                         model.openClaudeCode(profile)
                     }
+                    Button("Klasörde Aç…") {
+                        if let folder = ClaudeCodeFolderPicker.choose() {
+                            model.openClaudeCode(profile, in: folder)
+                        }
+                    }
+                }
+            }
+            let recent = model.recentClaudeCodeFolders(for: profile)
+            if !recent.isEmpty {
+                Section {
+                    ForEach(recent, id: \.self) { folder in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(folder.lastPathComponent)
+                                Text((folder.path as NSString).abbreviatingWithTildeInPath)
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Aç") {
+                                model.openClaudeCode(profile, in: folder)
+                            }
+                            Button {
+                                model.forgetRecentFolder(folder.path, for: profile)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Listeden çıkar")
+                        }
+                    }
+                } header: {
+                    Text("Son klasörler")
+                } footer: {
+                    Text("Claude Code bu hesapla seçtiğin klasörde başlar. Liste yalnız Lanes'in ayarlarında durur, klasörlerin içine bakılmaz.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Asks for the folder Claude Code should start in.
+@MainActor
+enum ClaudeCodeFolderPicker {
+    static func choose() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = String(localized: "Claude Code'u Burada Aç")
+        panel.message = String(localized: "Claude Code'un başlayacağı klasörü seç.")
+        NSApp.activate()
+        return panel.runModal() == .OK ? panel.url : nil
     }
 }
 

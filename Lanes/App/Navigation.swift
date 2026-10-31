@@ -61,7 +61,7 @@ enum Destination: Hashable {
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .privacy, .settings: return true
+        case .overview, .account, .scenes, .health, .privacy, .settings: return true
         default: return showingDeveloperPages
         }
     }
@@ -124,8 +124,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Panes that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .menuBarAndDock, .updates, .advanced: return true
-        case .windowBadges, .shortcuts, .notifications, .license: return false
+        case .general, .menuBarAndDock, .windowBadges, .shortcuts, .updates, .advanced: return true
+        case .notifications, .license: return false
         }
     }
 

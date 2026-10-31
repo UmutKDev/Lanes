@@ -148,6 +148,10 @@ private struct DetailView: View {
             SettingsPage()
         case .privacy:
             PrivacyPage()
+        case .scenes:
+            ScenesPage()
+        case .health:
+            HealthPage()
         case .validation:
             ValidationPage()
         default:
