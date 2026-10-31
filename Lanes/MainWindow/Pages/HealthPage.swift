@@ -10,7 +10,7 @@ struct HealthPage: View {
     @State private var claudeCommand: String?
     @State private var lookedForClaudeCommand = false
     @State private var orphans: [URL] = []
-    @State private var signatures: [ProfileID: CloneSignature] = [:]
+    @State private var signatures: [ProfileID: CloneSignatureSummary] = [:]
     @State private var checkingSignatures = false
 
     var body: some View {
@@ -166,7 +166,7 @@ struct HealthPage: View {
                 signatures[profile.id] = nil
                 continue
             }
-            signatures[profile.id] = await CloneSignature.check(bundle)
+            signatures[profile.id] = await CloneSignatureSummary.check(bundle)
         }
     }
 
@@ -315,16 +315,16 @@ private extension String {
 
 /// What macOS's own tools say about a clone's signature. Run in the
 /// background, only when the user asks.
-struct CloneSignature: Equatable {
+struct CloneSignatureSummary: Equatable {
     var valid: Bool
     var strict: Bool
     var gatekeeper: Bool
 
-    static func check(_ bundle: URL) async -> CloneSignature {
+    static func check(_ bundle: URL) async -> CloneSignatureSummary {
         async let deep = ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", bundle.path])
         async let strict = ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", bundle.path])
         async let assess = ShellRunner.run("/usr/sbin/spctl", ["--assess", "--type", "execute", bundle.path])
-        return await CloneSignature(valid: deep.status == 0, strict: strict.status == 0, gatekeeper: assess.status == 0)
+        return await CloneSignatureSummary(valid: deep.status == 0, strict: strict.status == 0, gatekeeper: assess.status == 0)
     }
 
     var summary: String {
