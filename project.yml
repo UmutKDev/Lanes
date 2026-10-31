@@ -48,6 +48,7 @@ targets:
         # Empty in Debug, so those builds never check for updates.
         SUFeedURL: $(LANES_UPDATE_FEED_URL)
         SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
+        NSMicrophoneUsageDescription: "Lanes içinde açılan bir Claude hesabında sesli konuşmayı kullanmak için."
         NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Normal kullanımda bağlantı, ileti ya da başka bir komut göndermez."
         # Declared so Faz 0 can test taking over claude:// links. Lanes hands
         # the default back to Claude on launch unless link routing is on.
@@ -55,11 +56,16 @@ targets:
           - CFBundleURLName: com.umutkdev.Lanes.claude
             CFBundleURLSchemes: [claude]
             LSHandlerRank: Alternate
+          - CFBundleURLName: com.umutkdev.Lanes.lanes
+            CFBundleURLSchemes: [lanes]
+            LSHandlerRank: Owner
     entitlements:
       path: Lanes/Lanes.entitlements
       properties:
         # Needed under the hardened runtime to send Apple Events to Claude.
         com.apple.security.automation.apple-events: true
+        # Voice mode in accounts that run inside Lanes. macOS still asks.
+        com.apple.security.device.audio-input: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes

@@ -50,6 +50,7 @@ extension ProfileMode {
         case .standard: return String(localized: "Standart")
         case .signedClone: return String(localized: "Klon")
         case .separateIdentity: return String(localized: "Ayrı kimlik")
+        case .insideLanes: return String(localized: "Lanes içinde")
         }
     }
 
@@ -61,7 +62,16 @@ extension ProfileMode {
             return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır. Anthropic'in imzası korunur, kopya diskte neredeyse yer kaplamaz.")
         case .separateIdentity:
             return String(localized: "Kopya kendi kimliğini alır ve yerelde yeniden imzalanır. Deneysel, Faz 0 sonuçlarını bekliyor.")
+        case .insideLanes:
+            return String(localized: "Hesap Lanes'in penceresinde, öbür hesaplarla birlikte sekme olarak açılır. Dock'ta ayrı bir Claude görünmez. Claude'un web sürümüdür: Claude uygulamasının yerel MCP sunucuları, Code sekmesi ve Cowork burada yok.")
         }
+    }
+}
+
+extension ProfileMode {
+    /// What "Dock'ta gösterme" costs, shown next to the switch.
+    static var dockHidingCost: String {
+        String(localized: "Claude Dock'ta ve Cmd-Tab'da görünmez, hesaba Lanes'ten geçersin. Bunun için kopya bu Mac'te yeniden imzalanır ve Anthropic'in imzası gider: ilk açılışta anahtarlık parolası sorulur, Claude'un menüleri menü çubuğunda görünmez, Cmd-C ve Cmd-V gibi kısayollar çalışmayabilir.")
     }
 }
 

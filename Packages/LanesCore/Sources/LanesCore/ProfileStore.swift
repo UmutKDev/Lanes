@@ -224,23 +224,25 @@ public struct ProfileStartup {
     /// Why the list could not be read. Lanes then starts with an empty list
     /// and leaves the file alone until the next save moves it aside.
     public var loadError: (any Error)?
-    /// True when there was no list yet. The default profile has been added,
-    /// and the library still needs saving.
+    /// True when there was no list yet, or it was empty.
     public var isFirstLaunch: Bool
     /// True when the list could not be read and `library` comes from
     /// `profiles.backup.json`. `loadError` says why. The unreadable file
     /// stays until the next save moves it aside.
     public var restoredFromBackup = false
-    /// True when the list had no default profile and one was put back at the
-    /// top. The library still needs saving.
-    public var addedMissingDefault = false
+    /// True when Claude.app's own account was put at the top of the list.
+    /// The library still needs saving.
+    public var addedClaudeAppAccount = false
 }
 
 extension ProfileStore {
-    /// Loads the list, or starts a new one with the default profile when there
-    /// is none. An unreadable list never turns into a new one, so its profiles
-    /// are not replaced by a fresh default.
-    public func startup(defaultProfileName: String) -> ProfileStartup {
+    /// Loads the list. An unreadable list never turns into a new one.
+    ///
+    /// Lanes's own accounts each run in their own clone and folder. The
+    /// account in Claude.app itself is only shown, marked as Claude.app's,
+    /// with almost no settings: pass its name when Claude's own folder
+    /// exists, and it is put at the top if the list lacks it.
+    public func startup(claudeAppAccountName: String? = nil) -> ProfileStartup {
         var startup: ProfileStartup
         do {
             startup = ProfileStartup(library: try load(), loadError: nil, isFirstLaunch: false)
@@ -250,16 +252,13 @@ extension ProfileStore {
             }
             startup = ProfileStartup(library: backup, loadError: error, isFirstLaunch: false, restoredFromBackup: true)
         }
-        // The account the user is already signed in to keeps using Claude's
-        // own folders, so nothing changes for it.
-        let mainProfile = Profile(name: defaultProfileName, color: .orange, isDefault: true)
         if startup.library.profiles.isEmpty {
-            try? startup.library.add(mainProfile)
-            startup.isFirstLaunch = true
-        } else if startup.library.defaultProfile == nil {
-            // Lanes never removes it, so only a hand-edited file gets here.
-            startup.library.profiles.insert(mainProfile, at: 0)
-            startup.addedMissingDefault = true
+            startup.isFirstLaunch = startup.loadError == nil
+        }
+        if startup.loadError == nil || startup.restoredFromBackup,
+           let name = claudeAppAccountName, startup.library.defaultProfile == nil {
+            startup.library.profiles.insert(Profile(name: name, color: .gray, isDefault: true), at: 0)
+            startup.addedClaudeAppAccount = true
         }
         return startup
     }

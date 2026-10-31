@@ -275,7 +275,7 @@ struct AccountCardView: View {
     private func subtitle(isRunning: Bool) -> String {
         let state = isRunning ? String(localized: "Açık") : String(localized: "Kapalı")
         if profile.isDefault {
-            return String(localized: "\(state) · Varsayılan")
+            return String(localized: "\(state) · Claude uygulaması")
         }
         return "\(state) · \(profile.accountClass.displayName)"
     }

@@ -95,14 +95,19 @@ public struct RunningInstance: Equatable, Sendable, Identifiable {
     public var userDataDirectory: String?
     /// The profile this instance belongs to, when one matches.
     public var profileID: ProfileID?
+    /// A Lanes clone started without its account's folder, from Finder,
+    /// Spotlight or the Dock. It runs on the main account's data, so it
+    /// belongs to no profile and Lanes warns about it (Faz 0.5.2).
+    public var isStrayClone: Bool
 
     public var id: Int32 { pid }
 
-    public init(pid: Int32, applicationBundlePath: String, userDataDirectory: String?, profileID: ProfileID?) {
+    public init(pid: Int32, applicationBundlePath: String, userDataDirectory: String?, profileID: ProfileID?, isStrayClone: Bool = false) {
         self.pid = pid
         self.applicationBundlePath = applicationBundlePath
         self.userDataDirectory = userDataDirectory
         self.profileID = profileID
+        self.isStrayClone = isStrayClone
     }
 }
 
@@ -126,12 +131,14 @@ public enum InstanceMatcher {
         guard knownBundles.map(normalize).contains(normalizedBundle) else { return nil }
 
         let dataDirectory = arguments.userDataDirectory
-        let profile = matchingProfile(userDataDirectory: dataDirectory, library: library, paths: paths)
+        let isStrayClone = dataDirectory == nil && paths.isClonePath(normalizedBundle)
+        let profile = isStrayClone ? nil : matchingProfile(userDataDirectory: dataDirectory, library: library, paths: paths)
         return RunningInstance(
             pid: pid,
             applicationBundlePath: normalizedBundle,
             userDataDirectory: dataDirectory.map(normalize),
-            profileID: profile?.id
+            profileID: profile?.id,
+            isStrayClone: isStrayClone
         )
     }
 

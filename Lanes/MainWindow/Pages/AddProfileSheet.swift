@@ -12,6 +12,7 @@ struct AddProfileSheet: View {
     @State private var color: ProfileColor = .blue
     @State private var accountClass: AccountClass = .personal
     @State private var opensAfterAdding = true
+    @State private var mode: ProfileMode = .signedClone
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,28 +32,33 @@ struct AddProfileSheet: View {
                             Label(kind.displayName, systemImage: kind.symbol).tag(kind)
                         }
                     }
-                    // New accounts open with Claude itself. Klon comes back
-                    // once Lanes makes clones for real accounts, which waits
-                    // on Faz 0 checks 3 and 5.
-                    Text(ProfileMode.standard.explanation)
+                    Picker("Nerede çalışsın", selection: $mode) {
+                        Text("Claude uygulaması, kendi simgesiyle").tag(ProfileMode.signedClone)
+                        Text("Lanes içinde, web sürümü").tag(ProfileMode.insideLanes)
+                    }
+                    Text(mode.explanation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Section {
-                    Toggle("Ekledikten sonra Claude'u bu hesapla aç", isOn: $opensAfterAdding)
-                    Text("Claude boş bir pencereyle açılır. Giriş Claude'un kendi penceresinde olur, Lanes giriş bilgilerini görmez.")
+                    Toggle("Ekledikten sonra bu hesabı aç", isOn: $opensAfterAdding)
+                    Text(mode == .insideLanes
+                         ? "claude.ai'nin giriş sayfası Lanes'te yeni bir sekmede açılır. Lanes giriş bilgilerini görmez."
+                         : "Claude boş bir pencereyle açılır. Giriş Claude'un kendi penceresinde olur, Lanes giriş bilgilerini görmez.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if mode.usesClaudeApp {
                 Section("Yeni pencerede giriş") {
                     // Faz 0.5 check 3: the return link of a Google or email
                     // link sign-in reaches the main Claude, not the new
                     // window. Typing the emailed code works in any window.
                     SignInStep(number: 1, text: "Google ya da Apple ile değil, e-posta adresinle devam et.")
-                    SignInStep(number: 2, text: "Gelen e-postadaki bağlantıya tıklama. Bağlantı ana hesabın penceresinde açılır.")
+                    SignInStep(number: 2, text: "Gelen e-postadaki bağlantıya tıklama. Bağlantı Claude uygulamasının penceresinde açılır.")
                     SignInStep(number: 3, text: "E-postadaki doğrulama kodunu yeni pencereye yaz.")
+                }
                 }
             }
             .formStyle(.grouped)
@@ -87,7 +93,7 @@ struct AddProfileSheet: View {
     }
 
     private func add() {
-        guard let profile = model.addProfile(name: name, color: color, mode: .standard, accountClass: accountClass) else { return }
+        guard let profile = model.addProfile(name: name, color: color, mode: mode, accountClass: accountClass) else { return }
         dismiss()
         navigation.navigate(to: .account(profile.id))
         if opensAfterAdding {

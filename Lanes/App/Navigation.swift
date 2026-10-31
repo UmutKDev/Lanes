@@ -57,28 +57,31 @@ enum Destination: Hashable {
         }
     }
 
+    /// Pages a `lanes://show?page=` address can name.
+    init?(pageName: String) {
+        switch pageName.lowercased() {
+        case "overview": self = .overview
+        case "sessions": self = .sessions
+        case "usage": self = .usage
+        case "accountmap", "map": self = .accountMap
+        case "links": self = .links
+        case "toolbox": self = .toolbox
+        case "scenes": self = .scenes
+        case "health": self = .health
+        case "maintenance": self = .maintenance
+        case "privacy": self = .privacy
+        case "integrations": self = .integrations
+        case "settings": self = .settings
+        default: return nil
+        }
+    }
+
     /// Whether the sidebar lists the page. Pages that are not built yet and
     /// the Faz 0 checks only show with the developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
-        case .overview, .account, .scenes, .health, .privacy, .settings: return true
-        default: return showingDeveloperPages
-        }
-    }
-
-    /// One sentence for pages that are not built yet.
-    var plannedSummary: String {
-        switch self {
-        case .sessions: return String(localized: "Tüm hesapların Claude Code oturumları tek listede. Bir oturumu başka bir hesapla sürdürmek de buradan olacak.")
-        case .usage: return String(localized: "Her hesabın kendi kullanım sınırı ve sıfırlanma saati. Hesaplar birbirleriyle toplanmaz ya da sıralanmaz.")
-        case .accountMap: return String(localized: "Hangi klasörün, hangi bağlantının hangi hesapla açılacağını belirleyen kurallar.")
-        case .links: return String(localized: "Lanes'in yönlendirdiği claude:// bağlantılarının geçmişi.")
-        case .toolbox: return String(localized: "Hesaplar arasında paylaşılabilen MCP sunucuları, komutlar ve ayarlar.")
-        case .scenes: return String(localized: "Birden çok hesabı tek tıkla, belirli pencere düzeniyle açan kayıtlı düzenler.")
-        case .health: return String(localized: "Claude sürümü, klonların imza durumu ve bağlantı varsayılanı tek bakışta.")
-        case .maintenance: return String(localized: "Profil klasörlerinin boyutu, önbellek temizliği ve yedekleme.")
-        case .integrations: return String(localized: "Kısayollar, Raycast ve Alfred ile bağlantılar.")
-        default: return ""
+        case .validation: return showingDeveloperPages
+        default: return true
         }
     }
 }
@@ -86,11 +89,11 @@ enum Destination: Hashable {
 enum SettingsPane: String, CaseIterable, Identifiable {
     case general
     case menuBarAndDock
+    case tabs
     case windowBadges
     case shortcuts
     case notifications
     case updates
-    case license
     case advanced
 
     var id: String { rawValue }
@@ -99,11 +102,11 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .general: return String(localized: "Genel")
         case .menuBarAndDock: return String(localized: "Menü Çubuğu ve Dock")
+        case .tabs: return String(localized: "Sekmeler")
         case .windowBadges: return String(localized: "Pencere Göstergeleri")
         case .shortcuts: return String(localized: "Kısayollar")
         case .notifications: return String(localized: "Bildirimler")
         case .updates: return String(localized: "Güncellemeler")
-        case .license: return String(localized: "Lisans")
         case .advanced: return String(localized: "Gelişmiş")
         }
     }
@@ -112,11 +115,11 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .general: return "gearshape"
         case .menuBarAndDock: return "menubar.dock.rectangle"
+        case .tabs: return "rectangle.topthird.inset.filled"
         case .windowBadges: return "macwindow.badge.plus"
         case .shortcuts: return "command"
         case .notifications: return "bell.badge"
         case .updates: return "arrow.triangle.2.circlepath"
-        case .license: return "checkmark.seal"
         case .advanced: return "slider.horizontal.3"
         }
     }
@@ -124,8 +127,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Panes that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .menuBarAndDock, .windowBadges, .shortcuts, .updates, .advanced: return true
-        case .notifications, .license: return false
+        case .general, .menuBarAndDock, .tabs, .windowBadges, .shortcuts, .notifications, .updates, .advanced: return true
         }
     }
 
@@ -158,8 +160,7 @@ enum AccountTab: String, CaseIterable, Identifiable {
     /// Tabs that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .desktop, .claudeCode: return true
-        case .identity, .security, .storage: return false
+        case .general, .identity, .desktop, .claudeCode, .security, .storage: return true
         }
     }
 

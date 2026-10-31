@@ -141,7 +141,17 @@ staging="$out/dmg"
 mkdir -p "$staging"
 ditto "$app" "$staging/Lanes.app"
 ln -s /Applications "$staging/Applications"
-hdiutil create -volname "Lanes" -srcfolder "$staging" -fs HFS+ -format UDZO -ov "$dmg"
+# hdiutil now and then writes a broken image; check it and try again once
+# before it goes to notarization.
+for attempt in 1 2; do
+  hdiutil create -volname "Lanes" -srcfolder "$staging" -fs HFS+ -format UDZO -ov "$dmg"
+  if hdiutil verify "$dmg" >/dev/null 2>&1; then
+    echo "DMG doğrulandı."
+    break
+  fi
+  [[ $attempt == 2 ]] && fail "hdiutil bozuk bir DMG yazdı, iki denemede de."
+  echo "DMG bozuk çıktı, yeniden hazırlanıyor."
+done
 rm -rf "$staging"
 codesign --sign "$identity" --timestamp "$dmg"
 

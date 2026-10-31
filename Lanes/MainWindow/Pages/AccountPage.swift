@@ -14,7 +14,7 @@ struct AccountPage: View {
             VStack(spacing: 0) {
                 AccountHeader(profile: profile)
                 Picker("Bölüm", selection: tabBinding) {
-                    ForEach(AccountTab.visible(showingDeveloperPages: showsDeveloperPages)) { tab in
+                    ForEach(tabs(for: profile)) { tab in
                         Text(tab.title).tag(tab)
                     }
                 }
@@ -30,6 +30,12 @@ struct AccountPage: View {
         }
     }
 
+    /// Claude.app's own account only shows what Lanes can do with it.
+    private func tabs(for profile: Profile) -> [AccountTab] {
+        let visible = AccountTab.visible(showingDeveloperPages: showsDeveloperPages)
+        return profile.isDefault ? visible.filter { [.general, .claudeCode].contains($0) } : visible
+    }
+
     private var tabBinding: Binding<AccountTab> {
         Binding(get: { tab }, set: { navigation.accountTab = $0 })
     }
@@ -41,7 +47,7 @@ struct AccountPage: View {
 
     @ViewBuilder
     private func tabContent(for profile: Profile) -> some View {
-        switch tab {
+        switch tabs(for: profile).contains(tab) ? tab : .general {
         case .general:
             AccountGeneralTab(profile: profile)
         case .desktop:
@@ -49,11 +55,16 @@ struct AccountPage: View {
         case .claudeCode:
             AccountClaudeCodeTab(profile: profile)
         case .identity:
-            AccountPlannedTab(text: String(localized: "Hesabın e-postası, planı ve kuruluşu Claude'un kendi ekranlarından okunarak burada görünecek. Lanes giriş bilgilerini okumaz."))
+            AccountIdentityTab(profile: profile)
         case .security:
-            AccountPlannedTab(text: String(localized: "Bu hesabın hangi klasörlerde ve hangi bağlantılarla açılabileceğini sınırlayan kurallar."))
+            AccountSecurityTab(profile: profile)
         case .storage:
-            AccountPlannedTab(text: String(localized: "Bu hesabın klasörlerinin boyutu, önbellek temizliği ve yedekleme."))
+            Form {
+                Section {
+                    AccountStorageView(profile: profile)
+                }
+            }
+            .formStyle(.grouped)
         }
     }
 }
@@ -72,9 +83,13 @@ private struct AccountHeader: View {
                 HStack(spacing: 6) {
                     Text(isRunning ? "Açık" : "Kapalı")
                     Text(verbatim: "·")
-                    Text(profile.accountClass.displayName)
-                    Text(verbatim: "·")
-                    Text(profile.mode.displayName)
+                    if profile.isDefault {
+                        Text("Claude uygulamasının kendi hesabı")
+                    } else {
+                        Text(profile.accountClass.displayName)
+                        Text(verbatim: "·")
+                        Text(profile.mode.displayName)
+                    }
                     if let number = model.shortcutNumber(for: profile) {
                         Text(verbatim: "·")
                         Text(verbatim: "⌘\(number)")
@@ -85,7 +100,7 @@ private struct AccountHeader: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            if isRunning {
+            if isRunning && !profile.isDefault {
                 Button("Claude'dan Çık") {
                     model.quit(profile)
                 }
@@ -106,6 +121,21 @@ private struct AccountGeneralTab: View {
     @State private var name = ""
 
     var body: some View {
+        if profile.isDefault {
+            Form {
+                Section {
+                    Text("Bu, Claude uygulamasında kullandığın hesap. Lanes onu yalnız gösterir, açar ve öne getirir. Adı, simgesi, girişi ve klasörleri Claude'un kendisine ait, Lanes bunları değiştirmez. Lanes'te eklediğin hesaplar ise kendi renkli simgeli kopyalarıyla, kendi klasörleriyle açılır.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .formStyle(.grouped)
+        } else {
+            editableForm
+        }
+    }
+
+    private var editableForm: some View {
         Form {
             Section {
                 TextField("Ad", text: $name)
@@ -124,7 +154,7 @@ private struct AccountGeneralTab: View {
             Section {
                 Picker("Açılış biçimi", selection: binding(\.mode)) {
                     ForEach(modeChoices, id: \.self) { mode in
-                        Text(mode.displayName).tag(mode)
+                        Text(modeTitle(mode)).tag(mode)
                     }
                 }
                 .disabled(profile.isDefault || modeChoices.count < 2)
@@ -132,6 +162,18 @@ private struct AccountGeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if CloneCheck.usesClone(profile) {
+                    CloneStatusRow(profile: profile)
+                }
+            }
+            if CloneCheck.usesClone(profile) {
+                Section {
+                    Toggle("Dock'ta gösterme (Deneysel)", isOn: binding(\.hidesFromDock))
+                    Text(String(localized: "\(ProfileMode.dockHidingCost) Değişiklik, hesap kapalıyken bir sonraki açılışta uygulanır."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             if profile.isDefault {
                 Section {
@@ -148,21 +190,37 @@ private struct AccountGeneralTab: View {
         .onDisappear(perform: commitName)
     }
 
-    /// Only Standart works today: Lanes makes no clones for real accounts
-    /// until Faz 0 checks 3 and 5 settle how. An account saved earlier with
-    /// another mode opens with Claude itself and can be switched back here.
+    /// The clone with its own icon, or the web version. Plain Claude.app
+    /// and Ayrı kimlik are only listed for an account that still uses them,
+    /// so it can be moved to the clone.
     private var modeChoices: [ProfileMode] {
-        profile.mode == .standard ? [.standard] : [.standard, profile.mode]
+        if profile.isDefault { return [.standard] }
+        var choices: [ProfileMode] = [.signedClone, .insideLanes]
+        if profile.mode == .standard || profile.mode == .separateIdentity { choices.append(profile.mode) }
+        return choices
+    }
+
+    private func modeTitle(_ mode: ProfileMode) -> String {
+        switch mode {
+        case .standard: return String(localized: "Claude uygulaması")
+        case .signedClone: return String(localized: "Claude uygulaması, kendi simgesiyle")
+        case .insideLanes: return String(localized: "Lanes içinde, web sürümü")
+        default: return mode.displayName
+        }
     }
 
     private var modeCaption: String {
         if profile.isDefault {
             return String(localized: "Ana hesap her zaman Claude'un kendisiyle açılır.")
         }
-        if profile.mode == .standard {
-            return String(localized: "\(ProfileMode.standard.explanation) Her hesabın kendi simgesiyle açılacağı Klon biçimi, Faz 0 denemelerinden sonra gelecek.")
+        switch profile.mode {
+        case .insideLanes:
+            return String(localized: "\(ProfileMode.insideLanes.explanation) Claude uygulamasına geçersen bu hesaba orada yeniden giriş yapman gerekir.")
+        case .standard:
+            return ProfileMode.standard.explanation
+        case .signedClone, .separateIdentity:
+            return String(localized: "\(ProfileMode.signedClone.explanation) Claude güncellenince ya da hesabın adı, rengi veya harfi değişince klon, hesap kapalıyken bir sonraki açılışta yenilenir. Klonu Finder'dan açma, Lanes'ten aç.")
         }
-        return String(localized: "\(profile.mode.displayName) biçimi henüz hazır değil. Bu hesap şimdilik Claude'un kendisiyle, kendi klasörüyle açılıyor. İstersen Standart'a geçir.")
     }
 
     private func commitName() {
@@ -203,6 +261,9 @@ private struct AccountDesktopTab: View {
     var body: some View {
         let dataDirectory = model.paths.effectiveDesktopDataDirectory(for: profile)
         Form {
+            if model.runsInsideLanes(profile) {
+                InsideLanesSection(profile: profile)
+            }
             Section("Claude Desktop") {
                 LabeledContent("Durum") {
                     if let instance = model.instance(for: profile) {
@@ -332,18 +393,6 @@ enum ClaudeCodeFolderPicker {
     }
 }
 
-private struct AccountPlannedTab: View {
-    let text: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Alfa sürümünde geliyor", systemImage: "hammer")
-        } description: {
-            Text(text)
-        }
-    }
-}
-
 /// A folder path with a button that shows it in Finder.
 struct PathRow: View {
     let url: URL
@@ -366,5 +415,109 @@ struct PathRow: View {
     private var abbreviated: String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         return url.path.hasPrefix(home) ? "~" + url.path.dropFirst(home.count) : url.path
+    }
+}
+
+/// One line on whether the account's clone is ready, and a way to renew it.
+struct CloneStatusRow: View {
+    @Environment(AppModel.self) private var model
+    let profile: Profile
+
+    var body: some View {
+        HStack {
+            if model.clonesInProgress.contains(profile.id) {
+                ProgressView().controlSize(.small)
+                Text("Klon hazırlanıyor…")
+            } else {
+                Image(systemName: symbol)
+                    .foregroundStyle(color)
+                Text(text)
+                Spacer()
+                if model.cloneStatuses[profile.id]?.needsWork == true {
+                    Button("Şimdi Hazırla") {
+                        Task { await model.prepareClone(for: profile) }
+                    }
+                    .disabled(model.isRunning(profile))
+                    .help(model.isRunning(profile) ? "Açık bir klon yenilenmez. Hesabı kapatınca yeniden dene." : "Klonu şimdi oluştur ya da yenile")
+                }
+            }
+        }
+        .font(.callout)
+    }
+
+    private var status: CloneStatus {
+        model.cloneStatuses[profile.id] ?? .missing
+    }
+
+    private var symbol: String {
+        switch status {
+        case .ready, .notNeeded: return "checkmark.circle.fill"
+        case .missing: return "exclamationmark.triangle.fill"
+        case .needsRenewal: return "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .ready, .notNeeded: return .green
+        case .missing: return .orange
+        case .needsRenewal: return .secondary
+        }
+    }
+
+    private var text: String {
+        switch status {
+        case .notNeeded, .ready:
+            return String(localized: "Klon hazır.")
+        case .missing:
+            return String(localized: "Klon yok. Hesap açılırken oluşturulur.")
+        case let .needsRenewal(reasons):
+            return String(localized: "Klon bir sonraki açılışta yenilenecek: \(reasons.map(\.displayText).joined(separator: ", ")).")
+        }
+    }
+}
+
+extension CloneRenewalReason {
+    var displayText: String {
+        switch self {
+        case let .claudeUpdated(_, to):
+            return String(localized: "Claude \(to) sürümüne güncellendi")
+        case .renamed:
+            return String(localized: "hesabın adı değişti")
+        case .iconChanged:
+            return String(localized: "simge değişti")
+        case .dockSettingChanged:
+            return String(localized: "Dock ayarı değişti")
+        case .unknownOrigin:
+            return String(localized: "klonun kaydı yok")
+        }
+    }
+}
+
+/// An account that runs in a Lanes tab: its state, and a way to sign out
+/// for good.
+private struct InsideLanesSection: View {
+    @Environment(AppModel.self) private var model
+    let profile: Profile
+    @State private var confirmingForget = false
+
+    var body: some View {
+        Section("Lanes içinde") {
+            LabeledContent("Durum", value: model.webAccounts.isOpen(profile.id) ? String(localized: "Sekmesi açık") : String(localized: "Kapalı"))
+            Text("Giriş ve claude.ai'nin sakladığı her şey bu hesaba ayrılmış, Lanes'e ait bir WebKit deposunda durur. Lanes onu okumaz. Öbür hesaplar ve Safari bu girişi görmez.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Bu Hesabın Girişini Sil…", role: .destructive) {
+                confirmingForget = true
+            }
+        }
+        .confirmationDialog("\(profile.name) hesabının girişi ve claude.ai verisi silinsin mi?", isPresented: $confirmingForget) {
+            Button("Girişi Sil", role: .destructive) {
+                Task { await model.webAccounts.removeData(for: profile.id) }
+            }
+        } message: {
+            Text("Sohbetlerin claude.ai'de kalır. Bir sonraki açılışta yeniden giriş yaparsın.")
+        }
     }
 }

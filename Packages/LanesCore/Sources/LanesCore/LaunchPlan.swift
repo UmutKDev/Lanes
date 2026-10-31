@@ -18,6 +18,9 @@ public struct LaunchPlan: Equatable, Sendable {
     public var dataDirectory: URL?
     /// The folder `CLAUDE_CONFIG_DIR` points to, created before launch.
     public var claudeCodeConfigDirectory: URL?
+    /// True when the profile should open its clone but none was given, so
+    /// Claude itself opens instead. The app says so instead of hiding it.
+    public var fallsBackToClaude = false
 
     public init(
         applicationURL: URL,
@@ -45,7 +48,8 @@ public enum LaunchPlanner {
     public static let userDataDirectoryFlag = "--user-data-dir"
     public static let claudeConfigDirectoryVariable = "CLAUDE_CONFIG_DIR"
 
-    /// Builds the launch plan for a profile.
+    /// Builds the launch plan for a profile. A profile inside Lanes gets
+    /// the same plan as Standart, for when the user opens it in Claude once.
     ///
     /// - Parameters:
     ///   - claudeApp: The installed Claude.app.
@@ -57,13 +61,8 @@ public enum LaunchPlanner {
         cloneApp: URL?,
         paths: ProfilePaths
     ) -> LaunchPlan {
-        let application: URL
-        switch profile.mode {
-        case .standard:
-            application = claudeApp
-        case .signedClone, .separateIdentity:
-            application = cloneApp ?? claudeApp
-        }
+        let usesClone = CloneCheck.usesClone(profile)
+        let application = usesClone ? (cloneApp ?? claudeApp) : claudeApp
 
         guard !profile.isDefault else {
             return LaunchPlan(
@@ -78,7 +77,7 @@ public enum LaunchPlanner {
 
         let dataDirectory = paths.effectiveDesktopDataDirectory(for: profile)
         let configDirectory = paths.effectiveClaudeCodeConfigDirectory(for: profile)
-        return LaunchPlan(
+        var plan = LaunchPlan(
             applicationURL: application,
             arguments: ["\(userDataDirectoryFlag)=\(dataDirectory.path)"],
             environment: [claudeConfigDirectoryVariable: configDirectory.path],
@@ -86,6 +85,8 @@ public enum LaunchPlanner {
             dataDirectory: dataDirectory,
             claudeCodeConfigDirectory: configDirectory
         )
+        plan.fallsBackToClaude = usesClone && cloneApp == nil
+        return plan
     }
 
     /// What to do when the user opens a profile: bring its running window

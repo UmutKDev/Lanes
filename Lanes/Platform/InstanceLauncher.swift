@@ -29,12 +29,25 @@ enum InstanceLauncher {
     @discardableResult
     static func activate(pid: pid_t) async -> Bool {
         guard let app = NSRunningApplication(processIdentifier: pid) else { return false }
-        NSApp.yieldActivation(to: app)
-        _ = app.activate(options: [.activateAllWindows])
-        if !hasWindowOnScreen(pid: pid) {
-            try? await AppleEvents.sendReopen(to: pid)
+        // Since macOS 14 only the active app can hand activation over. From
+        // a global shortcut or the menu bar panel Lanes is in the background,
+        // so it first asks to become active itself; the key press that got
+        // here is what lets macOS agree.
+        if !NSApp.isActive {
+            NSApp.activate()
+            for _ in 0..<5 where !NSApp.isActive {
+                try? await Task.sleep(nanoseconds: 30_000_000)
+            }
         }
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        for attempt in 0..<3 {
+            NSApp.yieldActivation(to: app)
+            _ = app.activate(from: NSRunningApplication.current, options: [.activateAllWindows])
+            if attempt > 0 || !hasWindowOnScreen(pid: pid) {
+                try? await AppleEvents.sendReopen(to: pid)
+            }
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
+        }
         return NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
     }
 

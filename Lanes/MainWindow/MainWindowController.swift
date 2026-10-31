@@ -136,9 +136,22 @@ private struct DetailView: View {
     let destination: Destination
 
     var body: some View {
+        let shown = destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview
+        // The overview shows the notice among its own banners. Other pages
+        // show it too, so a warning appears where the button was pressed.
+        // It floats over the page's bottom edge: anything that changes the
+        // page's layout or safe area throws off the window's toolbar insets.
+        page(shown)
+            .overlay(alignment: .bottom) {
+                PageNoticeBar(isHidden: shown == .overview)
+            }
+    }
+
+    @ViewBuilder
+    private func page(_ destination: Destination) -> some View {
         // A hidden page left in the history, or one the setting just hid,
         // shows the overview instead.
-        switch destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview {
+        switch destination {
         case .overview:
             OverviewPage()
         case let .account(id):
@@ -150,12 +163,41 @@ private struct DetailView: View {
             PrivacyPage()
         case .scenes:
             ScenesPage()
+        case .sessions:
+            SessionsPage()
+        case .accountMap:
+            AccountMapPage()
+        case .links:
+            LinksPage()
+        case .usage:
+            UsagePage()
         case .health:
             HealthPage()
+        case .integrations:
+            IntegrationsPage()
+        case .maintenance:
+            MaintenancePage()
+        case .toolbox:
+            ToolboxPage()
         case .validation:
             ValidationPage()
-        default:
-            PlannedPage(destination: destination)
+        }
+    }
+}
+
+/// The app's latest notice, above any page but the overview.
+private struct PageNoticeBar: View {
+    @Environment(AppModel.self) private var model
+    let isHidden: Bool
+
+    var body: some View {
+        if !isHidden, let notice = model.notice {
+            NoticeRow(notice: notice) { model.notice = nil }
+                .padding(12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(radius: 6, y: 2)
+                .padding(16)
+                .frame(maxWidth: 640)
         }
     }
 }

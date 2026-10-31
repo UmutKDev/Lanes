@@ -22,7 +22,8 @@ final class ProfilePathsTests: XCTestCase {
     func testStandardLayout() {
         XCTAssertEqual(paths.root.path, "/Users/umut/Library/Application Support/Lanes")
         XCTAssertEqual(paths.profilesFile.path, "/Users/umut/Library/Application Support/Lanes/profiles.json")
-        XCTAssertEqual(paths.clonesDirectory.path, "/Users/umut/Applications/Lanes Profiles")
+        XCTAssertEqual(paths.clonesDirectory.path, "/Users/umut/Library/Application Support/Lanes/Clones")
+        XCTAssertEqual(paths.legacyClonesDirectory.path, "/Users/umut/Applications/Lanes Profiles")
     }
 
     func testDefaultProfileUsesClaudesOwnFolders() {
@@ -40,8 +41,9 @@ final class ProfilePathsTests: XCTestCase {
     }
 
     func testCloneBundleNameIsSafe() {
-        let profile = Profile(name: "Müşteri/A: B", color: .pink)
+        let profile = Profile(id: ProfileID(rawValue: "abc"), name: "Müşteri/A: B", color: .pink)
         XCTAssertEqual(paths.cloneBundle(for: profile).lastPathComponent, "Claude – Müşteri-A- B.app")
+        XCTAssertEqual(paths.cloneBundle(for: profile).deletingLastPathComponent().lastPathComponent, "abc")
         XCTAssertEqual(ProfilePaths.safeFileName(".gizli"), "gizli")
         XCTAssertEqual(ProfilePaths.safeFileName("  "), "Profil")
     }

@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let model: AppModel
     let router: WindowRouter
     private var statusItemController: StatusItemController?
+    private var tabStripController: TabStripController?
 
     override init() {
         let model = AppModel()
@@ -18,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         CodeSignature.readInBackground()
         model.start()
+        IntentBridge.model = model
         let statusItemController = StatusItemController(model: model, router: router)
         self.statusItemController = statusItemController
         router.statusItemController = statusItemController
@@ -28,7 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             router.showMainWindow(.overview)
         }
         observeShortcuts()
+        tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
+        Task { await model.webAccounts.restore(from: model.library.profiles) }
     }
 
     /// Registers the shortcuts again whenever they, the accounts or the
@@ -78,7 +82,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        urls.forEach(model.receive)
+        for url in urls {
+            if url.scheme?.lowercased() == LanesCommand.scheme {
+                perform(LanesCommand(url: url))
+            } else {
+                model.receive(url)
+            }
+        }
+    }
+
+    /// Runs a `lanes://` address. Unknown ones only open the window, so a
+    /// typo is visible instead of silently ignored.
+    private func perform(_ command: LanesCommand?) {
+        switch command {
+        case let .openAccount(query)?:
+            if let profile = model.library.profile(matching: query) {
+                model.open(profile)
+            } else {
+                model.notice = AppModel.Notice(kind: .warning, message: String(localized: "\"\(query)\" adında bir hesap yok."))
+                router.showMainWindow(.integrations)
+            }
+        case let .openScene(query)?:
+            if let scene = model.library.scene(matching: query) {
+                model.open(scene)
+            } else {
+                model.notice = AppModel.Notice(kind: .warning, message: String(localized: "\"\(query)\" adında bir sahne yok."))
+                router.showMainWindow(.scenes)
+            }
+        case let .show(page)?:
+            router.showMainWindow(page.flatMap(Destination.init(pageName:)))
+        case .panel?:
+            router.togglePanel()
+        case nil:
+            router.showMainWindow(.integrations)
+        }
     }
 
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {

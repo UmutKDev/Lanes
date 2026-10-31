@@ -21,6 +21,8 @@ final class AppModel {
         var kind: String
         var receivedAt: Date
         var outcome: String
+        /// The account it went to, when Lanes routed it.
+        var target: ProfileID? = nil
     }
 
     let paths: ProfilePaths
@@ -50,6 +52,8 @@ final class AppModel {
 
     let validation: ValidationModel
     let updater = Updater()
+    /// Accounts that run inside Lanes's own windows.
+    let webAccounts = WebAccounts()
 
     /// Global shortcuts, kept in Lanes's defaults.
     private(set) var shortcuts: ShortcutBindings
@@ -57,7 +61,22 @@ final class AppModel {
     private(set) var recentFolders: [ProfileID: RecentFolders]
     /// What the last separation check after opening an account found.
     private(set) var separationResults: [ProfileID: SeparationResult] = [:]
+    /// Which account routable links open in.
+    private(set) var linkRules: LinkRules
+    /// The account whose Claude was last in front, for links that follow
+    /// the front account. Lanes itself coming forward doesn't change it.
+    @ObservationIgnored private var lastFrontProfileID: ProfileID?
+    @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var knownPIDs: Set<pid_t> = []
+    /// Whether each clone matches Claude and its profile. Lanes renews a
+    /// clone that doesn't the next time its account opens.
+    private(set) var cloneStatuses: [ProfileID: CloneStatus] = [:]
+    /// Accounts whose clone Lanes is making right now.
+    private(set) var clonesInProgress: Set<ProfileID> = []
+    /// The clone being made for each account, so a second request, such as
+    /// opening an account right after adding it, waits for the same copy.
+    @ObservationIgnored private var cloneTasks: [ProfileID: Task<URL?, Never>] = [:]
+    @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
 
     struct SeparationResult: Equatable {
         /// True when the account's own folder changed after it opened.
@@ -67,13 +86,17 @@ final class AppModel {
 
     init(paths: ProfilePaths = .standard()) {
         let store = ProfileStore(paths: paths)
-        let startup = store.startup(defaultProfileName: String(localized: "Ana hesap"))
+        let claudeFolder = paths.claudeDesktopDefaultDataDirectory
+        let startup = store.startup(
+            claudeAppAccountName: FileManager.default.fileExists(atPath: claudeFolder.path) ? String(localized: "Claude uygulaması") : nil
+        )
         self.paths = paths
         self.store = store
         self.validation = ValidationModel(paths: paths)
         self.library = startup.library
         self.shortcuts = AppModel.loadShortcuts()
         self.recentFolders = AppModel.loadRecentFolders()
+        self.linkRules = AppModel.loadLinkRules()
         validation.currentClaude = { [weak self] in self?.claude }
 
         if startup.restoredFromBackup {
@@ -86,9 +109,8 @@ final class AppModel {
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
-        } else if startup.addedMissingDefault {
+        } else if startup.addedClaudeAppAccount {
             save()
-            notice = Notice(kind: .warning, message: String(localized: "Profil listesinde Ana hesap yoktu, yeniden eklendi. Claude'un kendi klasörlerini kullanıyor."))
         }
     }
 
@@ -100,6 +122,20 @@ final class AppModel {
         }
         monitor.start()
         refreshInstances()
+        refreshCloneStatuses()
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            MainActor.assumeIsolated {
+                guard let self, let pid, pid != ProcessInfo.processInfo.processIdentifier else { return }
+                if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
+                    self.lastFrontProfileID = id
+                }
+            }
+        }
         Task { await stepAsideFromSignInIfNeeded() }
     }
 
@@ -114,28 +150,56 @@ final class AppModel {
             }
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
+        monitor.watchExits(of: Set(instances.map(\.pid)))
         // A Claude that just started may be a new version: Claude updates
         // itself and relaunches.
         let pids = Set(instances.map(\.pid))
         if !pids.subtracting(knownPIDs).isEmpty, let found = ClaudeInstallation.find(paths: paths), found != claude {
             if let old = claude?.version, old != found.version {
                 Log.app.info("Claude changed from \(old, privacy: .public) to \(found.version ?? "?", privacy: .public)")
+                Notifier.post(.claudeUpdated, body: String(localized: "\(old) sürümünden \(found.version ?? "?") sürümüne. Klonlar bir sonraki açılışta yenilenir."))
             }
             claude = found
+            refreshCloneStatuses()
         }
         knownPIDs = pids
+        warnAboutStrayClones()
         Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
     }
 
-    /// Claude.app and every clone Lanes made.
+    /// Claude.app and every clone on disk, including Faz 0 clones in the
+    /// old folder, so none of them passes for Claude itself.
     var knownBundlePaths: [String] {
         var bundles: [String] = []
         if let claude { bundles.append(claude.url.path) }
-        for profile in library.profiles where profile.mode != .standard {
-            bundles.append(paths.cloneBundle(for: profile).path)
+        let fileManager = FileManager.default
+        let folders = (try? fileManager.contentsOfDirectory(at: paths.clonesDirectory, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders {
+            if let bundle = CloneMaker.existingBundle(in: folder) {
+                bundles.append(bundle.path)
+            }
         }
-        bundles.append(paths.cloneBundle(for: ValidationModel.cloneTestProfile).path)
+        let legacy = (try? fileManager.contentsOfDirectory(at: paths.legacyClonesDirectory, includingPropertiesForKeys: nil)) ?? []
+        bundles += legacy.filter { $0.pathExtension == "app" }.map(\.path)
         return bundles
+    }
+
+    /// Clones opened from Finder, Spotlight or the Dock, without their
+    /// account's folder.
+    var strayClones: [RunningInstance] {
+        instances.filter(\.isStrayClone)
+    }
+
+    private func warnAboutStrayClones() {
+        let stray = strayClones
+        warnedStrayPIDs.formIntersection(stray.map(\.pid))
+        guard let first = stray.first(where: { !warnedStrayPIDs.contains($0.pid) }) else { return }
+        warnedStrayPIDs.insert(first.pid)
+        let name = paths.profileID(forCloneBundle: first.applicationBundlePath).flatMap { profile(withID: $0)?.name }
+            ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
+        Log.instances.info("A clone was opened without its folder")
+        Notifier.post(.strayClone, body: String(localized: "\(name) klonu Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
+        notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
     }
 
     func instance(for profile: Profile) -> RunningInstance? {
@@ -143,16 +207,134 @@ final class AppModel {
     }
 
     func isRunning(_ profile: Profile) -> Bool {
-        instance(for: profile) != nil
+        instance(for: profile) != nil || webAccounts.isOpen(profile.id)
+    }
+
+    /// True for an account that opens in a Lanes tab rather than Claude.app.
+    func runsInsideLanes(_ profile: Profile) -> Bool {
+        !profile.isDefault && profile.mode == .insideLanes
     }
 
     var runningCount: Int {
-        instances.filter { $0.profileID != nil }.count
+        Set(instances.compactMap(\.profileID)).union(webAccounts.openIDs).count
     }
 
     func cloneURLIfPresent(for profile: Profile) -> URL? {
-        let url = paths.cloneBundle(for: profile)
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        CloneMaker.existingBundle(in: paths.cloneFolder(for: profile.id))
+    }
+
+    // MARK: Clones
+
+    func refreshCloneStatuses() {
+        var statuses: [ProfileID: CloneStatus] = [:]
+        for profile in library.profiles where CloneCheck.usesClone(profile) {
+            let folder = paths.cloneFolder(for: profile.id)
+            statuses[profile.id] = CloneCheck.status(
+                for: profile,
+                bundleName: CloneMaker.existingBundle(in: folder)?.lastPathComponent,
+                record: CloneRecord.read(from: paths.cloneRecordFile(for: profile.id)),
+                claudeVersion: claude?.version
+            )
+        }
+        if statuses != cloneStatuses {
+            cloneStatuses = statuses
+        }
+    }
+
+    /// Makes or renews the account's clone when it needs it and the account
+    /// is closed, and returns the clone to open. A running clone is never
+    /// replaced. Returns nil when the account opens with Claude itself or
+    /// the clone could not be made; `notice` then says why.
+    @discardableResult
+    func prepareClone(for profile: Profile) async -> URL? {
+        if let running = cloneTasks[profile.id] {
+            return await running.value
+        }
+        let task = Task { await makeClone(for: profile) }
+        cloneTasks[profile.id] = task
+        let url = await task.value
+        cloneTasks[profile.id] = nil
+        return url
+    }
+
+    private func makeClone(for profile: Profile) async -> URL? {
+        guard CloneCheck.usesClone(profile), let claude else { return nil }
+        refreshCloneStatuses()
+        let existing = cloneURLIfPresent(for: profile)
+        guard let status = cloneStatuses[profile.id], status.needsWork, !isRunning(profile) else { return existing }
+        clonesInProgress.insert(profile.id)
+        defer { clonesInProgress.remove(profile.id) }
+
+        let folder = paths.cloneFolder(for: profile.id)
+        let destination = paths.cloneBundle(for: profile)
+        let source = claude.url
+        let clonePaths = self.paths
+        let start = Date()
+        do {
+            CloneMaker.removeLeftovers(in: folder)
+            let temporary = try await Task.detached(priority: .userInitiated) {
+                try CloneMaker.copyForRenewal(of: source, into: folder, paths: clonePaths)
+            }.value
+            // The account may have opened while the copy ran.
+            guard !isRunning(profile) else {
+                try? FileManager.default.removeItem(at: temporary)
+                return existing
+            }
+            let current = self.profile(withID: profile.id) ?? profile
+            if current.hidesFromDock {
+                // Signing again takes a few seconds, so it runs off the main thread.
+                try await Task.detached(priority: .userInitiated) {
+                    try CloneMaker.hideFromDock(temporary)
+                }.value
+            }
+            try CloneMaker.install(temporary, as: paths.cloneBundle(for: current), icon: MonogramIcon.image(for: current), paths: paths)
+            try CloneRecord(profile: current, claudeVersion: claude.version).write(to: paths.cloneRecordFile(for: profile.id))
+            Log.app.info("Clone ready in \(Date().timeIntervalSince(start), format: .fixed(precision: 1), privacy: .public) s")
+            refreshCloneStatuses()
+            Notifier.post(.cloneRenewed, body: String(localized: "\(current.name) klonu hazır."))
+            return CloneMaker.existingBundle(in: folder) ?? destination
+        } catch {
+            Log.app.error("Clone failed: \(error.localizedDescription, privacy: .public)")
+            CloneMaker.removeLeftovers(in: folder)
+            notice = Notice(kind: .error, message: String(localized: "\(profile.name) için klon hazırlanamadı. \(CloneMaker.explanation(for: error))"))
+            Notifier.post(.cloneRenewed, body: String(localized: "\(profile.name) için klon hazırlanamadı."))
+            refreshCloneStatuses()
+            return existing
+        }
+    }
+
+    /// Moves an account's clone folder to the Trash. A running clone stays
+    /// until the account closes.
+    private func removeClone(of id: ProfileID) {
+        let folder = paths.cloneFolder(for: id)
+        guard FileManager.default.fileExists(atPath: folder.path) else { return }
+        if instances.contains(where: { $0.profileID == id && paths.isClonePath($0.applicationBundlePath) }) { return }
+        do {
+            try FileManager.default.trashItem(at: folder, resultingItemURL: nil)
+        } catch {
+            Log.app.error("Could not trash a clone: \(error.localizedDescription, privacy: .public)")
+        }
+        refreshCloneStatuses()
+    }
+
+    /// Faz 0 put its test clones in ~/Applications, where Spotlight finds
+    /// them and opens them without an account folder.
+    var legacyClones: [URL] {
+        let items = (try? FileManager.default.contentsOfDirectory(at: paths.legacyClonesDirectory, includingPropertiesForKeys: nil)) ?? []
+        return items.filter { $0.pathExtension == "app" }
+    }
+
+    func trashLegacyClones() {
+        for clone in legacyClones where !instances.contains(where: { $0.applicationBundlePath == InstanceMatcher.normalize(clone.path) }) {
+            try? FileManager.default.trashItem(at: clone, resultingItemURL: nil)
+        }
+    }
+
+    /// Closes a clone opened without its folder. It only asks the app to
+    /// quit, like ⌘Q, so Claude can save what it needs.
+    func quitStrayClone(_ instance: RunningInstance) {
+        guard instance.isStrayClone else { return }
+        NSRunningApplication(processIdentifier: instance.pid)?.terminate()
     }
 
     // MARK: Opening
@@ -166,16 +348,23 @@ final class AppModel {
             notice = nil
         }
         activationWarningID = nil
+        if runsInsideLanes(profile) {
+            if !(await webAccounts.show(profile)) {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi. Cmd-Tab ile Lanes'e geçebilirsin."))
+            }
+            return
+        }
         guard let claude else {
             notice = Notice(kind: .error, message: String(localized: "Claude bulunamadı. Claude'u Uygulamalar klasörüne kurduktan sonra yeniden dene."))
             return
         }
         refreshInstances()
+        let clone = isRunning(profile) ? nil : await prepareClone(for: profile)
         let action = LaunchPlanner.action(
             for: profile,
             running: instances,
             claudeApp: claude.url,
-            cloneApp: cloneURLIfPresent(for: profile),
+            cloneApp: clone,
             paths: paths
         )
         var stayedBehind: pid_t?
@@ -188,6 +377,9 @@ final class AppModel {
             }
         case let .launch(plan):
             let launchedAt = Date()
+            if plan.fallsBackToClaude {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) klonu olmadığı için Claude'un kendisiyle, kendi klasörüyle açılıyor. Klonu Sağlık sayfasından yeniden oluşturabilirsin."))
+            }
             do {
                 try await InstanceLauncher.launch(plan)
                 if let folder = paths.desktopDataDirectory(for: profile) {
@@ -229,10 +421,14 @@ final class AppModel {
         guard isRunning(profile) else { return }
         separationResults[profile.id] = SeparationResult(usesOwnFolder: false, checkedAt: Date())
         Log.instances.error("Separation check: own folder unchanged 30 s after launch")
-        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Ana hesabın verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
+        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Claude uygulamasının verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
     }
 
     func quit(_ profile: Profile) {
+        if webAccounts.isOpen(profile.id) {
+            webAccounts.close(profile.id)
+            return
+        }
         guard let instance = instance(for: profile) else { return }
         InstanceLauncher.terminate(pid: instance.pid)
     }
@@ -245,9 +441,13 @@ final class AppModel {
                 notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) klasörü artık yok, listeden çıkarıldı."))
                 return
             }
+            guard profile.allowsFolder(folder.path) else {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+                return
+            }
         }
         do {
-            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder)
+            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments())
             if let folder {
                 var recent = recentFolders[profile.id] ?? RecentFolders()
                 recent.use(folder.path)
@@ -257,6 +457,32 @@ final class AppModel {
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
         }
+    }
+
+    /// Continues a Claude Code session in Terminal, with the account it
+    /// belongs to and in its project folder when that still exists.
+    func resume(_ session: ClaudeCodeSessionList.Session, of profile: Profile) {
+        let folder = ClaudeCodeSessionList.projectPath(forFolderName: session.projectFolderName) { path in
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
+        }
+        do {
+            try SystemActions.openClaudeCodeInTerminal(
+                for: profile,
+                paths: paths,
+                in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
+                arguments: ["--resume", session.id] + Toolbox(paths: paths).mcpArguments()
+            )
+            Log.app.info("Resumed a Claude Code session")
+        } catch {
+            notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
+        }
+    }
+
+    /// One account's Claude Code sessions, names and dates only.
+    func claudeCodeSessions(for profile: Profile) -> ClaudeCodeSessionList {
+        let projects = paths.effectiveClaudeCodeConfigDirectory(for: profile).appendingPathComponent("projects", isDirectory: true)
+        return ClaudeCodeSessionList.read(projects)
     }
 
     func recentClaudeCodeFolders(for profile: Profile) -> [URL] {
@@ -286,6 +512,9 @@ final class AppModel {
         do {
             try library.add(profile)
             save()
+            if CloneCheck.usesClone(profile) {
+                Task { await prepareClone(for: profile) }
+            }
             return profile
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
@@ -294,9 +523,24 @@ final class AppModel {
     }
 
     func updateProfile(_ profile: Profile) {
+        let before = self.profile(withID: profile.id)
         do {
             try library.update(profile)
             save()
+            webAccounts.update(profile)
+            if !runsInsideLanes(profile), webAccounts.isOpen(profile.id) {
+                webAccounts.close(profile.id)
+            }
+            if CloneCheck.usesClone(profile) {
+                refreshCloneStatuses()
+                // A new clone right away; renewing a working one can wait
+                // for the next open.
+                if before.map(CloneCheck.usesClone) == false || cloneStatuses[profile.id] == .missing {
+                    Task { await prepareClone(for: profile) }
+                }
+            } else if before.map(CloneCheck.usesClone) == true {
+                removeClone(of: profile.id)
+            }
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
         }
@@ -310,9 +554,17 @@ final class AppModel {
         do {
             try library.remove(profile.id)
             save()
+            removeClone(of: profile.id)
+            // Its claude.ai sign-in goes with it; Lanes keeps no copy.
+            if profile.mode == .insideLanes || webAccounts.isOpen(profile.id) {
+                Task { await webAccounts.removeData(for: profile.id) }
+            }
             recentFolders[profile.id] = nil
             saveRecentFolders()
             pruneShortcuts()
+            var rules = linkRules
+            rules.prune(profiles: Set(library.profiles.map(\.id)))
+            if rules != linkRules { setLinkRules(rules) }
             notice = Notice(kind: .info, message: String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında duruyor."))
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
@@ -505,12 +757,54 @@ final class AppModel {
 
     // MARK: Links
 
-    /// Lanes declares `claude://` so Faz 0 can test taking it over. Until
-    /// routing is turned on, it must never keep the default: Claude's own
-    /// sign-in depends on receiving those links.
+    /// Lanes declares `claude://` so it can route links. With routing off
+    /// it must never keep the default: Claude's own sign-in depends on
+    /// receiving those links. With routing on it takes the default back
+    /// whenever it lost it.
     func stepAsideFromSignInIfNeeded() async {
-        guard !Preferences.linkRoutingEnabled else { return }
-        await giveLinksBackToClaude()
+        if Preferences.linkRoutingEnabled {
+            await takeLinks()
+        } else {
+            await giveLinksBackToClaude()
+        }
+    }
+
+    var isLinkRoutingOn: Bool {
+        Preferences.linkRoutingEnabled
+    }
+
+    func setLinkRouting(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Preferences.Key.linkRoutingEnabled)
+        Task {
+            if enabled {
+                await takeLinks()
+            } else {
+                await giveLinksBackToClaude()
+            }
+        }
+    }
+
+    func setLinkRules(_ rules: LinkRules) {
+        linkRules = rules
+        if let data = try? JSONEncoder().encode(rules) {
+            UserDefaults.standard.set(data, forKey: Preferences.Key.linkRules)
+        }
+    }
+
+    private static func loadLinkRules() -> LinkRules {
+        guard let data = UserDefaults.standard.data(forKey: Preferences.Key.linkRules) else { return LinkRules() }
+        return (try? JSONDecoder().decode(LinkRules.self, from: data)) ?? LinkRules()
+    }
+
+    private func takeLinks() async {
+        guard !LinkHandlerRegistry.lanesIsHandler else { return }
+        do {
+            try await LinkHandlerRegistry.setHandler(Bundle.main.bundleURL)
+            Log.app.info("Link routing: Lanes holds the claude:// default")
+        } catch {
+            Log.app.error("Link routing: could not take the default: \(error.localizedDescription)")
+            notice = Notice(kind: .warning, message: String(localized: "Lanes claude:// bağlantılarını üstlenemedi: \(error.localizedDescription)"))
+        }
     }
 
     /// Hands the `claude://` default back to Claude if Lanes holds it.
@@ -541,7 +835,21 @@ final class AppModel {
                 outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
                 notice = Notice(kind: .warning, message: String(localized: "Lanes'in tanımadığı bir bağlantı geldi ve iletilmedi. Bağlantıları yeniden Claude açacak, bağlantıyı bir kez daha aç."))
             }
-            Task { await giveLinksBackToClaude() }
+            Task {
+                await giveLinksBackToClaude()
+                // Routing stays on: after a pause long enough to finish
+                // signing in, Lanes takes the default again.
+                if Preferences.linkRoutingEnabled {
+                    try? await Task.sleep(nanoseconds: 180_000_000_000)
+                    if Preferences.linkRoutingEnabled { await takeLinks() }
+                }
+            }
+        case .openWithClaude where Preferences.linkRoutingEnabled:
+            if let link, case let .routable(route) = link.kind {
+                Task { await deliver(link, route: route) }
+                return
+            }
+            outcome = String(localized: "İletilmedi.")
         case .openWithClaude:
             if let claude {
                 outcome = String(localized: "Claude'a iletildi.")
@@ -552,6 +860,70 @@ final class AppModel {
             }
         }
         receivedLinks.insert(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome), at: 0)
+    }
+
+    /// Sends a routable link to the account the rules pick, opening it first
+    /// when it is closed.
+    private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
+        let kind = Self.kindName(link)
+        guard let profile = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+            // No Lanes account has been in front: the link goes to Claude.app.
+            if let claude {
+                NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Claude uygulamasına iletildi.")), at: 0)
+            } else {
+                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
+            }
+            return
+        }
+        if runsInsideLanes(profile) {
+            // The tab is claude.ai, which has no claude:// handler. The link
+            // opens the account's tab on its start page.
+            await webAccounts.show(profile, url: Self.webURL(for: route))
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) sekmesinde açıldı."), target: profile.id), at: 0)
+            return
+        }
+        var justOpened = false
+        if !isRunning(profile) {
+            await openAndWait(profile)
+            justOpened = true
+            for _ in 0..<20 where !isRunning(profile) {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                refreshInstances()
+            }
+        }
+        guard let pid = instance(for: profile)?.pid else {
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id), at: 0)
+            return
+        }
+        if justOpened {
+            // A Claude that just started needs a moment before it takes links.
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+        }
+        do {
+            try await AppleEvents.sendLink(link, to: pid)
+            _ = await InstanceLauncher.activate(pid: pid)
+            Log.app.info("Link routed to an account")
+            Notifier.post(.linkRouted, body: String(localized: "\(kind): \(profile.name)"))
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) hesabına iletildi."), target: profile.id), at: 0)
+        } catch {
+            Log.app.error("Link routing failed: \(error.localizedDescription)")
+            notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
+        }
+    }
+
+    /// The claude.ai page closest to what a link asked for.
+    static func webURL(for route: ClaudeLink.Route) -> URL {
+        switch route {
+        case let .newChat(prompt):
+            var components = URLComponents(string: "https://claude.ai/new")!
+            if let prompt, !prompt.isEmpty { components.queryItems = [URLQueryItem(name: "q", value: prompt)] }
+            return components.url ?? WebAccounts.home
+        case .newCodeSession, .continueCodeSession, .codeNeedsInput: return URL(string: "https://claude.ai/code")!
+        case .settings: return URL(string: "https://claude.ai/settings")!
+        default: return WebAccounts.home
+        }
     }
 
     /// Names a link's kind without any part of the link.

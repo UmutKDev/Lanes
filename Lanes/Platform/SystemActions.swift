@@ -18,7 +18,7 @@ enum SystemActions {
     /// Opens Terminal with Claude Code running under the profile's account,
     /// in `folder` or the home folder. It writes a small `.command` file,
     /// which Terminal runs when opened.
-    static func openClaudeCodeInTerminal(for profile: Profile, paths: ProfilePaths, in folder: URL? = nil) throws {
+    static func openClaudeCodeInTerminal(for profile: Profile, paths: ProfilePaths, in folder: URL? = nil, arguments: [String] = []) throws {
         if let directory = paths.claudeCodeConfigDirectory(for: profile) {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         }
@@ -31,7 +31,7 @@ enum SystemActions {
         #!/bin/zsh -l
         printf '\\e]0;%s\\a' \(title)
         \(changeDirectory)
-        \(ClaudeCodeCommand.command(for: profile, paths: paths))
+        \(ClaudeCodeCommand.command(for: profile, paths: paths, arguments: arguments))
         exec /bin/zsh -l
 
         """

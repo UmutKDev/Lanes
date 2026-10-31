@@ -10,6 +10,8 @@ struct HealthPage: View {
     @State private var claudeCommand: String?
     @State private var lookedForClaudeCommand = false
     @State private var orphans: [URL] = []
+    @State private var signatures: [ProfileID: CloneSignatureSummary] = [:]
+    @State private var checkingSignatures = false
 
     var body: some View {
         Form {
@@ -41,13 +43,23 @@ struct HealthPage: View {
                         accountRow(profile)
                     }
                 }
-                let outside = model.instances.filter { $0.profileID == nil }
+                ForEach(model.strayClones, id: \.pid) { instance in
+                    HealthRow(state: .problem, title: String(localized: "\(URL(fileURLWithPath: instance.applicationBundlePath).deletingPathExtension().lastPathComponent) Lanes dışından açıldı")) {
+                        HStack {
+                            Text("Hesabın klasörü olmadan, Claude uygulamasının verileriyle çalışıyor.")
+                            Button("Kapat") { model.quitStrayClone(instance) }
+                        }
+                    }
+                }
+                let outside = model.instances.filter { $0.profileID == nil && !$0.isStrayClone }
                 if !outside.isEmpty {
                     HealthRow(state: .warning, title: String(localized: "Lanes'in tanımadığı \(outside.count) Claude açık")) {
-                        Text("Lanes dışından, kendi klasörü olmadan açılmış bir Claude ya da başka bir kopya. Ana hesabın verilerini kullanıyor olabilir.")
+                        Text("Lanes dışından, kendi klasörü olmadan açılmış bir Claude ya da başka bir kopya. Claude uygulamasının verilerini kullanıyor olabilir.")
                     }
                 }
             }
+
+            cloneSection
 
             Section("Claude Code") {
                 if !lookedForClaudeCommand {
@@ -95,9 +107,68 @@ struct HealthPage: View {
         .task {
             model.refreshInstances()
             orphans = model.orphanProfileFolders()
+            model.refreshCloneStatuses()
             permission = await AppleEvents.reopenPermission(bundleIdentifier: ClaudeInstallation.bundleIdentifier)
             claudeCommand = await Self.findClaudeCommand()
             lookedForClaudeCommand = true
+        }
+    }
+
+    @ViewBuilder
+    private var cloneSection: some View {
+        let cloneProfiles = model.library.profiles.filter(CloneCheck.usesClone)
+        if !cloneProfiles.isEmpty || !model.legacyClones.isEmpty {
+            Section("Klonlar") {
+                ForEach(cloneProfiles) { profile in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(profile.name)
+                        CloneStatusRow(profile: profile)
+                        if let signature = signatures[profile.id] {
+                            Text(signature.summary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                if !cloneProfiles.isEmpty {
+                    HStack {
+                        Button("İmzaları Denetle") {
+                            Task { await checkSignatures(cloneProfiles) }
+                        }
+                        .disabled(checkingSignatures)
+                        if checkingSignatures {
+                            ProgressView().controlSize(.small)
+                        }
+                    }
+                    Text("Klonlarda Anthropic'in imzası korunur. Özel simge paketin köküne bir Finder bilgisi eklediği için codesign'ın sıkı denetimi geçmez. Bu beklenen bir durum, macOS'un açılış denetimi (Gatekeeper) klonu kabul eder. Dock'ta gösterilmeyen klonlar bu Mac'te yeniden imzalanır, onlarda Anthropic'in imzası yoktur.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !model.legacyClones.isEmpty {
+                    HealthRow(state: .warning, title: String(localized: "Faz 0'dan kalan \(model.legacyClones.count) deneme klonu")) {
+                        HStack {
+                            Text("~/Applications/Lanes Profiles içinde. Spotlight'tan açılırsa Claude uygulamasının verileriyle çalışır.")
+                            Button("Çöp Sepeti'ne Taşı") { model.trashLegacyClones() }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func checkSignatures(_ profiles: [Profile]) async {
+        checkingSignatures = true
+        defer { checkingSignatures = false }
+        for profile in profiles {
+            guard let bundle = model.cloneURLIfPresent(for: profile) else {
+                signatures[profile.id] = nil
+                continue
+            }
+            var summary = await CloneSignatureSummary.check(bundle)
+            summary.signedHere = CloneRecord.read(from: model.paths.cloneRecordFile(for: profile.id))?.hiddenFromDock == true
+            signatures[profile.id] = summary
         }
     }
 
@@ -108,9 +179,13 @@ struct HealthPage: View {
             HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Claude açıyor")) {
                 Text("Girişler ve bağlantılar her zamanki gibi çalışır.")
             }
+        } else if LinkHandlerRegistry.lanesIsHandler, model.isLinkRoutingOn {
+            HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Lanes yönlendiriyor")) {
+                Text("Hesap Haritası'ndaki kurallara göre. Giriş bağlantıları yönlendirilmez.")
+            }
         } else if LinkHandlerRegistry.lanesIsHandler {
             HealthRow(state: .warning, title: String(localized: "claude:// bağlantılarını Lanes açıyor")) {
-                Text("Lanes bağlantıları şimdilik yönlendirmiyor ve varsayılanı açılışta Claude'a geri verir.")
+                Text("Yönlendirme kapalıyken Lanes varsayılanı açılışta Claude'a geri verir.")
             }
         } else {
             HealthRow(state: .warning, title: String(localized: "claude:// bağlantılarını açan: \(handler?.deletingPathExtension().lastPathComponent ?? String(localized: "yok"))")) {
@@ -160,7 +235,7 @@ struct HealthPage: View {
             }
         } else if let result = model.separationResults[profile.id], !result.usesOwnFolder {
             HealthRow(state: .problem, title: profile.name) {
-                Text("Açıldıktan sonra kendi klasörüne yazmadı. Ana hesabın verilerini kullanıyor olabilir.")
+                Text("Açıldıktan sonra kendi klasörüne yazmadı. Claude uygulamasının verilerini kullanıyor olabilir.")
             }
         } else if model.separationResults[profile.id]?.usesOwnFolder == true {
             HealthRow(state: .good, title: profile.name) {
@@ -237,5 +312,34 @@ private struct HealthRow<Detail: View>: View {
 private extension String {
     var abbreviatingHome: String {
         (self as NSString).abbreviatingWithTildeInPath
+    }
+}
+
+/// What macOS's own tools say about a clone's signature. Run in the
+/// background, only when the user asks.
+struct CloneSignatureSummary: Equatable {
+    var valid: Bool
+    var strict: Bool
+    var gatekeeper: Bool
+    /// The clone was signed again on this Mac to stay out of the Dock.
+    var signedHere = false
+
+    static func check(_ bundle: URL) async -> CloneSignatureSummary {
+        async let deep = ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", bundle.path])
+        async let strict = ShellRunner.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", bundle.path])
+        async let assess = ShellRunner.run("/usr/sbin/spctl", ["--assess", "--type", "execute", bundle.path])
+        return await CloneSignatureSummary(valid: deep.status == 0, strict: strict.status == 0, gatekeeper: assess.status == 0)
+    }
+
+    var summary: String {
+        if signedHere {
+            return valid
+                ? String(localized: "Dock'ta görünmemesi için bu Mac'te imzalandı, imza geçerli. Anthropic'in imzası olmadığı için Gatekeeper'ın kabul etmemesi beklenen bir durum.")
+                : String(localized: "Bu Mac'te yapılan imza geçersiz. Hesap kapalıyken Dock ayarını kapatıp açarak klonu yenileyebilirsin.")
+        }
+        let signature = valid ? String(localized: "İmza geçerli") : String(localized: "İmza geçersiz")
+        let gate = gatekeeper ? String(localized: "Gatekeeper kabul ediyor") : String(localized: "Gatekeeper kabul etmiyor")
+        let strictText = strict ? String(localized: "sıkı denetim de geçti") : String(localized: "sıkı denetim simge yüzünden geçmedi (beklenen)")
+        return "\(signature), \(gate), \(strictText)."
     }
 }

@@ -92,6 +92,31 @@ final class ProcessArgumentsTests: XCTestCase {
         XCTAssertNil(InstanceMatcher.instance(pid: 5, arguments: helper, knownBundles: bundles, library: library, paths: paths))
     }
 
+    func testCloneOpenedWithoutItsFolderBelongsToNoProfile() throws {
+        let paths = ProfilePaths.standard(home: URL(fileURLWithPath: "/Users/umut", isDirectory: true))
+        var library = ProfileLibrary()
+        try library.add(Profile(name: "Kişisel", color: .blue, isDefault: true))
+        let work = Profile(id: ProfileID(rawValue: "w"), name: "İş", color: .orange, mode: .signedClone)
+        try library.add(work)
+        let clone = paths.cloneBundle(for: work).path
+        let cloneExec = clone + "/Contents/MacOS/Claude"
+
+        let fromFinder = ProcessArguments(executablePath: cloneExec, arguments: [cloneExec])
+        let stray = try XCTUnwrap(InstanceMatcher.instance(pid: 6, arguments: fromFinder, knownBundles: [clone], library: library, paths: paths))
+        XCTAssertNil(stray.profileID, "it runs on the main account's data but is not the main account")
+        XCTAssertTrue(stray.isStrayClone)
+
+        let fromLanes = ProcessArguments(executablePath: cloneExec, arguments: [cloneExec, "--user-data-dir=" + paths.desktopDataDirectory(for: work)!.path])
+        let proper = try XCTUnwrap(InstanceMatcher.instance(pid: 7, arguments: fromLanes, knownBundles: [clone], library: library, paths: paths))
+        XCTAssertEqual(proper.profileID, work.id)
+        XCTAssertFalse(proper.isStrayClone)
+
+        XCTAssertEqual(paths.profileID(forCloneBundle: clone), work.id)
+        XCTAssertNil(paths.profileID(forCloneBundle: "/Applications/Claude.app"))
+        XCTAssertTrue(paths.isClonePath("/Users/umut/Applications/Lanes Profiles/Claude – Eski.app"))
+        XCTAssertFalse(paths.isClonePath("/Applications/Claude.app"))
+    }
+
     func testNormalize() {
         XCTAssertEqual(InstanceMatcher.normalize("/a/./b/"), "/a/b")
         XCTAssertEqual(InstanceMatcher.normalize("/a/b//"), "/a/b")

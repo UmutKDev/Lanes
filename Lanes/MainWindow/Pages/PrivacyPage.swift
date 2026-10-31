@@ -24,19 +24,31 @@ struct PrivacyPage: View {
                 )
                 PrivacyItem(
                     title: "claude:// bağlantılarını hangi uygulamanın açtığı",
-                    detail: "macOS'un varsayılan uygulama ayarından. Normal kullanımda Lanes bu ayarı Claude'da bırakır, yalnız Faz 0 denemesi geçici olarak değiştirir."
+                    detail: "macOS'un varsayılan uygulama ayarından. Lanes bu ayarı yalnız Hesap Haritası'nda yönlendirmeyi açınca kendine alır, kapatınca Claude'a geri verir."
                 )
                 PrivacyItem(
                     title: "Klasörlerin değişme saati",
                     detail: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde, o hesabın Claude'unun kendi klasörünü kullandığını doğrulamak için. Yalnız klasörün ve doğrudan içindekilerin saatine bakılır, dosyaların kendisi açılmaz."
                 )
                 PrivacyItem(
+                    title: "Claude Code oturum dosyalarının adı ve tarihi",
+                    detail: "Oturumlar ve Kullanım sayfaları için, her hesabın Claude Code klasöründeki projects altında. Dosyaların içi, yani sohbetler, hiç açılmaz."
+                )
+                PrivacyItem(
+                    title: "Hesap klasörlerinin boyutu",
+                    detail: "Yalnız Bakım sayfası ya da hesabın Depolama sekmesi açıkken, dosyaların kapladığı yerden. Dosyalar açılmaz. \"Önbelleği Temizle\" yalnız Claude'un yeniden oluşturduğu önbellek klasörlerini siler, hesap kapalıyken ve sen onaylayınca."
+                )
+                PrivacyItem(
                     title: "Öndeki uygulama",
                     detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi için. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Pencere Göstergeleri'nden kapatılabilir."
                 )
                 PrivacyItem(
+                    title: "Sekmeli modda etkin Claude penceresinin yeri ve boyutu",
+                    detail: "Yalnız sekmeli mod açıkken ve Erişilebilirlik izniyle. Lanes pencereyi sekme çubuğunun altına taşır ve öteki hesapları gizler. Pencerelerin içine, başlıklarına ya da yazılanlara bakmaz."
+                )
+                PrivacyItem(
                     title: "Sağlık sayfasındaki denetimler",
-                    detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz."
+                    detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz. Klonların imzası yalnız \"İmzaları Denetle\" düğmesine basınca, macOS'un codesign ve spctl araçlarıyla denetlenir."
                 )
             }
 
@@ -48,12 +60,20 @@ struct PrivacyPage: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                LabeledContent("Faz 0 denemelerinin klonları") {
+                LabeledContent("Klonlar") {
                     PathRow(url: model.paths.clonesDirectory)
                 }
+                Text("Klon biçimindeki her hesap için Claude.app'in bir kopyası ve hangi Claude sürümünden yapıldığını yazan küçük bir clone.json dosyası. Kopyaya yalnız hesabın simgesi eklenir, Claude'un dosyalarına dokunulmaz. Hesap kaldırılınca ya da Standart'a dönünce klon Çöp Sepeti'ne gider.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 PrivacyItem(
                     title: "Sistem günlüğü",
                     detail: "Açılış, tarama, hesap açma, öne getirme ve kaydetme gibi olaylar, hesap adı, klasör ya da bağlantı olmadan. Tanılama bilgisi yalnız sen düğmeye basınca hazırlanır ve Mac'inden çıkmaz."
+                )
+                PrivacyItem(
+                    title: "Araç Kutusu",
+                    detail: "Toolbox klasöründe paylaşılan CLAUDE.md, komutlar, ajanlar, beceriler ve mcp.json. Paylaştığın hesabın Claude Code klasörüne yalnız bir bağlantı (symlink) eklenir. Hesabın kendi dosyaları okunmaz, değiştirilmez."
                 )
                 PrivacyItem(
                     title: "Lanes'in kendi ayarları",
@@ -61,10 +81,32 @@ struct PrivacyPage: View {
                 )
             }
 
+            Section("Lanes içinde açılan hesaplar") {
+                PrivacyItem(
+                    title: "claude.ai, Lanes'in kendi penceresinde",
+                    detail: "\"Lanes içinde\" çalışan her hesap claude.ai'yi Lanes'in bir sekmesinde açar. Giriş, çerezler ve claude.ai'nin sakladığı her şey o hesaba ayrılmış bir WebKit deposunda durur. Lanes bu depoyu okumaz, başka yere taşımaz. Hesabı kaldırınca ya da \"Girişi Sil\" deyince depo silinir. Başka sitelere giden bağlantılar varsayılan tarayıcında açılır, indirilenler İndirilenler klasörüne gider."
+                )
+            }
+
+            Section("Lanes'e gelenler") {
+                PrivacyItem(
+                    title: "lanes:// adresleri ve Kestirmeler eylemleri",
+                    detail: "Yalnız bir hesabı ya da sahneyi açar, bir sayfayı gösterir. Hiçbiri bir şeyi silmez, kapatmaz ya da ayar değiştirmez. Kestirmeler'e hesapların ve sahnelerin yalnız adı verilir."
+                )
+            }
+
             Section("Lanes'in gönderdikleri") {
                 PrivacyItem(
                     title: "Claude'a \"yeniden aç\" komutu",
-                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorabilir. Lanes Claude'a bağlantı ya da metin göndermez."
+                    detail: "Bir hesabın penceresini öne getirmek için, Dock simgesine tıklamakla aynı komut. macOS bunun için bir kez Otomasyon izni sorabilir."
+                )
+                PrivacyItem(
+                    title: "Yönlendirilen claude:// bağlantıları",
+                    detail: "Yalnız Hesap Haritası'nda yönlendirme açıkken: başka bir uygulamadan gelen bağlantı, kurala göre seçilen hesabın Claude'una gönderilir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
+                )
+                PrivacyItem(
+                    title: "macOS bildirimleri",
+                    detail: "Yalnız Ayarlar > Bildirimler'de açtığın türler için. Bildirimde hesabın adı ve olayın türü yazar, bağlantı ya da hesabın içinden bir şey yazmaz. Bildirimler Mac'inden çıkmaz."
                 )
                 PrivacyItem(
                     title: "Güncelleme denetimi",

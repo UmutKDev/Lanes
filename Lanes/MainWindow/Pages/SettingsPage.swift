@@ -46,16 +46,16 @@ struct SettingsPage: View {
             MenuBarAndDockSettings()
         case .advanced:
             AdvancedSettings()
+        case .tabs:
+            TabSettings()
         case .windowBadges:
             WindowBadgeSettings()
         case .shortcuts:
             ShortcutsSettings()
         case .notifications:
-            PlannedSettings(text: String(localized: "Bir hesabın sınırı dolduğunda ya da yeniden açıldığında haber verme."))
+            NotificationSettings()
         case .updates:
             UpdateSettings()
-        case .license:
-            PlannedSettings(text: String(localized: "Lisans ve deneme süresi."))
         }
     }
 }
@@ -92,7 +92,7 @@ private struct GeneralSettings: View {
             }
             Section("Bağlantılar") {
                 LabeledContent("claude:// bağlantılarını açan", value: handlerName)
-                Text("Lanes bağlantıları şimdilik yönlendirmiyor. Faz 0 denemeleri bittiğinde bağlantıların hangi hesapla açılacağını Hesap Haritası'ndan seçebileceksin.")
+                Text("Bağlantıların hangi hesapla açılacağını Hesap Haritası'ndan seçebilirsin. Yönlendirme kapalıyken bağlantıları her zaman Claude açar.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -183,8 +183,8 @@ private struct AdvancedSettings: View {
     var body: some View {
         Form {
             Section("Geliştirme") {
-                Toggle("Faz 0 denemelerini ve yapım aşamasındaki sayfaları göster", isOn: $showsDeveloperPages)
-                Text("Denemeleri yeniden yapmak için. Henüz çalışmayan sayfalar \"Alfa sürümünde geliyor\" yazar.")
+                Toggle("Faz 0 denemelerini göster", isOn: $showsDeveloperPages)
+                Text("Denemeleri yeniden yapmak için.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -224,17 +224,5 @@ private struct AdvancedSettings: View {
             }
         }
         .formStyle(.grouped)
-    }
-}
-
-private struct PlannedSettings: View {
-    let text: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Alfa sürümünde geliyor", systemImage: "hammer")
-        } description: {
-            Text(text)
-        }
     }
 }
