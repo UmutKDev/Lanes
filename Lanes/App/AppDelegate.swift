@@ -81,6 +81,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    /// A Spotlight result for an account.
+    func application(_ application: NSApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool {
+        guard let id = SpotlightIndex.profileID(from: userActivity), let profile = model.profile(withID: id) else { return false }
+        model.open(profile)
+        return true
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             if url.scheme?.lowercased() == LanesCommand.scheme {

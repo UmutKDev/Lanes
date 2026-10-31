@@ -24,16 +24,42 @@ public struct ProfileScene: Identifiable, Hashable, Codable, Sendable {
     /// Opens the scene each time Lanes starts, which with "Oturum açıldığında
     /// Lanes'i başlat" means at login.
     public var opensWhenLanesStarts: Bool
+    /// Where each account's Claude window goes when the scene opens, keyed
+    /// by profile ID. Empty means windows stay where Claude puts them.
+    public var windowFrames: [String: SceneWindowFrame]
 
-    public init(id: SceneID = .make(), name: String, profileIDs: [ProfileID], opensWhenLanesStarts: Bool = false) {
+    public init(id: SceneID = .make(), name: String, profileIDs: [ProfileID], opensWhenLanesStarts: Bool = false, windowFrames: [String: SceneWindowFrame] = [:]) {
         self.id = id
         self.name = name
         self.profileIDs = profileIDs
         self.opensWhenLanesStarts = opensWhenLanesStarts
+        self.windowFrames = windowFrames
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, profileIDs, opensWhenLanesStarts
+        case id, name, profileIDs, opensWhenLanesStarts, windowFrames
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(profileIDs, forKey: .profileIDs)
+        try container.encode(opensWhenLanesStarts, forKey: .opensWhenLanesStarts)
+        // Written only when saved, so a scene without it looks as before.
+        if !windowFrames.isEmpty {
+            try container.encode(windowFrames, forKey: .windowFrames)
+        }
+    }
+
+    public func windowFrame(for id: ProfileID) -> SceneWindowFrame? {
+        windowFrames[id.rawValue]
+    }
+
+    /// Keeps saved frames only for accounts still in the scene.
+    public mutating func pruneWindowFrames() {
+        let kept = Set(profileIDs.map(\.rawValue))
+        windowFrames = windowFrames.filter { kept.contains($0.key) }
     }
 
     /// Only the ID is required, like a profile.
@@ -43,6 +69,7 @@ public struct ProfileScene: Identifiable, Hashable, Codable, Sendable {
         name = (try? container.decode(String.self, forKey: .name)) ?? "Adsız sahne"
         profileIDs = (try? container.decode([ProfileID].self, forKey: .profileIDs)) ?? []
         opensWhenLanesStarts = (try? container.decode(Bool.self, forKey: .opensWhenLanesStarts)) ?? false
+        windowFrames = (try? container.decode([String: SceneWindowFrame].self, forKey: .windowFrames)) ?? [:]
     }
 
     /// The scene's accounts that still exist, in the scene's order.
@@ -72,5 +99,21 @@ extension ProfileLibrary {
 
     public mutating func removeScene(_ id: SceneID) {
         scenes.removeAll { $0.id == id }
+    }
+}
+
+/// A window's place on screen, in screen points with the origin at the top
+/// left of the main display, as the Accessibility API uses them.
+public struct SceneWindowFrame: Codable, Hashable, Sendable {
+    public var x: Double
+    public var y: Double
+    public var width: Double
+    public var height: Double
+
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
     }
 }

@@ -143,6 +143,9 @@ private struct SceneEditor: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if let scene {
+                    SceneLayoutSection(sceneID: scene.id)
+                }
             }
             .formStyle(.grouped)
             HStack {
@@ -163,7 +166,7 @@ private struct SceneEditor: View {
             }
             .padding()
         }
-        .frame(width: 420, height: 520)
+        .frame(width: 420, height: 600)
         .onAppear {
             if let scene {
                 name = scene.name
@@ -195,14 +198,47 @@ private struct SceneEditor: View {
     }
 
     private func save() {
-        if var scene {
+        // The latest copy, so a layout saved while the editor was open stays.
+        if var scene = scene.flatMap({ model.library.scene(withID: $0.id) ?? $0 }) {
             scene.name = name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? scene.name : name.trimmingCharacters(in: .whitespacesAndNewlines)
             scene.profileIDs = selected
             scene.opensWhenLanesStarts = opensWhenLanesStarts
+            scene.pruneWindowFrames()
             model.updateScene(scene)
         } else if var created = model.addScene(name: name, profileIDs: selected) {
             created.opensWhenLanesStarts = opensWhenLanesStarts
             if opensWhenLanesStarts { model.updateScene(created) }
+        }
+    }
+}
+
+/// Saves where the scene's Claude windows are now, so opening the scene
+/// puts them back there. Uses the Accessibility permission tab mode asks
+/// for; Lanes only reads and sets window frames.
+private struct SceneLayoutSection: View {
+    @Environment(AppModel.self) private var model
+    let sceneID: SceneID
+
+    var body: some View {
+        let scene = model.library.scene(withID: sceneID)
+        let saved = scene?.windowFrames.count ?? 0
+        Section("Pencere yerleşimi") {
+            HStack {
+                Button("Şimdiki Yerleşimi Kaydet") {
+                    model.saveLayout(of: sceneID)
+                }
+                if saved > 0 {
+                    Button("Yerleşimi Unut") {
+                        model.forgetLayout(of: sceneID)
+                    }
+                }
+            }
+            Text(saved > 0
+                 ? String(localized: "\(saved) hesabın penceresinin yeri kayıtlı. Sahne açılınca pencereler oraya dizilir.")
+                 : String(localized: "Sahnedeki hesapları aç, pencerelerini istediğin yere koy ve kaydet. Sahne açılınca pencereler oraya dizilir. Erişilebilirlik izni gerekir."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
