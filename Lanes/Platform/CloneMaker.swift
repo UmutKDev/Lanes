@@ -13,9 +13,15 @@ enum CloneMaker {
 
     enum Failure: LocalizedError {
         case outsideClonesFolder
+        case signingFailed(String)
 
         var errorDescription: String? {
-            String(localized: "Lanes yalnız kendi klon klasörüne yazar.")
+            switch self {
+            case .outsideClonesFolder:
+                return String(localized: "Lanes yalnız kendi klon klasörüne yazar.")
+            case let .signingFailed(detail):
+                return String(localized: "Dock'ta görünmeyen klon imzalanamadı: \(detail)")
+            }
         }
     }
 
@@ -69,6 +75,67 @@ enum CloneMaker {
             try fileManager.trashItem(at: old, resultingItemURL: nil)
         }
         try fileManager.moveItem(at: temporary, to: destination)
+    }
+
+    /// Entitlements that belong to Anthropic's team. An app signed on this
+    /// Mac can't carry them; macOS refuses to start it if it does.
+    static let restrictedEntitlementPrefixes = [
+        "com.apple.application-identifier",
+        "com.apple.developer.",
+        "keychain-access-groups",
+    ]
+
+    /// Keeps a clone out of the Dock and Cmd-Tab. Changing Info.plist breaks
+    /// Anthropic's signature, so the bundle is signed again on this Mac:
+    /// Anthropic's team entitlements go, and library validation is turned
+    /// off so Claude's frameworks, still signed by Anthropic, load. The
+    /// clone then asks for the keychain password once and shows no menus.
+    static func hideFromDock(_ bundle: URL) throws {
+        let infoURL = bundle.appendingPathComponent("Contents/Info.plist")
+        let infoData = try Data(contentsOf: infoURL)
+        guard var info = try PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any] else {
+            throw Failure.signingFailed("Info.plist")
+        }
+        info["LSUIElement"] = true
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: infoURL, options: .atomic)
+
+        var entitlements: [String: Any] = [:]
+        let current = try run("/usr/bin/codesign", ["-d", "--entitlements", "-", "--xml", bundle.path])
+        if let start = current.range(of: "<?xml"),
+           let data = String(current[start.lowerBound...]).data(using: .utf8),
+           let parsed = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] {
+            entitlements = parsed
+        }
+        for key in entitlements.keys where restrictedEntitlementPrefixes.contains(where: { key.hasPrefix($0) }) {
+            entitlements[key] = nil
+        }
+        entitlements["com.apple.security.cs.disable-library-validation"] = true
+
+        let entitlementsURL = FileManager.default.temporaryDirectory.appendingPathComponent("lanes-entitlements-\(UUID().uuidString).plist")
+        try PropertyListSerialization.data(fromPropertyList: entitlements, format: .xml, options: 0).write(to: entitlementsURL)
+        defer { try? FileManager.default.removeItem(at: entitlementsURL) }
+        // Only the outer bundle is signed again; the frameworks and helpers
+        // inside keep Anthropic's signature.
+        _ = try run("/usr/bin/codesign", ["--force", "--sign", "-", "--options", "runtime", "--entitlements", entitlementsURL.path, bundle.path])
+    }
+
+    /// Runs a tool and returns what it printed, stdout and stderr together.
+    @discardableResult
+    private static func run(_ tool: String, _ arguments: [String]) throws -> String {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool)
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        try process.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let output = String(decoding: data, as: UTF8.self)
+        guard process.terminationStatus == 0 else {
+            throw Failure.signingFailed(output.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return output
     }
 
     /// Hidden copies left by a renewal that stopped halfway.

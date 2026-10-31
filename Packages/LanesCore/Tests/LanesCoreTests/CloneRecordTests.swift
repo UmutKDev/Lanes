@@ -31,6 +31,27 @@ final class CloneRecordTests: XCTestCase {
         XCTAssertFalse(CloneStatus.ready.needsWork)
     }
 
+    func testDockSettingChangeRenewsTheClone() throws {
+        let shown = CloneRecord(profile: profile, claudeVersion: "1")
+        XCTAssertNil(shown.hiddenFromDock, "a clone in the Dock writes no flag, like older records")
+        var hidden = profile
+        hidden.hidesFromDock = true
+        XCTAssertEqual(CloneCheck.status(for: hidden, bundleName: "Claude – İş.app", record: shown, claudeVersion: "1"), .needsRenewal([.dockSettingChanged]))
+        let hiddenRecord = CloneRecord(profile: hidden, claudeVersion: "1")
+        XCTAssertEqual(hiddenRecord.hiddenFromDock, true)
+        XCTAssertEqual(CloneCheck.status(for: hidden, bundleName: "Claude – İş.app", record: hiddenRecord, claudeVersion: "1"), .ready)
+        XCTAssertEqual(CloneCheck.status(for: profile, bundleName: "Claude – İş.app", record: hiddenRecord, claudeVersion: "1"), .needsRenewal([.dockSettingChanged]))
+    }
+
+    func testHidesFromDockIsWrittenOnlyWhenSet() throws {
+        let plain = String(data: try JSONEncoder().encode(profile), encoding: .utf8) ?? ""
+        XCTAssertFalse(plain.contains("hidesFromDock"))
+        var hidden = profile
+        hidden.hidesFromDock = true
+        let decoded = try JSONDecoder().decode(Profile.self, from: try JSONEncoder().encode(hidden))
+        XCTAssertTrue(decoded.hidesFromDock)
+    }
+
     func testRecordRoundTrips() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

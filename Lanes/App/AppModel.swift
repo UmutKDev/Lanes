@@ -265,6 +265,12 @@ final class AppModel {
                 return existing
             }
             let current = self.profile(withID: profile.id) ?? profile
+            if current.hidesFromDock {
+                // Signing again takes a few seconds, so it runs off the main thread.
+                try await Task.detached(priority: .userInitiated) {
+                    try CloneMaker.hideFromDock(temporary)
+                }.value
+            }
             try CloneMaker.install(temporary, as: paths.cloneBundle(for: current), icon: MonogramIcon.image(for: current), paths: paths)
             try CloneRecord(profile: current, claudeVersion: claude.version).write(to: paths.cloneRecordFile(for: profile.id))
             Log.app.info("Clone ready in \(Date().timeIntervalSince(start), format: .fixed(precision: 1), privacy: .public) s")

@@ -12,7 +12,7 @@ struct AddProfileSheet: View {
     @State private var color: ProfileColor = .blue
     @State private var accountClass: AccountClass = .personal
     @State private var opensAfterAdding = true
-    @State private var mode: ProfileMode = .standard
+    @State private var mode: ProfileMode = .signedClone
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +33,7 @@ struct AddProfileSheet: View {
                         }
                     }
                     Picker("Nerede çalışsın", selection: $mode) {
+                        Text("Claude uygulaması, kendi simgesiyle").tag(ProfileMode.signedClone)
                         Text("Claude uygulaması").tag(ProfileMode.standard)
                         Text("Lanes içinde, web sürümü").tag(ProfileMode.insideLanes)
                     }
@@ -50,7 +51,7 @@ struct AddProfileSheet: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if mode == .standard {
+                if mode.usesClaudeApp {
                 Section("Yeni pencerede giriş") {
                     // Faz 0.5 check 3: the return link of a Google or email
                     // link sign-in reaches the main Claude, not the new

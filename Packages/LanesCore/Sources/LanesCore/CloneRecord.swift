@@ -10,17 +10,21 @@ public struct CloneRecord: Codable, Equatable, Sendable {
     public var color: ProfileColor
     public var monogram: String
     public var madeAt: Date
+    /// Whether the clone was made to stay out of the Dock. Older records
+    /// lack it, which means it shows in the Dock.
+    public var hiddenFromDock: Bool?
 
-    public init(claudeVersion: String?, name: String, color: ProfileColor, monogram: String, madeAt: Date = Date()) {
+    public init(claudeVersion: String?, name: String, color: ProfileColor, monogram: String, madeAt: Date = Date(), hiddenFromDock: Bool = false) {
         self.claudeVersion = claudeVersion
         self.name = name
         self.color = color
         self.monogram = monogram
         self.madeAt = madeAt
+        self.hiddenFromDock = hiddenFromDock ? true : nil
     }
 
     public init(profile: Profile, claudeVersion: String?, madeAt: Date = Date()) {
-        self.init(claudeVersion: claudeVersion, name: profile.name, color: profile.color, monogram: profile.monogram, madeAt: madeAt)
+        self.init(claudeVersion: claudeVersion, name: profile.name, color: profile.color, monogram: profile.monogram, madeAt: madeAt, hiddenFromDock: profile.hidesFromDock)
     }
 
     public static func read(from url: URL) -> CloneRecord? {
@@ -64,6 +68,9 @@ public enum CloneRenewalReason: Equatable, Sendable {
     case renamed
     /// The colour or letter changed, so the icon is out of date.
     case iconChanged
+    /// The Dock setting changed, so the clone must be made again with or
+    /// without its Dock icon.
+    case dockSettingChanged
     /// The clone has no record, for example one made by an older build.
     case unknownOrigin
 }
@@ -94,6 +101,9 @@ public enum CloneCheck {
         }
         if record.color != profile.color || record.monogram != profile.monogram {
             reasons.append(.iconChanged)
+        }
+        if (record.hiddenFromDock ?? false) != profile.hidesFromDock {
+            reasons.append(.dockSettingChanged)
         }
         return reasons.isEmpty ? .ready : .needsRenewal(reasons)
     }

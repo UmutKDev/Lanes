@@ -141,6 +141,15 @@ private struct AccountGeneralTab: View {
                     CloneStatusRow(profile: profile)
                 }
             }
+            if CloneCheck.usesClone(profile) {
+                Section {
+                    Toggle("Dock'ta gösterme (Deneysel)", isOn: binding(\.hidesFromDock))
+                    Text(String(localized: "\(ProfileMode.dockHidingCost) Değişiklik, hesap kapalıyken bir sonraki açılışta uygulanır."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             if profile.isDefault {
                 Section {
                     Text("Bu hesap Claude'un kendi klasörlerini kullanıyor. Lanes'i kaldırsan bile bu hesap olduğu gibi kalır.")
@@ -160,7 +169,7 @@ private struct AccountGeneralTab: View {
     /// an account saved with it opens like Klon and can be switched here.
     private var modeChoices: [ProfileMode] {
         if profile.isDefault { return [.standard] }
-        var choices: [ProfileMode] = [.standard, .signedClone, .insideLanes]
+        var choices: [ProfileMode] = [.signedClone, .standard, .insideLanes]
         if profile.mode == .separateIdentity { choices.append(.separateIdentity) }
         return choices
     }
@@ -168,7 +177,7 @@ private struct AccountGeneralTab: View {
     private func modeTitle(_ mode: ProfileMode) -> String {
         switch mode {
         case .standard: return String(localized: "Claude uygulaması")
-        case .signedClone: return String(localized: "Claude uygulaması, kendi simgesiyle (Deneysel)")
+        case .signedClone: return String(localized: "Claude uygulaması, kendi simgesiyle")
         case .insideLanes: return String(localized: "Lanes içinde, web sürümü")
         default: return mode.displayName
         }
@@ -451,6 +460,8 @@ extension CloneRenewalReason {
             return String(localized: "hesabın adı değişti")
         case .iconChanged:
             return String(localized: "simge değişti")
+        case .dockSettingChanged:
+            return String(localized: "Dock ayarı değişti")
         case .unknownOrigin:
             return String(localized: "klonun kaydı yok")
         }

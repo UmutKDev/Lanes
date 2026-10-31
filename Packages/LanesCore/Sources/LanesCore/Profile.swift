@@ -70,6 +70,10 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// subfolders. Empty means anywhere. Lanes warns before opening Claude
     /// Code elsewhere, so a client account stays in the client's folders.
     public var allowedFolders: [String] { didSet { keptFields[Field.allowedFolders.rawValue] = nil } }
+    /// Whether the account's clone stays out of the Dock and Cmd-Tab. The
+    /// clone is then signed again on this Mac, so it loses Anthropic's
+    /// signature and Claude's menus. Only clones honour it.
+    public var hidesFromDock: Bool { didSet { keptFields[Field.hidesFromDock.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -86,7 +90,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         createdAt: Date = Date(),
         email: String? = nil,
         note: String? = nil,
-        allowedFolders: [String] = []
+        allowedFolders: [String] = [],
+        hidesFromDock: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -99,6 +104,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.email = email
         self.note = note
         self.allowedFolders = allowedFolders
+        self.hidesFromDock = hidesFromDock
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -124,7 +130,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -158,6 +164,7 @@ extension Profile {
         email = try read(String.self, .email)
         note = try read(String.self, .note)
         allowedFolders = try read([String].self, .allowedFolders) ?? []
+        hidesFromDock = try read(Bool.self, .hidesFromDock) ?? false
         keptFields = kept
     }
 
@@ -182,6 +189,7 @@ extension Profile {
         if let email, !email.isEmpty { try write(email, .email) }
         if let note, !note.isEmpty { try write(note, .note) }
         if !allowedFolders.isEmpty { try write(allowedFolders, .allowedFolders) }
+        if hidesFromDock { try write(hidesFromDock, .hidesFromDock) }
     }
 
     /// Whether Claude Code may open in `path` for this account.
