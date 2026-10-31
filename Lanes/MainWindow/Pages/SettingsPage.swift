@@ -47,9 +47,9 @@ struct SettingsPage: View {
         case .advanced:
             AdvancedSettings()
         case .windowBadges:
-            PlannedSettings(text: String(localized: "Her Claude penceresinin köşesinde hangi hesaba ait olduğunu gösteren renkli işaret."))
+            WindowBadgeSettings()
         case .shortcuts:
-            PlannedSettings(text: String(localized: "Paneli her yerden açan genel kısayol ve hesaplara özel kısayollar."))
+            ShortcutsSettings()
         case .notifications:
             PlannedSettings(text: String(localized: "Bir hesabın sınırı dolduğunda ya da yeniden açıldığında haber verme."))
         case .updates:

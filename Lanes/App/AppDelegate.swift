@@ -21,9 +21,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItemController = StatusItemController(model: model, router: router)
         self.statusItemController = statusItemController
         router.statusItemController = statusItemController
-        if model.isFirstLaunch || Updater.takeRelaunchedAfterUpdate() {
+        // A copy running from the DMG or a translocated folder opens its
+        // window so the warning on Overview is seen. Otherwise Lanes would
+        // start in the menu bar alone and look like it never opened.
+        if model.isFirstLaunch || Updater.takeRelaunchedAfterUpdate() || model.isTranslocated {
             router.showMainWindow(.overview)
         }
+        observeShortcuts()
+        model.openStartupScenes()
+    }
+
+    /// Registers the shortcuts again whenever they, the accounts or the
+    /// scenes change.
+    private func observeShortcuts() {
+        let items = withObservationTracking {
+            shortcutActions()
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.observeShortcuts()
+            }
+        }
+        // Outside the tracking: registering updates what Settings shows.
+        HotKeyCenter.shared.register(items)
+    }
+
+    private func shortcutActions() -> [(KeyShortcut, @MainActor () -> Void)] {
+        let model = model
+        let router = router
+        let items: [(KeyShortcut, @MainActor () -> Void)] = model.shortcuts.all.compactMap { target, shortcut in
+            switch target {
+            case .panel:
+                return (shortcut, { router.togglePanel() })
+            case let .profile(id):
+                guard model.profile(withID: id) != nil else { return nil }
+                return (shortcut, {
+                    if let profile = model.profile(withID: id) { model.open(profile) }
+                })
+            case let .scene(id):
+                guard model.library.scene(withID: id) != nil else { return nil }
+                return (shortcut, {
+                    if let scene = model.library.scene(withID: id) { model.open(scene) }
+                })
+            }
+        }
+        return items
     }
 
     /// Clicking Lanes in Finder or Launchpad while it runs opens the window.

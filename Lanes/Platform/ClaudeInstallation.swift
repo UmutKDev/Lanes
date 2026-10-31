@@ -16,7 +16,10 @@ struct ClaudeInstallation: Equatable {
             .filter { !InstanceMatcher.normalize($0.path).hasPrefix(clonesPath) }
         let preferred = candidates.first(where: { $0.path.hasPrefix("/Applications/") }) ?? candidates.first
         guard let url = preferred else { return nil }
-        let version = Bundle(url: url)?.infoDictionary?["CFBundleShortVersionString"] as? String
+        // Read from the file each time: Bundle caches its Info.plist, so it
+        // would keep showing the version from before a Claude update.
+        let plist = url.appendingPathComponent("Contents/Info.plist", isDirectory: false)
+        let version = NSDictionary(contentsOf: plist)?["CFBundleShortVersionString"] as? String
         return ClaudeInstallation(url: url, version: version)
     }
 }

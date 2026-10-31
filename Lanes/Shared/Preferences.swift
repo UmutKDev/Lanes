@@ -9,6 +9,15 @@ enum Preferences {
         static let lastSettingsPane = "lastSettingsPane"
         static let showsDeveloperPages = "showsDeveloperPages"
         static let relaunchedAfterUpdate = "relaunchedAfterUpdate"
+        static let shortcuts = "shortcuts"
+        static let recentClaudeCodeFolders = "recentClaudeCodeFolders"
+        static let showsFrontAccountInMenuBar = "showsFrontAccountInMenuBar"
+    }
+
+    /// The menu bar icon takes the colour and letter of the account whose
+    /// Claude is in front.
+    static var showsFrontAccountInMenuBar: Bool {
+        UserDefaults.standard.object(forKey: Key.showsFrontAccountInMenuBar) as? Bool ?? true
     }
 
     static var showsDockIconWithWindow: Bool {

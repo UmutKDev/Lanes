@@ -51,6 +51,20 @@ final class AppModel {
     let validation: ValidationModel
     let updater = Updater()
 
+    /// Global shortcuts, kept in Lanes's defaults.
+    private(set) var shortcuts: ShortcutBindings
+    /// Folders each account last opened Claude Code in.
+    private(set) var recentFolders: [ProfileID: RecentFolders]
+    /// What the last separation check after opening an account found.
+    private(set) var separationResults: [ProfileID: SeparationResult] = [:]
+    @ObservationIgnored private var knownPIDs: Set<pid_t> = []
+
+    struct SeparationResult: Equatable {
+        /// True when the account's own folder changed after it opened.
+        var usesOwnFolder: Bool
+        var checkedAt: Date
+    }
+
     init(paths: ProfilePaths = .standard()) {
         let store = ProfileStore(paths: paths)
         let startup = store.startup(defaultProfileName: String(localized: "Ana hesap"))
@@ -58,6 +72,8 @@ final class AppModel {
         self.store = store
         self.validation = ValidationModel(paths: paths)
         self.library = startup.library
+        self.shortcuts = AppModel.loadShortcuts()
+        self.recentFolders = AppModel.loadRecentFolders()
         validation.currentClaude = { [weak self] in self?.claude }
 
         if startup.restoredFromBackup {
@@ -98,6 +114,16 @@ final class AppModel {
             }
         }
         instances = RunningInstanceScanner.scan(knownBundles: knownBundlePaths, library: library, paths: paths)
+        // A Claude that just started may be a new version: Claude updates
+        // itself and relaunches.
+        let pids = Set(instances.map(\.pid))
+        if !pids.subtracting(knownPIDs).isEmpty, let found = ClaudeInstallation.find(paths: paths), found != claude {
+            if let old = claude?.version, old != found.version {
+                Log.app.info("Claude changed from \(old, privacy: .public) to \(found.version ?? "?", privacy: .public)")
+            }
+            claude = found
+        }
+        knownPIDs = pids
         Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
     }
 
@@ -194,12 +220,14 @@ final class AppModel {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             if FolderActivity.changed(folder, since: start) {
                 Log.instances.info("Separation check: own folder in use")
+                separationResults[profile.id] = SeparationResult(usesOwnFolder: true, checkedAt: Date())
                 return
             }
         }
         refreshInstances()
         // A window closed in the meantime proves nothing either way.
         guard isRunning(profile) else { return }
+        separationResults[profile.id] = SeparationResult(usesOwnFolder: false, checkedAt: Date())
         Log.instances.error("Separation check: own folder unchanged 30 s after launch")
         notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Ana hesabın verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
     }
@@ -209,12 +237,35 @@ final class AppModel {
         InstanceLauncher.terminate(pid: instance.pid)
     }
 
-    func openClaudeCode(_ profile: Profile) {
+    /// Opens Claude Code in Terminal, in `folder` or the home folder.
+    func openClaudeCode(_ profile: Profile, in folder: URL? = nil) {
+        if let folder {
+            guard FileManager.default.fileExists(atPath: folder.path) else {
+                forgetRecentFolder(folder.path, for: profile)
+                notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) klasörü artık yok, listeden çıkarıldı."))
+                return
+            }
+        }
         do {
-            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths)
+            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder)
+            if let folder {
+                var recent = recentFolders[profile.id] ?? RecentFolders()
+                recent.use(folder.path)
+                recentFolders[profile.id] = recent
+                saveRecentFolders()
+            }
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
         }
+    }
+
+    func recentClaudeCodeFolders(for profile: Profile) -> [URL] {
+        (recentFolders[profile.id]?.paths ?? []).map { URL(fileURLWithPath: $0, isDirectory: true) }
+    }
+
+    func forgetRecentFolder(_ path: String, for profile: Profile) {
+        recentFolders[profile.id]?.forget(path)
+        saveRecentFolders()
     }
 
     func claudeCodeCommand(for profile: Profile) -> String {
@@ -259,6 +310,9 @@ final class AppModel {
         do {
             try library.remove(profile.id)
             save()
+            recentFolders[profile.id] = nil
+            saveRecentFolders()
+            pruneShortcuts()
             notice = Notice(kind: .info, message: String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında duruyor."))
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
@@ -270,6 +324,126 @@ final class AppModel {
         profiles.move(fromOffsets: source, toOffset: destination)
         library.profiles = profiles
         save()
+    }
+
+    // MARK: Scenes
+
+    @discardableResult
+    func addScene(name: String, profileIDs: [ProfileID]) -> ProfileScene? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let scene = ProfileScene(name: trimmed.isEmpty ? String(localized: "Yeni sahne") : trimmed, profileIDs: profileIDs)
+        do {
+            try library.addScene(scene)
+            save()
+            return scene
+        } catch {
+            notice = Notice(kind: .error, message: error.localizedDescription)
+            return nil
+        }
+    }
+
+    func updateScene(_ scene: ProfileScene) {
+        do {
+            try library.updateScene(scene)
+            save()
+        } catch {
+            notice = Notice(kind: .error, message: error.localizedDescription)
+        }
+    }
+
+    func removeScene(_ scene: ProfileScene) {
+        library.removeScene(scene.id)
+        save()
+        pruneShortcuts()
+    }
+
+    func open(_ scene: ProfileScene) {
+        Task { await openAndWait(scene) }
+    }
+
+    /// Opens the accounts one after another, so each window comes up before
+    /// the next and the last one ends up in front.
+    func openAndWait(_ scene: ProfileScene) async {
+        let profiles = scene.profiles(in: library)
+        guard !profiles.isEmpty else {
+            notice = Notice(kind: .info, message: String(localized: "\(scene.name) sahnesinde hesap yok."))
+            return
+        }
+        Log.instances.info("Opening a scene with \(profiles.count) accounts")
+        for profile in profiles {
+            await openAndWait(profile)
+        }
+    }
+
+    /// Scenes marked to open with Lanes, once per launch.
+    func openStartupScenes() {
+        let scenes = library.scenes.filter(\.opensWhenLanesStarts)
+        guard !scenes.isEmpty else { return }
+        Task {
+            for scene in scenes {
+                await openAndWait(scene)
+            }
+        }
+    }
+
+    // MARK: Shortcuts
+
+    func setShortcut(_ shortcut: KeyShortcut?, for target: ShortcutTarget) throws {
+        try shortcuts.set(shortcut, for: target)
+        saveShortcuts()
+    }
+
+    /// The name of what a shortcut opens, for messages and Settings.
+    func name(of target: ShortcutTarget) -> String {
+        switch target {
+        case .panel: return String(localized: "Menü çubuğu paneli")
+        case let .profile(id): return profile(withID: id)?.name ?? String(localized: "Silinmiş hesap")
+        case let .scene(id): return library.scene(withID: id)?.name ?? String(localized: "Silinmiş sahne")
+        }
+    }
+
+    private func pruneShortcuts() {
+        if shortcuts.prune(profiles: Set(library.profiles.map(\.id)), scenes: Set(library.scenes.map(\.id))) {
+            saveShortcuts()
+        }
+    }
+
+    private static func loadShortcuts() -> ShortcutBindings {
+        guard let data = UserDefaults.standard.data(forKey: Preferences.Key.shortcuts) else { return ShortcutBindings() }
+        return (try? JSONDecoder().decode(ShortcutBindings.self, from: data)) ?? ShortcutBindings()
+    }
+
+    private func saveShortcuts() {
+        guard let data = try? JSONEncoder().encode(shortcuts) else { return }
+        UserDefaults.standard.set(data, forKey: Preferences.Key.shortcuts)
+    }
+
+    private static func loadRecentFolders() -> [ProfileID: RecentFolders] {
+        let stored = UserDefaults.standard.dictionary(forKey: Preferences.Key.recentClaudeCodeFolders) as? [String: [String]] ?? [:]
+        var result: [ProfileID: RecentFolders] = [:]
+        for (id, paths) in stored {
+            result[ProfileID(rawValue: id)] = RecentFolders(paths: paths)
+        }
+        return result
+    }
+
+    private func saveRecentFolders() {
+        var stored: [String: [String]] = [:]
+        for (id, recent) in recentFolders where !recent.paths.isEmpty {
+            stored[id.rawValue] = recent.paths
+        }
+        UserDefaults.standard.set(stored, forKey: Preferences.Key.recentClaudeCodeFolders)
+    }
+
+    // MARK: Health
+
+    /// Folders under Profiles that belong to no account. Only names are
+    /// listed, nothing inside is read.
+    func orphanProfileFolders() -> [URL] {
+        let profilesDirectory = paths.root.appendingPathComponent("Profiles", isDirectory: true)
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: profilesDirectory.path)) ?? []
+        return OrphanProfileFolders.find(folderNames: names, library: library)
+            .map { profilesDirectory.appendingPathComponent($0, isDirectory: true) }
     }
 
     // MARK: Diagnostics

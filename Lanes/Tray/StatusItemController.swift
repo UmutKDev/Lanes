@@ -31,6 +31,11 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     private var isMeasuringIconClicks = false
     private var mouseDownMonitors: [Any] = []
     private var defaultsObserver: NSObjectProtocol?
+    private var activationObserver: NSObjectProtocol?
+    /// The app in front other than Lanes. Matched against the accounts on
+    /// each scan, so a Claude that just opened shows once Lanes has seen it.
+    private var frontPID: pid_t?
+    private var shownIconKey: String?
     /// Recent presses on the icon, on the system uptime clock that NSEvent
     /// timestamps use.
     private var iconMouseDowns: [TimeInterval] = []
@@ -62,9 +67,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         super.init()
 
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "square.stack.3d.up.fill", accessibilityDescription: "Lanes")
-            image?.isTemplate = true
-            button.image = image
+            button.image = StatusItemController.lanesIcon
             button.imagePosition = .imageLeading
             button.target = self
             button.action = #selector(statusItemClicked(_:))
@@ -79,12 +82,82 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         #endif
         observeRunningCount()
         observeCountSetting()
+        observeFrontApplication()
+    }
+
+    private static let lanesIcon: NSImage? = {
+        let image = NSImage(systemSymbolName: "square.stack.3d.up.fill", accessibilityDescription: "Lanes")
+        image?.isTemplate = true
+        return image
+    }()
+
+    /// Window indicators v1: the icon takes the colour and letter of the
+    /// account whose Claude is in front. Only the frontmost app's process
+    /// number is compared with the accounts Lanes already tracks.
+    private func observeFrontApplication() {
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            MainActor.assumeIsolated {
+                self?.frontApplicationChanged(to: pid)
+            }
+        }
+        frontApplicationChanged(to: NSWorkspace.shared.frontmostApplication?.processIdentifier)
+    }
+
+    private func frontApplicationChanged(to pid: pid_t?) {
+        // Lanes itself coming forward keeps the account that was in front.
+        if pid == ProcessInfo.processInfo.processIdentifier { return }
+        frontPID = pid
+        updateIcon()
+    }
+
+    private func updateIcon() {
+        guard let button = statusItem.button else { return }
+        var profile: Profile?
+        if Preferences.showsFrontAccountInMenuBar, let frontPID,
+           let id = model.instances.first(where: { $0.pid == frontPID })?.profileID {
+            profile = model.profile(withID: id)
+        }
+        let key = profile.map { "\($0.id.rawValue)|\($0.color.rawValue)|\($0.monogram)" } ?? "lanes"
+        guard key != shownIconKey else { return }
+        shownIconKey = key
+        if let profile {
+            button.image = StatusItemController.monogramIcon(for: profile)
+            button.toolTip = String(localized: "Lanes · önde: \(profile.name)")
+        } else {
+            button.image = StatusItemController.lanesIcon
+            button.toolTip = "Lanes"
+        }
+    }
+
+    /// A small filled circle in the account's colour with its letter.
+    private static func monogramIcon(for profile: Profile) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size, flipped: false) { rect in
+            let circle = NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1))
+            profile.color.nsColor.setFill()
+            circle.fill()
+            let font = NSFont.systemFont(ofSize: 10, weight: .bold)
+            let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.white]
+            let text = NSAttributedString(string: profile.monogram, attributes: attributes)
+            let textSize = text.size()
+            text.draw(at: NSPoint(x: rect.midX - textSize.width / 2, y: rect.midY - textSize.height / 2))
+            return true
+        }
+        image.isTemplate = false
+        image.accessibilityDescription = profile.name
+        return image
     }
 
     /// Shows how many accounts are open next to the icon, and keeps it current.
     private func observeRunningCount() {
         withObservationTracking {
             updateTitle()
+            updateIcon()
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.observeRunningCount()
@@ -99,6 +172,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.updateTitle()
+                self?.updateIcon()
             }
         }
     }

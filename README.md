@@ -6,9 +6,10 @@ Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydın
 
 ## Durum
 
-Bu ilk sürüm iki şey içeriyor:
+Bu ilk sürüm şunları içeriyor:
 
-- Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde başlatma.
+- Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde, istersen seçtiğin klasörde başlatma.
+- Günlük kolaylıklar: panel ve her hesap için her uygulamada çalışan kısayollar (yeni bir izin istemez), öndeki Claude'un hesabını gösteren menü çubuğu simgesi, birkaç hesabı tek tıkla açan sahneler ve her şeyin yerinde olup olmadığını gösteren Sağlık sayfası.
 - Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme ve Claude'un davranışını ölçen sekiz Faz 0.5 denemesi. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
 
 Denemek için: [docs/test-kilavuzu.md](docs/test-kilavuzu.md)
@@ -67,7 +68,7 @@ Testler: `make core-test`
 
 Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizlilik sayfasında tek listede duruyor. Kısaca:
 
-- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati.
+- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı, öndeki uygulamanın süreç numarası. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati. Sağlık sayfasında Otomasyon izninin durumu (izin sorulmadan), `claude` komutunun yeri ve Profiles altındaki klasörlerin adları.
 - **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine yalnız Claude yazar), Terminal komut dosyaları ve Faz 0 sonuçları. Faz 0 klonları `~/Applications/Lanes Profiles` altında.
 - **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
 - **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Lanes'in yaptığı tek ağ isteği bu.

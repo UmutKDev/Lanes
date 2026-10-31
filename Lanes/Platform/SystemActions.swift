@@ -15,20 +15,22 @@ enum SystemActions {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
-    /// Opens Terminal with Claude Code running under the profile's account.
-    /// It writes a small `.command` file, which Terminal runs when opened.
-    static func openClaudeCodeInTerminal(for profile: Profile, paths: ProfilePaths) throws {
+    /// Opens Terminal with Claude Code running under the profile's account,
+    /// in `folder` or the home folder. It writes a small `.command` file,
+    /// which Terminal runs when opened.
+    static func openClaudeCodeInTerminal(for profile: Profile, paths: ProfilePaths, in folder: URL? = nil) throws {
         if let directory = paths.claudeCodeConfigDirectory(for: profile) {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         }
-        let folder = paths.root.appendingPathComponent("Terminal", isDirectory: true)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let script = folder.appendingPathComponent("\(profile.id.rawValue).command", isDirectory: false)
+        let scripts = paths.root.appendingPathComponent("Terminal", isDirectory: true)
+        try FileManager.default.createDirectory(at: scripts, withIntermediateDirectories: true)
+        let script = scripts.appendingPathComponent("\(profile.id.rawValue).command", isDirectory: false)
         let title = ClaudeCodeCommand.shellQuoted("Lanes: \(profile.name)")
+        let changeDirectory = folder.map { "cd \(ClaudeCodeCommand.shellQuoted($0.path))" } ?? "cd ~"
         let contents = """
         #!/bin/zsh -l
         printf '\\e]0;%s\\a' \(title)
-        cd ~
+        \(changeDirectory)
         \(ClaudeCodeCommand.command(for: profile, paths: paths))
         exec /bin/zsh -l
 
