@@ -65,6 +65,7 @@ private struct GeneralSettings: View {
     @State private var launchesAtLogin = LoginItem.isEnabled
     @State private var loginItemError: String?
     @AppStorage(Preferences.Key.focusModeEnabled) private var focusMode = false
+    @AppStorage(Preferences.Key.reopensLastAccounts) private var reopensLast = false
 
     var body: some View {
         Form {
@@ -79,6 +80,11 @@ private struct GeneralSettings: View {
                             launchesAtLogin = LoginItem.isEnabled
                         }
                     }
+                Toggle("Lanes açılınca son açık hesapları yeniden aç", isOn: $reopensLast)
+                Text("Örneğin Mac yeniden başladıktan sonra, Lanes kapanırken açık olan hesaplar sırayla açılır. Lanes açılınca açılan sahneler de ayrıca açılır.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let loginItemError {
                     Text(loginItemError)
                         .font(.caption)

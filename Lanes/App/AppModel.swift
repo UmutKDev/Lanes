@@ -89,6 +89,12 @@ final class AppModel {
     /// The account in front now and since when, not yet in frontTime.
     @ObservationIgnored private var currentFront: (id: ProfileID, since: Date)?
     @ObservationIgnored private var sleepObservers: [NSObjectProtocol] = []
+    /// When each account was last in front, kept across launches, for the
+    /// panel's "most recent first" order.
+    private(set) var lastUsedAt: [ProfileID: Date] = AppModel.loadLastUsed()
+    /// Set when the Mac shuts down or logs out, so the accounts quitting
+    /// then don't replace the list Lanes reopens next time.
+    @ObservationIgnored private var isPoweringOff = false
 
     struct SeparationResult: Equatable {
         /// True when the account's own folder changed after it opened.
@@ -156,6 +162,7 @@ final class AppModel {
                 if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
                     self.lastFrontProfileID = id
                     self.lastActiveAt[id] = Date()
+                    self.noteUsed(id)
                 }
             }
         }
@@ -171,6 +178,9 @@ final class AppModel {
                 MainActor.assumeIsolated { self?.frontChangedToCurrentApp() }
             },
         ]
+        sleepObservers.append(center.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.isPoweringOff = true }
+        })
         frontChangedToCurrentApp()
         Task { await stepAsideFromSignInIfNeeded() }
         resourceTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
@@ -227,6 +237,58 @@ final class AppModel {
               instances.contains(where: { $0.pid == pid && $0.profileID != nil }) else { return }
         for instance in instances where instance.pid != pid && instance.profileID != nil {
             NSRunningApplication(processIdentifier: instance.pid)?.hide()
+        }
+    }
+
+    // MARK: Reopening and recent order
+
+    /// Keeps the list of open accounts, in the list's order, for reopening
+    /// them at the next launch.
+    private func rememberOpenAccounts() {
+        guard !isPoweringOff else { return }
+        let open = library.profiles.filter { instance(for: $0) != nil }.map(\.id.rawValue)
+        if UserDefaults.standard.stringArray(forKey: Preferences.Key.lastOpenAccounts) != open {
+            UserDefaults.standard.set(open, forKey: Preferences.Key.lastOpenAccounts)
+        }
+    }
+
+    /// Opens the accounts that were open when Lanes last ran and aren't
+    /// open now, when the setting is on.
+    func reopenLastAccountsIfWanted() {
+        guard Preferences.reopensLastAccounts else { return }
+        let ids = UserDefaults.standard.stringArray(forKey: Preferences.Key.lastOpenAccounts) ?? []
+        let profiles = ids.compactMap { profile(withID: ProfileID(rawValue: $0)) }.filter { !isRunning($0) }
+        guard !profiles.isEmpty else { return }
+        Log.instances.info("Reopening \(profiles.count) accounts from the last run")
+        Task {
+            for profile in profiles {
+                await openAndWait(profile)
+            }
+        }
+    }
+
+    private func noteUsed(_ id: ProfileID) {
+        lastUsedAt[id] = Date()
+        let raw = Dictionary(uniqueKeysWithValues: lastUsedAt.map { ($0.key.rawValue, $0.value.timeIntervalSince1970) })
+        UserDefaults.standard.set(raw, forKey: Preferences.Key.lastUsedAccounts)
+    }
+
+    private static func loadLastUsed() -> [ProfileID: Date] {
+        let raw = UserDefaults.standard.dictionary(forKey: Preferences.Key.lastUsedAccounts) as? [String: Double] ?? [:]
+        return Dictionary(uniqueKeysWithValues: raw.map { (ProfileID(rawValue: $0.key), Date(timeIntervalSince1970: $0.value)) })
+    }
+
+    /// The accounts with the most recently used first; never used ones keep
+    /// the list's order at the end.
+    var profilesByRecentUse: [Profile] {
+        let order = Dictionary(uniqueKeysWithValues: library.profiles.enumerated().map { ($0.element.id, $0.offset) })
+        return library.profiles.sorted { a, b in
+            switch (lastUsedAt[a.id], lastUsedAt[b.id]) {
+            case let (x?, y?): return x > y
+            case (.some, nil): return true
+            case (nil, .some): return false
+            case (nil, nil): return (order[a.id] ?? 0) < (order[b.id] ?? 0)
+            }
         }
     }
 
@@ -386,6 +448,7 @@ final class AppModel {
             refreshCloneStatuses()
         }
         knownPIDs = pids
+        rememberOpenAccounts()
         warnAboutStrayClones()
         Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
     }

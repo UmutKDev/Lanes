@@ -16,6 +16,10 @@ enum Preferences {
         static let linkRules = "linkRules"
         static let tabContentHeight = "tabContentHeight"
         static let focusModeEnabled = "focusModeEnabled"
+        static let reopensLastAccounts = "reopensLastAccounts"
+        static let lastOpenAccounts = "lastOpenAccounts"
+        static let panelSortsByRecent = "panelSortsByRecent"
+        static let lastUsedAccounts = "lastUsedAccounts"
     }
 
     /// Accounts as tabs under one strip. Off until the user turns it on,
@@ -34,6 +38,12 @@ enum Preferences {
     /// windows are hidden (Cmd-H), so only one account is on screen.
     static var focusModeEnabled: Bool {
         UserDefaults.standard.bool(forKey: Key.focusModeEnabled)
+    }
+
+    /// Lanes reopens the accounts that were open when it last ran, for
+    /// example after a restart.
+    static var reopensLastAccounts: Bool {
+        UserDefaults.standard.bool(forKey: Key.reopensLastAccounts)
     }
 
     static var showsDockIconWithWindow: Bool {
