@@ -50,6 +50,7 @@ extension ProfileMode {
         case .standard: return String(localized: "Standart")
         case .signedClone: return String(localized: "Klon")
         case .separateIdentity: return String(localized: "Ayrı kimlik")
+        case .insideLanes: return String(localized: "Lanes içinde")
         }
     }
 
@@ -61,6 +62,8 @@ extension ProfileMode {
             return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır. Anthropic'in imzası korunur, kopya diskte neredeyse yer kaplamaz.")
         case .separateIdentity:
             return String(localized: "Kopya kendi kimliğini alır ve yerelde yeniden imzalanır. Deneysel, Faz 0 sonuçlarını bekliyor.")
+        case .insideLanes:
+            return String(localized: "Hesap Lanes'in penceresinde, öbür hesaplarla birlikte sekme olarak açılır. Dock'ta ayrı bir Claude görünmez. Claude'un web sürümüdür: Claude uygulamasının yerel MCP sunucuları, Code sekmesi ve Cowork burada yok.")
         }
     }
 }

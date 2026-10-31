@@ -168,6 +168,13 @@ final class TabStripController: NSObject, NSWindowDelegate {
             openingProfileID = profile.id
         }
         await model.openAndWait(profile)
+        // An account inside Lanes is a native tab of Lanes's own window;
+        // there is no Claude window to move.
+        if model.runsInsideLanes(profile) {
+            openingProfileID = nil
+            hideOtherAccounts(except: profile)
+            return
+        }
         // A Claude that just started needs a moment for its window.
         var window: AccessibilityWindow?
         for _ in 0..<(wasRunning ? 3 : 40) {

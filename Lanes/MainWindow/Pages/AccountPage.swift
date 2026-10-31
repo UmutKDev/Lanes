@@ -129,7 +129,7 @@ private struct AccountGeneralTab: View {
             Section {
                 Picker("Açılış biçimi", selection: binding(\.mode)) {
                     ForEach(modeChoices, id: \.self) { mode in
-                        Text(mode == .signedClone ? String(localized: "Klon (Deneysel)") : mode.displayName).tag(mode)
+                        Text(modeTitle(mode)).tag(mode)
                     }
                 }
                 .disabled(profile.isDefault || modeChoices.count < 2)
@@ -160,9 +160,17 @@ private struct AccountGeneralTab: View {
     /// an account saved with it opens like Klon and can be switched here.
     private var modeChoices: [ProfileMode] {
         if profile.isDefault { return [.standard] }
-        var choices: [ProfileMode] = [.standard, .signedClone]
+        var choices: [ProfileMode] = [.insideLanes, .standard, .signedClone]
         if profile.mode == .separateIdentity { choices.append(.separateIdentity) }
         return choices
+    }
+
+    private func modeTitle(_ mode: ProfileMode) -> String {
+        switch mode {
+        case .standard: return String(localized: "Claude uygulaması")
+        case .signedClone: return String(localized: "Claude uygulaması, kendi simgesiyle (Deneysel)")
+        default: return mode.displayName
+        }
     }
 
     private var modeCaption: String {
@@ -170,6 +178,8 @@ private struct AccountGeneralTab: View {
             return String(localized: "Ana hesap her zaman Claude'un kendisiyle açılır.")
         }
         switch profile.mode {
+        case .insideLanes:
+            return String(localized: "\(ProfileMode.insideLanes.explanation) Claude uygulamasına geçersen bu hesaba orada yeniden giriş yapman gerekir.")
         case .standard:
             return ProfileMode.standard.explanation
         case .signedClone, .separateIdentity:
@@ -215,6 +225,9 @@ private struct AccountDesktopTab: View {
     var body: some View {
         let dataDirectory = model.paths.effectiveDesktopDataDirectory(for: profile)
         Form {
+            if model.runsInsideLanes(profile) {
+                InsideLanesSection(profile: profile)
+            }
             Section("Claude Desktop") {
                 LabeledContent("Durum") {
                     if let instance = model.instance(for: profile) {
@@ -451,6 +464,34 @@ extension CloneRenewalReason {
             return String(localized: "simge değişti")
         case .unknownOrigin:
             return String(localized: "klonun kaydı yok")
+        }
+    }
+}
+
+/// An account that runs in a Lanes tab: its state, and a way to sign out
+/// for good.
+private struct InsideLanesSection: View {
+    @Environment(AppModel.self) private var model
+    let profile: Profile
+    @State private var confirmingForget = false
+
+    var body: some View {
+        Section("Lanes içinde") {
+            LabeledContent("Durum", value: model.webAccounts.isOpen(profile.id) ? String(localized: "Sekmesi açık") : String(localized: "Kapalı"))
+            Text("Giriş ve claude.ai'nin sakladığı her şey bu hesaba ayrılmış, Lanes'e ait bir WebKit deposunda durur. Lanes onu okumaz. Öbür hesaplar ve Safari bu girişi görmez.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Bu Hesabın Girişini Sil…", role: .destructive) {
+                confirmingForget = true
+            }
+        }
+        .confirmationDialog("\(profile.name) hesabının girişi ve claude.ai verisi silinsin mi?", isPresented: $confirmingForget) {
+            Button("Girişi Sil", role: .destructive) {
+                Task { await model.webAccounts.removeData(for: profile.id) }
+            }
+        } message: {
+            Text("Sohbetlerin claude.ai'de kalır. Bir sonraki açılışta yeniden giriş yaparsın.")
         }
     }
 }

@@ -101,6 +101,6 @@ public enum CloneCheck {
     /// The main account always opens with Claude itself, whatever its mode
     /// says, so the account the user already had keeps working as before.
     public static func usesClone(_ profile: Profile) -> Bool {
-        !profile.isDefault && profile.mode != .standard
+        !profile.isDefault && (profile.mode == .signedClone || profile.mode == .separateIdentity)
     }
 }

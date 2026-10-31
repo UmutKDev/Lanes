@@ -48,7 +48,8 @@ public enum LaunchPlanner {
     public static let userDataDirectoryFlag = "--user-data-dir"
     public static let claudeConfigDirectoryVariable = "CLAUDE_CONFIG_DIR"
 
-    /// Builds the launch plan for a profile.
+    /// Builds the launch plan for a profile. A profile inside Lanes gets
+    /// the same plan as Standart, for when the user opens it in Claude once.
     ///
     /// - Parameters:
     ///   - claudeApp: The installed Claude.app.

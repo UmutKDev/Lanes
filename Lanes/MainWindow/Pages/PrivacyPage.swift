@@ -77,6 +77,13 @@ struct PrivacyPage: View {
                 )
             }
 
+            Section("Lanes içinde açılan hesaplar") {
+                PrivacyItem(
+                    title: "claude.ai, Lanes'in kendi penceresinde",
+                    detail: "\"Lanes içinde\" çalışan her hesap claude.ai'yi Lanes'in bir sekmesinde açar. Giriş, çerezler ve claude.ai'nin sakladığı her şey o hesaba ayrılmış bir WebKit deposunda durur. Lanes bu depoyu okumaz, başka yere taşımaz. Hesabı kaldırınca ya da \"Girişi Sil\" deyince depo silinir. Başka sitelere giden bağlantılar varsayılan tarayıcında açılır, indirilenler İndirilenler klasörüne gider."
+                )
+            }
+
             Section("Lanes'e gelenler") {
                 PrivacyItem(
                     title: "lanes:// adresleri ve Kestirmeler eylemleri",

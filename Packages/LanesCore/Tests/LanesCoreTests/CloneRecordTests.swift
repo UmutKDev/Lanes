@@ -42,3 +42,15 @@ final class CloneRecordTests: XCTestCase {
         XCTAssertNil(CloneRecord.read(from: folder.appendingPathComponent("yok.json")))
     }
 }
+
+final class InsideLanesModeTests: XCTestCase {
+    func testInsideLanesNeedsNoCloneAndNoClaudeApp() throws {
+        let profile = Profile(name: "Web", color: .teal, mode: .insideLanes)
+        XCTAssertFalse(CloneCheck.usesClone(profile))
+        XCTAssertFalse(profile.mode.usesClaudeApp)
+        XCTAssertTrue(ProfileMode.standard.usesClaudeApp)
+        XCTAssertEqual(ProfileMode.insideLanes.rawValue, "lanes")
+        let data = try JSONEncoder().encode(profile)
+        XCTAssertEqual(try JSONDecoder().decode(Profile.self, from: data).mode, .insideLanes)
+    }
+}

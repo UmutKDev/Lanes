@@ -52,6 +52,8 @@ final class AppModel {
 
     let validation: ValidationModel
     let updater = Updater()
+    /// Accounts that run inside Lanes's own windows.
+    let webAccounts = WebAccounts()
 
     /// Global shortcuts, kept in Lanes's defaults.
     private(set) var shortcuts: ShortcutBindings
@@ -197,11 +199,16 @@ final class AppModel {
     }
 
     func isRunning(_ profile: Profile) -> Bool {
-        instance(for: profile) != nil
+        instance(for: profile) != nil || webAccounts.isOpen(profile.id)
+    }
+
+    /// True for an account that opens in a Lanes tab rather than Claude.app.
+    func runsInsideLanes(_ profile: Profile) -> Bool {
+        !profile.isDefault && profile.mode == .insideLanes
     }
 
     var runningCount: Int {
-        instances.filter { $0.profileID != nil }.count
+        Set(instances.compactMap(\.profileID)).union(webAccounts.openIDs).count
     }
 
     func cloneURLIfPresent(for profile: Profile) -> URL? {
@@ -315,6 +322,12 @@ final class AppModel {
             notice = nil
         }
         activationWarningID = nil
+        if runsInsideLanes(profile) {
+            if !(await webAccounts.show(profile)) {
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi. Cmd-Tab ile Lanes'e geçebilirsin."))
+            }
+            return
+        }
         guard let claude else {
             notice = Notice(kind: .error, message: String(localized: "Claude bulunamadı. Claude'u Uygulamalar klasörüne kurduktan sonra yeniden dene."))
             return
@@ -386,6 +399,10 @@ final class AppModel {
     }
 
     func quit(_ profile: Profile) {
+        if webAccounts.isOpen(profile.id) {
+            webAccounts.close(profile.id)
+            return
+        }
         guard let instance = instance(for: profile) else { return }
         InstanceLauncher.terminate(pid: instance.pid)
     }
@@ -480,6 +497,10 @@ final class AppModel {
         do {
             try library.update(profile)
             save()
+            webAccounts.update(profile)
+            if !runsInsideLanes(profile), webAccounts.isOpen(profile.id) {
+                webAccounts.close(profile.id)
+            }
             if CloneCheck.usesClone(profile) {
                 refreshCloneStatuses()
                 // A new clone right away; renewing a working one can wait
@@ -504,6 +525,8 @@ final class AppModel {
             try library.remove(profile.id)
             save()
             removeClone(of: profile.id)
+            // Its claude.ai sign-in goes with it; Lanes keeps no copy.
+            Task { await webAccounts.removeData(for: profile.id) }
             recentFolders[profile.id] = nil
             saveRecentFolders()
             pruneShortcuts()
@@ -815,6 +838,13 @@ final class AppModel {
             receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
             return
         }
+        if runsInsideLanes(profile) {
+            // The tab is claude.ai, which has no claude:// handler. The link
+            // opens the account's tab on its start page.
+            await webAccounts.show(profile, url: Self.webURL(for: route))
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) sekmesinde açıldı."), target: profile.id), at: 0)
+            return
+        }
         var justOpened = false
         if !isRunning(profile) {
             await openAndWait(profile)
@@ -841,6 +871,19 @@ final class AppModel {
             Log.app.error("Link routing failed: \(error.localizedDescription)")
             notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))
             receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
+        }
+    }
+
+    /// The claude.ai page closest to what a link asked for.
+    static func webURL(for route: ClaudeLink.Route) -> URL {
+        switch route {
+        case let .newChat(prompt):
+            var components = URLComponents(string: "https://claude.ai/new")!
+            if let prompt, !prompt.isEmpty { components.queryItems = [URLQueryItem(name: "q", value: prompt)] }
+            return components.url ?? WebAccounts.home
+        case .newCodeSession, .continueCodeSession, .codeNeedsInput: return URL(string: "https://claude.ai/code")!
+        case .settings: return URL(string: "https://claude.ai/settings")!
+        default: return WebAccounts.home
         }
     }
 
