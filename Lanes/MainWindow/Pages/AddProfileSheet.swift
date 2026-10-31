@@ -12,7 +12,7 @@ struct AddProfileSheet: View {
     @State private var color: ProfileColor = .blue
     @State private var accountClass: AccountClass = .personal
     @State private var opensAfterAdding = true
-    @State private var mode: ProfileMode = .insideLanes
+    @State private var mode: ProfileMode = .standard
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,8 +33,8 @@ struct AddProfileSheet: View {
                         }
                     }
                     Picker("Nerede çalışsın", selection: $mode) {
-                        Text("Lanes içinde").tag(ProfileMode.insideLanes)
                         Text("Claude uygulaması").tag(ProfileMode.standard)
+                        Text("Lanes içinde, web sürümü").tag(ProfileMode.insideLanes)
                     }
                     Text(mode.explanation)
                         .font(.caption)

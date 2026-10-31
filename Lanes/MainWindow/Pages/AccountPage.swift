@@ -160,7 +160,7 @@ private struct AccountGeneralTab: View {
     /// an account saved with it opens like Klon and can be switched here.
     private var modeChoices: [ProfileMode] {
         if profile.isDefault { return [.standard] }
-        var choices: [ProfileMode] = [.insideLanes, .standard, .signedClone]
+        var choices: [ProfileMode] = [.standard, .signedClone, .insideLanes]
         if profile.mode == .separateIdentity { choices.append(.separateIdentity) }
         return choices
     }
@@ -169,6 +169,7 @@ private struct AccountGeneralTab: View {
         switch mode {
         case .standard: return String(localized: "Claude uygulaması")
         case .signedClone: return String(localized: "Claude uygulaması, kendi simgesiyle (Deneysel)")
+        case .insideLanes: return String(localized: "Lanes içinde, web sürümü")
         default: return mode.displayName
         }
     }
