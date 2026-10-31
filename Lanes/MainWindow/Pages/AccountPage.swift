@@ -212,6 +212,13 @@ private struct AccountGeneralTab: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let progress = model.dailyLimitProgress(for: profile) {
+                        ProgressView(value: Double(min(progress.used, progress.limit)), total: Double(progress.limit)) {
+                            Text("Bugün \(progress.used)/\(progress.limit) dk")
+                                .font(.caption)
+                        }
+                        .tint(progress.used >= progress.limit ? .orange : profile.color.swatch)
+                    }
                 }
             }
             if profile.isDefault {

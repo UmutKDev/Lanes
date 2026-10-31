@@ -150,8 +150,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 menu.addItem(item)
             }
         }
-        if model.quittableOpenCount > 0 {
+        if model.closedActiveProfiles.count > 1 || model.quittableOpenCount > 0 {
             menu.addItem(.separator())
+        }
+        if model.closedActiveProfiles.count > 1 {
+            let openAll = NSMenuItem(title: String(localized: "Kapalı Hesapların Tümünü Aç"), action: #selector(openAllFromMenu(_:)), keyEquivalent: "")
+            openAll.target = self
+            menu.addItem(openAll)
+        }
+        if model.quittableOpenCount > 0 {
             let quitAll = NSMenuItem(title: String(localized: "Lanes Hesaplarının Tümünü Kapat"), action: #selector(quitAllFromMenu(_:)), keyEquivalent: "")
             quitAll.target = self
             menu.addItem(quitAll)
@@ -173,6 +180,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String,
               let scene = model.library.scene(withID: SceneID(rawValue: raw)) else { return }
         model.open(scene)
+    }
+
+    @objc private func openAllFromMenu(_ sender: NSMenuItem) {
+        model.openAllClosedAccounts()
     }
 
     @objc private func quitAllFromMenu(_ sender: NSMenuItem) {
