@@ -59,6 +59,27 @@ public struct FrontTimeLog: Codable, Equatable, Sendable {
         days = days.filter { kept.contains($0.key) }.mapValues { $0.filter { idValues.contains($0.key) } }
     }
 
+    /// One row per day and account, oldest first, for a spreadsheet:
+    /// `Gün,Hesap,Dakika`. Names are quoted when they hold a comma or quote.
+    public func csv(accounts: [(id: ProfileID, name: String)], days count: Int, now: Date, calendar: Calendar = .current) -> String {
+        func field(_ text: String) -> String {
+            text.contains(",") || text.contains("\"") || text.contains("\n")
+                ? "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+                : text
+        }
+        var lines = ["Gün,Hesap,Dakika"]
+        let today = calendar.startOfDay(for: now)
+        for offset in (0..<max(count, 0)).reversed() {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }
+            let key = Self.dayKey(day, calendar: calendar)
+            for account in accounts {
+                let minutes = Int(((days[key]?[account.id.rawValue] ?? 0) / 60).rounded())
+                lines.append("\(key),\(field(account.name)),\(minutes)")
+            }
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
     /// "1 sa 25 dk", "12 dk", "1 dk'dan az".
     public static func describe(seconds: Double) -> String {
         let minutes = Int(seconds / 60)

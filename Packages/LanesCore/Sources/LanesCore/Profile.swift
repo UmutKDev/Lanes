@@ -77,6 +77,9 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// Minutes the account may sit unused before Lanes quits its Claude to
     /// free memory. nil means never. See IdleQuitPolicy.
     public var idleQuitMinutes: Int? { didSet { keptFields[Field.idleQuitMinutes.rawValue] = nil } }
+    /// Minutes in front per day after which Lanes posts a reminder. nil
+    /// means no reminder.
+    public var dailyLimitMinutes: Int? { didSet { keptFields[Field.dailyLimitMinutes.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -95,7 +98,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         note: String? = nil,
         allowedFolders: [String] = [],
         hidesFromDock: Bool = false,
-        idleQuitMinutes: Int? = nil
+        idleQuitMinutes: Int? = nil,
+        dailyLimitMinutes: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -110,6 +114,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.allowedFolders = allowedFolders
         self.hidesFromDock = hidesFromDock
         self.idleQuitMinutes = idleQuitMinutes
+        self.dailyLimitMinutes = dailyLimitMinutes
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -135,7 +140,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -171,6 +176,7 @@ extension Profile {
         allowedFolders = try read([String].self, .allowedFolders) ?? []
         hidesFromDock = try read(Bool.self, .hidesFromDock) ?? false
         idleQuitMinutes = try read(Int.self, .idleQuitMinutes)
+        dailyLimitMinutes = try read(Int.self, .dailyLimitMinutes)
         keptFields = kept
     }
 
@@ -197,6 +203,7 @@ extension Profile {
         if !allowedFolders.isEmpty { try write(allowedFolders, .allowedFolders) }
         if hidesFromDock { try write(hidesFromDock, .hidesFromDock) }
         if let idleQuitMinutes, idleQuitMinutes > 0 { try write(idleQuitMinutes, .idleQuitMinutes) }
+        if let dailyLimitMinutes, dailyLimitMinutes > 0 { try write(dailyLimitMinutes, .dailyLimitMinutes) }
     }
 
     /// Whether Claude Code may open in `path` for this account.
