@@ -26,4 +26,21 @@ final class FuzzyMatchTests: XCTestCase {
         let middle = try XCTUnwrap(FuzzyMatch.score("ih", in: "Mihrap"))
         XCTAssertGreaterThan(starts, middle)
     }
+
+    func testTiers() throws {
+        // A word that starts with the query beats initials, which beat a
+        // match in the middle of a word.
+        let wordStart = try XCTUnwrap(FuzzyMatch.score("ark", in: "Arka Bahçe"))
+        let initials = try XCTUnwrap(FuzzyMatch.score("ark", in: "Ana Rapor Kitap"))
+        let midWord = try XCTUnwrap(FuzzyMatch.score("ark", in: "Mark · İş"))
+        XCTAssertGreaterThan(wordStart, initials)
+        XCTAssertGreaterThan(initials, midWord)
+    }
+
+    func testBestPlacementIsUsed() throws {
+        // "ekle" must use the word "Ekle", not the "e" inside "Hesap".
+        let later = try XCTUnwrap(FuzzyMatch.score("ekle", in: "Hesap Ekle…"))
+        let scattered = try XCTUnwrap(FuzzyMatch.score("ekle", in: "Eski Kalem Ledger"))
+        XCTAssertGreaterThan(later, scattered)
+    }
 }
