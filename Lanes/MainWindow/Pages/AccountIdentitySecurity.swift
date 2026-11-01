@@ -2,8 +2,9 @@ import AppKit
 import LanesCore
 import SwiftUI
 
-/// What the user wrote down about an account. Lanes reads nothing from
-/// Claude to fill it.
+/// What the user wrote down about an account, with the account Claude Code
+/// is signed in to. From the Claude app Lanes reads only its account number,
+/// to tell whether Claude Code is signed in to the same account.
 struct AccountIdentityTab: View {
     private enum Field: Hashable {
         case email
@@ -21,7 +22,7 @@ struct AccountIdentityTab: View {
     var body: some View {
         Form {
             Section {
-                if let account = model.claudeCodeAccounts[profile.id] {
+                if model.accountMatch(for: profile) != .different, let account = model.claudeCodeAccounts[profile.id] {
                     LabeledContent("E-posta") {
                         Text(verbatim: account.email)
                             .lineLimit(1)
@@ -57,14 +58,32 @@ struct AccountIdentityTab: View {
                             .focused($focusedField, equals: .email)
                             .onSubmit(commit)
                     }
+                    // Claude Code is signed in to another account than the
+                    // app: show its address apart, not as the account's.
+                    if model.accountMatch(for: profile) == .different,
+                       let other = model.claudeCodeAccounts[profile.id] {
+                        LabeledContent("Claude Code") {
+                            Text(verbatim: other.email)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .textSelection(.enabled)
+                                .help(other.email)
+                        }
+                    }
                 }
             } header: {
                 Text("Claude hesabı")
             } footer: {
-                Text(model.claudeCodeAccounts[profile.id] == nil
-                     ? "Claude Code'a giriş yapılınca kendiliğinden dolar."
-                     : "Claude Code'un hesap dosyasından alındı.")
-                    .help("Lanes giriş anahtarlarına dokunmaz.")
+                Group {
+                    if model.accountMatch(for: profile) == .different {
+                        Text("Claude Code ile uygulama farklı hesaplarda.")
+                    } else if model.claudeCodeAccounts[profile.id] == nil {
+                        Text("Claude Code'a giriş yapılınca kendiliğinden dolar.")
+                    } else {
+                        Text("Claude Code'un hesap dosyasından alındı.")
+                    }
+                }
+                .help("Lanes giriş anahtarlarına dokunmaz.")
             }
             Section {
                 let current = model.profile(withID: profile.id) ?? profile

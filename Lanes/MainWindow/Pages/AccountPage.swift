@@ -31,7 +31,7 @@ struct AccountPage: View {
     /// Claude.app's own account only shows what Lanes can do with it.
     private func tabs(for profile: Profile) -> [AccountTab] {
         let all = AccountTab.allCases
-        return profile.isDefault ? all.filter { [.general, .claudeCode].contains($0) } : all
+        return profile.isDefault ? all.filter { [.general, .claudeCode, .identity].contains($0) } : all
     }
 
     private var tabBinding: Binding<AccountTab> {
@@ -206,16 +206,41 @@ private struct AccountGeneralTab: View {
 
     var body: some View {
         if profile.isDefault {
-            Form {
-                Section {
-                    AccountIdentityRow(profile: profile)
-                } footer: {
-                    Text("Lanes bu hesabı yalnız açar ve öne getirir, ayarlarını değiştirmez.")
-                }
-            }
-            .accountForm()
+            defaultForm
         } else {
             editableForm
+        }
+    }
+
+    /// The Claude app's own account: only how it looks in Lanes can change.
+    private var defaultForm: some View {
+        Form {
+            Section {
+                AccountIdentityRow(profile: profile)
+            }
+            Section {
+                TextField("Ad", text: $name)
+                    .focused($focusedField, equals: .name)
+                    .onSubmit(commitName)
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Renk")
+                    ColorChooser(selection: binding(\.color))
+                }
+            } footer: {
+                Text("Lanes bu hesabı yalnız açar ve öne getirir, ayarlarını değiştirmez.")
+            }
+        }
+        .accountForm()
+        .onAppear {
+            name = profile.name
+        }
+        .onChange(of: profile.name) { _, newValue in
+            name = newValue
+        }
+        .onChange(of: focusedField) { oldValue, newValue in
+            if oldValue == .name, newValue != .name {
+                commitName()
+            }
         }
     }
 

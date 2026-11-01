@@ -109,6 +109,10 @@ final class AppModel {
     /// The account Claude Code is signed in to for each profile, read from
     /// its `.claude.json` (email, name and organization only).
     private(set) var claudeCodeAccounts: [ProfileID: ClaudeCodeAccount] = [:]
+    /// The account number the Claude app is signed in to for each profile,
+    /// read from its `config.json` (only `lastKnownAccountUuid`, never the
+    /// sign-in keys in the same file).
+    private(set) var desktopAccountUuids: [ProfileID: String] = [:]
     /// Memory and CPU of each open account's Claude, read every few seconds.
     private(set) var resourceUsage: [ProfileID: ResourceUsage] = [:]
     /// When each open account was last in front or opened, for quitting
@@ -969,19 +973,37 @@ final class AppModel {
     }
 
     /// Re-reads which account Claude Code is signed in to for every profile.
-    /// Only `oauthAccount`'s email, display name and organization name are
-    /// read from each `.claude.json`; nothing that signs in is touched.
+    /// Only `oauthAccount`'s email, display name, organization name and
+    /// account number are read from each `.claude.json`; nothing that signs
+    /// in is touched. The Claude app's account number is read alongside,
+    /// only `lastKnownAccountUuid` from its `config.json`.
     func refreshClaudeCodeAccounts() {
         var found: [ProfileID: ClaudeCodeAccount] = [:]
+        var desktop: [ProfileID: String] = [:]
         for profile in library.profiles {
             if let account = ClaudeCodeAccount.read(from: paths.claudeCodeAccountFile(for: profile)) {
                 found[profile.id] = account
+            }
+            if let uuid = DesktopAccount.readAccountUuid(from: paths.desktopConfigFile(for: profile)) {
+                desktop[profile.id] = uuid
             }
         }
         if found != claudeCodeAccounts {
             claudeCodeAccounts = found
         }
+        if desktop != desktopAccountUuids {
+            desktopAccountUuids = desktop
+        }
         warnAboutIdentityMismatches()
+    }
+
+    /// Whether Claude Code is signed in to the same account as the Claude
+    /// app for this profile.
+    func accountMatch(for profile: Profile) -> AccountMatch {
+        AccountMatch(
+            claudeCodeUuid: claudeCodeAccounts[profile.id]?.accountUuid,
+            desktopUuid: desktopAccountUuids[profile.id]
+        )
     }
 
     // MARK: Kimlik Bekçisi
@@ -1021,9 +1043,13 @@ final class AppModel {
         }
     }
 
-    /// The account's email: what Claude Code reports, else what the user typed.
+    /// The account's email. Claude Code's address only stands for the
+    /// account when it is signed in to the same account as the Claude app;
+    /// when they differ only what the user typed is used. When either side
+    /// is not known: Claude Code's address, else what the user typed.
     func email(for profile: Profile) -> String? {
-        claudeCodeAccounts[profile.id]?.email ?? profile.email
+        if accountMatch(for: profile) == .different { return profile.email }
+        return claudeCodeAccounts[profile.id]?.email ?? profile.email
     }
 
     /// Claude.app and every clone on disk, including old builds' clones in

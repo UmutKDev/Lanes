@@ -20,7 +20,7 @@ struct PrivacyPage: View {
                         .font(DS.Typography.rowTitle)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .help("Hesap klasörlerinin içini de açmaz; tek istisna aşağıdaki Claude Code hesap adıdır.")
+                        .help("Hesap klasörlerinin içini de açmaz; tek istisna aşağıdaki iki hesap bilgisidir.")
                 }
                 .padding(.vertical, DS.Space.xs)
             }
@@ -58,8 +58,14 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "person.text.rectangle",
                     title: "Claude Code'un giriş yaptığı hesap",
-                    detail: "Yalnız e-posta, ad ve kuruluş adı okunur, saklanmaz.",
+                    detail: "Yalnız e-posta, ad, kuruluş adı ve hesap numarası okunur, saklanmaz.",
                     help: "Her hesabın .claude.json dosyasından okunur. Giriş anahtarları Anahtar Zinciri'nde durur ve okunmaz."
+                )
+                PrivacyItem(
+                    systemImage: "person.badge.key",
+                    title: "Claude uygulamasının hesap numarası",
+                    detail: "Claude Code aynı hesapta mı diye bakmak için; saklanmaz.",
+                    help: "Her hesabın Claude config.json dosyasından yalnız lastKnownAccountUuid alınır. Aynı dosyadaki giriş anahtarları kullanılmaz, saklanmaz."
                 )
                 PrivacyItem(
                     systemImage: "internaldrive",
