@@ -52,6 +52,9 @@ final class AppModel {
 
     let validation: ValidationModel
     let updater = Updater()
+    /// Kurulum's checks, shared by the page and its sidebar badge.
+    let setup = SetupStatus()
+    @ObservationIgnored private var appActivationObserver: NSObjectProtocol?
 
     /// Global shortcuts, kept in Lanes's defaults.
     private(set) var shortcuts: ShortcutBindings
@@ -221,6 +224,20 @@ final class AppModel {
         })
         frontChangedToCurrentApp()
         Task { await stepAsideFromSignInIfNeeded() }
+        // Kurulum's badge follows what the user installed or allowed while
+        // Lanes was in the background. Not on every instance scan: the
+        // Claude Code lookup may start a login shell.
+        appActivationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                Task { await self.setup.refresh() }
+            }
+        }
+        Task { await setup.refresh() }
         resourceTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.sampleResources()

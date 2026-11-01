@@ -66,6 +66,9 @@ struct MainWindowView: View {
     /// own visibility values while it animates, which used to clear it and
     /// left the sidebar hidden after the window grew.
     @State private var sidebarHiddenForInspector = false
+    /// The first-launch Kurulum check runs once per launch: the hosting view
+    /// outlives a closed window, so this survives closing and reopening it.
+    @State private var checkedSetupOnce = false
 
     var body: some View {
         @Bindable var navigation = navigation
@@ -108,6 +111,28 @@ struct MainWindowView: View {
         .onChange(of: shown.allowsInspector && navigation.showsInspector) { _, isShown in
             fitColumns(inspectorShown: isShown)
         }
+        .task {
+            await openSetupOnFirstLaunchIfNeeded()
+        }
+    }
+
+    /// Opens Kurulum once when Claude or Claude Code is missing and the page
+    /// has never been shown. Only from the untouched start page: a window
+    /// opened on a specific page, or one the user already moved around in,
+    /// stays where it is.
+    private func openSetupOnFirstLaunchIfNeeded() async {
+        guard !checkedSetupOnce, !UserDefaults.standard.bool(forKey: Preferences.Key.setupShown) else { return }
+        checkedSetupOnce = true
+        // Waits for the first Claude Code lookup, which may ask a login shell.
+        await model.setup.refresh()
+        guard model.claude == nil || model.setup.claudeCommand == nil else {
+            // Nothing is missing now, so a later change (Claude Code removed,
+            // say) shows the sidebar badge instead of moving the window.
+            UserDefaults.standard.set(true, forKey: Preferences.Key.setupShown)
+            return
+        }
+        guard navigation.selection == .overview, !navigation.canGoBack else { return }
+        navigation.navigate(to: .setup)
     }
 
     /// Below this width the sidebar, a page and the inspector do not fit
@@ -227,6 +252,8 @@ private struct DetailView: View {
             LinksPage()
         case .usage:
             UsagePage()
+        case .setup:
+            SetupPage()
         case .health:
             HealthPage()
         case .integrations:

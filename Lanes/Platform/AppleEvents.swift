@@ -53,21 +53,40 @@ enum AppleEvents {
     /// the user. Runs off the main thread, the check can block.
     static func reopenPermission(bundleIdentifier: String) async -> Permission {
         await Task.detached(priority: .utility) {
-            let target = NSAppleEventDescriptor(bundleIdentifier: bundleIdentifier)
-            let status = AEDeterminePermissionToAutomateTarget(
-                target.aeDesc,
-                AppleEvents.fourCharCode("aevt"),
-                AppleEvents.fourCharCode("rapp"),
-                false
-            )
-            switch status {
-            case noErr: return Permission.granted
-            case OSStatus(AppleEvents.notPermittedCode): return .denied
-            case -1744: return .notAskedYet // errAEEventWouldRequireUserConsent
-            case OSStatus(procNotFound): return .claudeNotRunning
-            default: return .unknown(status)
-            }
+            AppleEvents.determinePermission(bundleIdentifier: bundleIdentifier, askUserIfNeeded: false)
         }.value
+    }
+
+    /// Asks macOS to show its Automation prompt for Claude now, only when the
+    /// user presses the button on Kurulum. The call blocks until the user
+    /// answers the prompt, so it runs on a background queue rather than the
+    /// main thread or a Swift concurrency thread.
+    static func requestPermission(bundleIdentifier: String) async -> Permission {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                continuation.resume(returning: AppleEvents.determinePermission(bundleIdentifier: bundleIdentifier, askUserIfNeeded: true))
+            }
+        }
+    }
+
+    /// The same reopen event both checks ask about, so a granted request is
+    /// what `reopenPermission` reports afterwards. Blocking; call it off the
+    /// main thread.
+    private static func determinePermission(bundleIdentifier: String, askUserIfNeeded: Bool) -> Permission {
+        let target = NSAppleEventDescriptor(bundleIdentifier: bundleIdentifier)
+        let status = AEDeterminePermissionToAutomateTarget(
+            target.aeDesc,
+            fourCharCode("aevt"),
+            fourCharCode("rapp"),
+            askUserIfNeeded
+        )
+        switch status {
+        case noErr: return .granted
+        case OSStatus(notPermittedCode): return .denied
+        case -1744: return .notAskedYet // errAEEventWouldRequireUserConsent
+        case OSStatus(procNotFound): return .claudeNotRunning
+        default: return .unknown(status)
+        }
     }
 
     /// Sends a reopen event, the same event a Dock icon click sends.

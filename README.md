@@ -10,6 +10,7 @@ Bu ilk sürüm şunları içeriyor:
 
 - Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde, istersen seçtiğin klasörde başlatma.
 - Günlük kolaylıklar: panel ve her hesap için her uygulamada çalışan kısayollar (yeni bir izin istemez), öndeki Claude'un hesabını gösteren menü çubuğu simgesi, birkaç hesabı tek tıkla açan sahneler ve her şeyin yerinde olup olmadığını gösteren Sağlık sayfası.
+- Kurulum sayfası: eksik olanı uygulamanın içinden tamamlama. Claude uygulamasını indirme bağlantısı, düğmeye basınca Claude Code'u resmî kurulum betiğiyle kurma ve Otomasyon, Erişilebilirlik ve bildirim izinlerini isteme. Lanes sen bir düğmeye basmadan hiçbir şey kurmaz.
 - Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme ve Claude'un davranışını ölçen sekiz Faz 0.5 denemesi. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
 
 Denemek için: [docs/test-kilavuzu.md](docs/test-kilavuzu.md)
@@ -68,10 +69,10 @@ Testler: `make core-test`
 
 Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizlilik sayfasında tek listede duruyor. Kısaca:
 
-- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı, öndeki uygulamanın süreç numarası. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati. Sağlık sayfasında Otomasyon izninin durumu (izin sorulmadan), `claude` komutunun yeri ve Profiles altındaki klasörlerin adları.
+- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı, öndeki uygulamanın süreç numarası. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati. Sağlık sayfasında Otomasyon izninin durumu (izin sorulmadan), `claude` komutunun yeri ve Profiles altındaki klasörlerin adları. Kurulum sayfasında ayrıca `claude` komutunun sürümü ve Erişilebilirlik ile bildirim izinlerinin durumu.
 - **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine Claude yazar, Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için Claude Code klasörüne bağlantı ekler), Terminal komut dosyaları, Faz 0 sonuçları ve her hesabın klonu (`Clones/<hesap kimliği>/`). Hesapların adı ve kısa bir açıklaması Spotlight dizinine yazılır. Eski sürümlerin Faz 0 klonları `~/Applications/Lanes Profiles` altında kalmış olabilir, Sağlık sayfası onları Çöp Sepeti'ne taşıyabilir.
 - **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
-- **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu, yönlendirme açıkken kurala göre seçilen hesaba `claude://` bağlantıları (giriş bağlantıları asla), Kimlik sekmesindeki "Claude Ayarlarını Aç" düğmesiyle o hesabın Claude'una ayarlar bağlantısı ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Lanes'in yaptığı tek ağ isteği bu denetim.
+- **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu, yönlendirme açıkken kurala göre seçilen hesaba `claude://` bağlantıları (giriş bağlantıları asla), Kimlik sekmesindeki "Claude Ayarlarını Aç" düğmesiyle o hesabın Claude'una ayarlar bağlantısı ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Kurulum sayfasında "Kur" düğmesine basınca Lanes Claude Code'un resmî kurulum betiğini claude.ai'dan indirip çalıştırır. Bunun dışında Lanes'in yaptığı tek ağ isteği güncelleme denetimi.
 - **Dokunmadıkları:** Giriş bilgileri, çerezler, Anahtar Zinciri, sohbetler, Claude'un ayar dosyaları ve hesap klasörlerinin içi.
 
 ## Lisans

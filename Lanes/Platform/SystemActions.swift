@@ -40,11 +40,36 @@ enum SystemActions {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
         _ = NSWorkspace.shared.open(script)
     }
+
+    /// Kurulum's fallback when the in-app install fails: Terminal runs the
+    /// official install command itself, so the user sees and answers
+    /// anything the installer asks. Written like the Claude Code scripts.
+    static func openClaudeCodeInstallInTerminal(paths: ProfilePaths) throws {
+        let scripts = paths.root.appendingPathComponent("Terminal", isDirectory: true)
+        try FileManager.default.createDirectory(at: scripts, withIntermediateDirectories: true)
+        let script = scripts.appendingPathComponent("install-claude-code.command", isDirectory: false)
+        let title = ClaudeCodeCommand.shellQuoted(String(localized: "Lanes: Claude Code kurulumu"))
+        let contents = """
+        #!/bin/zsh -l
+        printf '\\e]0;%s\\a' \(title)
+        \(ClaudeCodeInstallScript.terminalCommand)
+        exec /bin/zsh -l
+
+        """
+        try contents.write(to: script, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+        _ = NSWorkspace.shared.open(script)
+    }
 }
 
 enum LoginItem {
     static var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled
+    }
+
+    /// Registered, but off until the user allows it in System Settings.
+    static var requiresApproval: Bool {
+        SMAppService.mainApp.status == .requiresApproval
     }
 
     static func setEnabled(_ enabled: Bool) throws {

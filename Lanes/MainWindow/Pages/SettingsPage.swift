@@ -1,5 +1,4 @@
 import LanesCore
-import ServiceManagement
 import SwiftUI
 
 /// All of Lanes's settings live in the main window. ⌘, opens this page on the
@@ -139,45 +138,59 @@ private struct SettingsFormModifier: ViewModifier {
     }
 }
 
+// MARK: - Launch at login
+
+/// The launch-at-login switch, shared by Settings and Kurulum so both turn
+/// the same login item on and off the same way. The caller shows `error`
+/// where it fits its layout.
+struct LoginItemToggle: View {
+    let title: LocalizedStringKey
+    @Binding var error: String?
+    @State private var isOn = LoginItem.isEnabled
+    @State private var isReverting = false
+
+    var body: some View {
+        Toggle(title, isOn: $isOn)
+            .onChange(of: isOn) { _, enabled in
+                // Putting the switch back after a failure fires this
+                // again. Skip that pass, or it would call unregister
+                // and hide or replace the error that explains why.
+                if isReverting {
+                    isReverting = false
+                    return
+                }
+                do {
+                    try LoginItem.setEnabled(enabled)
+                    // register() succeeds but the item stays off
+                    // until the user allows it in System Settings.
+                    if enabled, LoginItem.requiresApproval {
+                        error = String(localized: "Lanes'in oturum açıldığında başlaması için Sistem Ayarları > Genel > Giriş Öğeleri'nde izin ver.")
+                    } else {
+                        error = nil
+                    }
+                } catch let failure {
+                    error = failure.localizedDescription
+                    if isOn != LoginItem.isEnabled {
+                        isReverting = true
+                        isOn = LoginItem.isEnabled
+                    }
+                }
+            }
+    }
+}
+
 // MARK: - Panes
 
 private struct GeneralSettings: View {
     @Environment(AppModel.self) private var model
-    @State private var launchesAtLogin = LoginItem.isEnabled
     @State private var loginItemError: String?
-    @State private var isRevertingLoginItem = false
     @AppStorage(Preferences.Key.focusModeEnabled) private var focusMode = false
     @AppStorage(Preferences.Key.reopensLastAccounts) private var reopensLast = false
 
     var body: some View {
         Form {
             Section {
-                Toggle("Oturum açıldığında Lanes'i başlat", isOn: $launchesAtLogin)
-                    .onChange(of: launchesAtLogin) { _, enabled in
-                        // Putting the switch back after a failure fires this
-                        // again. Skip that pass, or it would call unregister
-                        // and hide or replace the error that explains why.
-                        if isRevertingLoginItem {
-                            isRevertingLoginItem = false
-                            return
-                        }
-                        do {
-                            try LoginItem.setEnabled(enabled)
-                            // register() succeeds but the item stays off
-                            // until the user allows it in System Settings.
-                            if enabled, SMAppService.mainApp.status == .requiresApproval {
-                                loginItemError = String(localized: "Lanes'in oturum açıldığında başlaması için Sistem Ayarları > Genel > Giriş Öğeleri'nde izin ver.")
-                            } else {
-                                loginItemError = nil
-                            }
-                        } catch {
-                            loginItemError = error.localizedDescription
-                            if launchesAtLogin != LoginItem.isEnabled {
-                                isRevertingLoginItem = true
-                                launchesAtLogin = LoginItem.isEnabled
-                            }
-                        }
-                    }
+                LoginItemToggle(title: "Oturum açıldığında Lanes'i başlat", error: $loginItemError)
                 Toggle("Lanes açılınca son açık hesapları yeniden aç", isOn: $reopensLast)
             } header: {
                 Text("Lanes")
@@ -302,7 +315,7 @@ private struct UpdateSettings: View {
                 Text("Lanes")
             } footer: {
                 if model.updater.isAvailable {
-                    Text("Lanes güncelleme olup olmadığını GitHub'daki sürüm listesinden öğrenir. Bu denetim Lanes'in yaptığı tek ağ isteği. Güncelleme yüklenmeden önce Lanes'in imzası denetlenir.")
+                    Text("Lanes güncelleme olup olmadığını GitHub'daki sürüm listesinden öğrenir. Kurulum sayfasından kendin başlattığın Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği bu denetim. Güncelleme yüklenmeden önce Lanes'in imzası denetlenir.")
                 } else {
                     Text("Bu derleme kendini güncellemez. Güncellemeler yalnız DMG ile dağıtılan sürümlerde açık.")
                 }

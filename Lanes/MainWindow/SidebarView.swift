@@ -89,7 +89,7 @@ struct SidebarView: View {
                     }
 
                     Section("Sistem") {
-                        rows([.health, .maintenance, .privacy, .integrations, .validation, .settings])
+                        rows([.setup, .health, .maintenance, .privacy, .integrations, .validation, .settings])
                     }
                 }
             }
@@ -227,6 +227,8 @@ struct SidebarView: View {
     private func rows(_ destinations: [Destination]) -> some View {
         ForEach(destinations.filter { $0.isVisible(showingDeveloperPages: showsDeveloperPages) }, id: \.self) { destination in
             Label(destination.title, systemImage: destination.symbol)
+                // Kurulum counts what is still missing; a zero badge is hidden.
+                .badge(destination == .setup ? model.unfinishedSetupCount : 0)
                 .tag(destination)
         }
     }

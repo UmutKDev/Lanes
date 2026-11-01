@@ -84,6 +84,11 @@ struct PrivacyPage: View {
                     title: "Sağlık sayfasındaki denetimler",
                     detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles klasöründeki klasörlerin adları. Klasörlerin içi açılmaz. Klonların imzası yalnız \"İmzaları Denetle\" düğmesine basınca, macOS'un codesign ve spctl araçlarıyla denetlenir."
                 )
+                PrivacyItem(
+                    systemImage: "checklist",
+                    title: "Kurulum sayfasındaki denetimler",
+                    detail: "Claude uygulamasının ve claude komutunun yeri, claude komutunun sürümü, Otomasyon, Erişilebilirlik ve bildirim izinlerinin durumu. İzinler yalnız ilgili düğmeye basınca istenir."
+                )
             } header: {
                 PrivacySectionHeader(title: "Lanes'in baktıkları", systemImage: "eye")
             }
@@ -92,7 +97,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "folder",
                     title: "Hesap listesi ve hesap klasörleri",
-                    detail: "Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine Claude yazar. Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için hesabın Claude Code klasörüne bağlantı (symlink) ekler. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.",
+                    detail: "Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine Claude yazar. Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için hesabın Claude Code klasörüne bağlantı (symlink) ekler. Terminal klasöründe \"Claude Code'u Terminalde Aç\" ve Kurulum'daki \"Terminalde Kur\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.",
                     path: model.paths.root
                 )
                 PrivacyItem(
@@ -154,7 +159,12 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "arrow.triangle.2.circlepath",
                     title: "Güncelleme denetimi",
-                    detail: "Lanes'in yaptığı tek ağ isteği. GitHub'daki sürüm listesini indirir. İstekte Lanes'in sürümü dışında bir bilgi yok. Yalnız DMG ile dağıtılan sürümlerde çalışır, Ayarlar > Güncellemeler'den kapatılabilir."
+                    detail: "Aşağıdaki Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği. GitHub'daki sürüm listesini indirir. İstekte Lanes'in sürümü dışında bir bilgi yok. Yalnız DMG ile dağıtılan sürümlerde çalışır, Ayarlar > Güncellemeler'den kapatılabilir."
+                )
+                PrivacyItem(
+                    systemImage: "arrow.down.app",
+                    title: "Claude Code kurulumu",
+                    detail: "Yalnız Kurulum sayfasında \"Kur\" düğmesine bastığında. Lanes Claude Code'un resmî kurulum betiğini claude.ai'dan indirir ve senin yetkilerinle çalıştırır. Betiği yalnız claude.ai adreslerinden kabul eder. İstekte çerez ya da giriş bilgisi yok, başka hiçbir şey gönderilmez. Claude Code'u betiğin kendisi Anthropic'in sunucularından indirip kurar, Lanes kurulan dosyalara dokunmaz."
                 )
             } header: {
                 PrivacySectionHeader(title: "Lanes'in gönderdikleri", systemImage: "paperplane")
