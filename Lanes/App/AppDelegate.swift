@@ -29,7 +29,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // A copy running from the DMG or a translocated folder opens its
         // window so the warning on Overview is seen. Otherwise Lanes would
         // start in the menu bar alone and look like it never opened.
-        if model.isFirstLaunch || Updater.takeRelaunchedAfterUpdate() || model.isTranslocated {
+        let relaunched = Updater.takeRelaunchedAfterUpdate()
+        // A new install starts with the Başlarken tour; its last step
+        // opens the main window. Existing users updating never see it. The
+        // mark stays until the tour is closed, so a translocated first
+        // launch or a crash mid-tour shows it on the next launch.
+        if model.isFirstLaunch {
+            UserDefaults.standard.set(true, forKey: Preferences.Key.onboardingPending)
+        }
+        if Preferences.onboardingDue, !model.isTranslocated, !relaunched {
+            router.showOnboarding()
+        } else if model.isFirstLaunch || relaunched || model.isTranslocated {
             router.showMainWindow(.overview)
         }
         observeShortcuts()
