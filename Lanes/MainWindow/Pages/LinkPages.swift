@@ -12,7 +12,21 @@ struct AccountMapPage: View {
             Section {
                 Toggle("claude:// bağlantılarını hesaplara yönlendir", isOn: Binding(
                     get: { isRouting },
-                    set: { model.setLinkRouting($0) }
+                    set: { enabled in
+                        guard enabled else {
+                            model.setLinkRouting(false)
+                            return
+                        }
+                        // Turns on only once Lanes really holds the claude://
+                        // default. If the user declines the system prompt,
+                        // the toggle and rules must not look active while
+                        // Claude still gets every link. takeLinks shows the
+                        // warning itself.
+                        Task {
+                            await model.takeLinks()
+                            isRouting = LinkHandlerRegistry.lanesIsHandler
+                        }
+                    }
                 ))
             } footer: {
                 footerText("Açıkken başka uygulamalardan gelen claude:// bağlantıları, aşağıdaki kurallara göre seçilen hesabın Claude'unda açılır. Hesap kapalıysa önce açılır. Giriş, OAuth ve Lanes'in tanımadığı bağlantılar hiçbir zaman yönlendirilmez: Lanes onları bırakır ve varsayılanı birkaç dakikalığına Claude'a geri verir, sen girişi bitirebilesin diye.")

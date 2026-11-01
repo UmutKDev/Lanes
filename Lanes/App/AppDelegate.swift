@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let router: WindowRouter
     private var statusItemController: StatusItemController?
     private var tabStripController: TabStripController?
+    private var isWaitingToTerminate = false
 
     override init() {
         let model = AppModel()
@@ -88,6 +89,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// Quitting with link routing on gives `claude://` back to Claude first,
+    /// so links do not relaunch Lanes while it is closed. The next launch
+    /// takes the default again.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard model.isLinkRoutingOn, LinkHandlerRegistry.lanesIsHandler else { return .terminateNow }
+        isWaitingToTerminate = true
+        Task {
+            await self.model.giveLinksBackToClaude()
+            self.replyToTerminate()
+        }
+        // Quitting never hangs on the system call.
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            self.replyToTerminate()
+        }
+        return .terminateLater
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        model.flushFrontTime()
+    }
+
+    private func replyToTerminate() {
+        guard isWaitingToTerminate else { return }
+        isWaitingToTerminate = false
+        NSApp.reply(toApplicationShouldTerminate: true)
     }
 
     /// A Spotlight result for an account.

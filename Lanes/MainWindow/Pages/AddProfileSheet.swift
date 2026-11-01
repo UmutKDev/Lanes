@@ -12,7 +12,6 @@ struct AddProfileSheet: View {
     @State private var color: ProfileColor = .blue
     @State private var accountClass: AccountClass = .personal
     @State private var opensAfterAdding = true
-    @State private var mode: ProfileMode = .signedClone
 
     var body: some View {
         Form {
@@ -69,7 +68,6 @@ struct AddProfileSheet: View {
             }
         }
         .formStyle(.grouped)
-        .animation(DS.Motion.standard, value: mode)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Vazgeç", role: .cancel) {
@@ -109,7 +107,7 @@ struct AddProfileSheet: View {
 
     private func add() {
         guard canAdd else { return }
-        guard let profile = model.addProfile(name: name, color: color, mode: mode, accountClass: accountClass) else { return }
+        guard let profile = model.addProfile(name: name, color: color, mode: .signedClone, accountClass: accountClass) else { return }
         dismiss()
         navigation.navigate(to: .account(profile.id))
         if opensAfterAdding {

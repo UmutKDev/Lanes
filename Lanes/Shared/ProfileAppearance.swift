@@ -58,7 +58,7 @@ extension ProfileMode {
         case .standard:
             return String(localized: "Claude'un kendisi, bu hesabın klasörüyle açılır. Dock'ta tüm hesaplar aynı simgeyi paylaşır.")
         case .signedClone:
-            return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır. Anthropic'in imzası korunur, kopya diskte neredeyse yer kaplamaz.")
+            return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır ve diskte neredeyse yer kaplamaz. \"Dock'ta gösterme\" kapalıyken Anthropic'in imzası olduğu gibi kalır.")
         case .separateIdentity:
             return String(localized: "Kopya kendi kimliğini alır ve yerelde yeniden imzalanır. Deneysel, Faz 0 sonuçlarını bekliyor.")
         }

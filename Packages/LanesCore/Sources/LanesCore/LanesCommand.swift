@@ -73,13 +73,15 @@ public enum LanesCommand: Equatable, Sendable {
 extension ProfileLibrary {
     /// Finds an account from what a person or a script typed: its ID, its
     /// name (ignoring case, with Turkish rules) or its number, 1 being the
-    /// first in the list.
+    /// first in the list. Numbers count only accounts that are not archived,
+    /// like the sidebar and ⌘1-9.
     public func profile(matching query: String) -> Profile? {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         if let byID = profile(withID: ProfileID(rawValue: trimmed)) { return byID }
         let folded = ProfileLibrary.fold(trimmed)
         if let byName = profiles.first(where: { ProfileLibrary.fold($0.name) == folded }) { return byName }
-        if let number = Int(trimmed), number >= 1, number <= profiles.count { return profiles[number - 1] }
+        let active = activeProfiles
+        if let number = Int(trimmed), number >= 1, number <= active.count { return active[number - 1] }
         return nil
     }
 

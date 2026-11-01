@@ -1,16 +1,16 @@
 import LanesCore
+import ServiceManagement
 import SwiftUI
 
 /// All of Lanes's settings live in the main window. ⌘, opens this page on the
 /// pane the user saw last.
 struct SettingsPage: View {
     @Environment(NavigationModel.self) private var navigation
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         HStack(spacing: 0) {
             List(selection: paneBinding) {
-                ForEach(SettingsPane.visible(showingDeveloperPages: showsDeveloperPages)) { pane in
+                ForEach(SettingsPane.allCases) { pane in
                     Label {
                         Text(pane.title)
                             .lineLimit(1)
@@ -48,9 +48,9 @@ struct SettingsPage: View {
         )
     }
 
-    /// The remembered pane, or General when the setting hides it.
+    /// The pane the user saw last.
     private var pane: SettingsPane {
-        navigation.settingsPane.isBuilt || showsDeveloperPages ? navigation.settingsPane : .general
+        navigation.settingsPane
     }
 
     @ViewBuilder
@@ -145,6 +145,7 @@ private struct GeneralSettings: View {
     @Environment(AppModel.self) private var model
     @State private var launchesAtLogin = LoginItem.isEnabled
     @State private var loginItemError: String?
+    @State private var isRevertingLoginItem = false
     @AppStorage(Preferences.Key.focusModeEnabled) private var focusMode = false
     @AppStorage(Preferences.Key.reopensLastAccounts) private var reopensLast = false
 
@@ -153,12 +154,28 @@ private struct GeneralSettings: View {
             Section {
                 Toggle("Oturum açıldığında Lanes'i başlat", isOn: $launchesAtLogin)
                     .onChange(of: launchesAtLogin) { _, enabled in
+                        // Putting the switch back after a failure fires this
+                        // again. Skip that pass, or it would call unregister
+                        // and hide or replace the error that explains why.
+                        if isRevertingLoginItem {
+                            isRevertingLoginItem = false
+                            return
+                        }
                         do {
                             try LoginItem.setEnabled(enabled)
-                            loginItemError = nil
+                            // register() succeeds but the item stays off
+                            // until the user allows it in System Settings.
+                            if enabled, SMAppService.mainApp.status == .requiresApproval {
+                                loginItemError = String(localized: "Lanes'in oturum açıldığında başlaması için Sistem Ayarları > Genel > Giriş Öğeleri'nde izin ver.")
+                            } else {
+                                loginItemError = nil
+                            }
                         } catch {
                             loginItemError = error.localizedDescription
-                            launchesAtLogin = LoginItem.isEnabled
+                            if launchesAtLogin != LoginItem.isEnabled {
+                                isRevertingLoginItem = true
+                                launchesAtLogin = LoginItem.isEnabled
+                            }
                         }
                     }
                 Toggle("Lanes açılınca son açık hesapları yeniden aç", isOn: $reopensLast)

@@ -48,4 +48,19 @@ final class LanesCommandTests: XCTestCase {
         XCTAssertEqual(library.scene(matching: "s")?.name, "Sabah")
         XCTAssertNil(library.scene(matching: "Akşam"))
     }
+
+    func testNumbersSkipArchivedAccounts() throws {
+        var library = ProfileLibrary()
+        let first = Profile(id: ProfileID(rawValue: "a"), name: "A", color: .orange)
+        let second = Profile(id: ProfileID(rawValue: "b"), name: "B", color: .blue)
+        let third = Profile(id: ProfileID(rawValue: "c"), name: "C", color: .green)
+        try library.add(first)
+        try library.add(second)
+        try library.add(third)
+        try library.setArchived(second.id, true)
+
+        XCTAssertEqual(library.profile(matching: "2")?.id, third.id, "Like ⌘2, the second account in the sidebar")
+        XCTAssertNil(library.profile(matching: "3"))
+        XCTAssertEqual(library.profile(matching: "b")?.id, second.id, "An archived account is still found by its ID")
+    }
 }

@@ -59,8 +59,9 @@ enum CloneMaker {
     }
 
     /// Gives the fresh copy its icon and swaps it in for the old clone. The
-    /// old one goes to the Trash only after the new one is ready, so a failed
-    /// renewal never leaves the account without a clone.
+    /// old one first steps aside under a hidden name and goes to the Trash
+    /// only after the new one is in place; if the move fails it is put back,
+    /// so a failed renewal never leaves the account without a clone.
     static func install(_ temporary: URL, as destination: URL, icon: NSImage?, paths: ProfilePaths) throws {
         guard paths.isClonePath(destination.path), paths.isClonePath(temporary.path) else {
             throw Failure.outsideClonesFolder
@@ -70,11 +71,26 @@ enum CloneMaker {
         }
         let fileManager = FileManager.default
         let folder = destination.deletingLastPathComponent()
-        let oldBundles = (try? fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        for old in oldBundles where old.pathExtension == "app" && !old.lastPathComponent.hasPrefix(".") {
-            try fileManager.trashItem(at: old, resultingItemURL: nil)
+        let oldBundles = ((try? fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
+            .filter { $0.pathExtension == "app" && !$0.lastPathComponent.hasPrefix(".") }
+        var setAside: [(original: URL, hidden: URL)] = []
+        do {
+            for old in oldBundles {
+                let hidden = folder.appendingPathComponent(".lanes-old-\(UUID().uuidString).app", isDirectory: true)
+                try fileManager.moveItem(at: old, to: hidden)
+                setAside.append((original: old, hidden: hidden))
+            }
+            try fileManager.moveItem(at: temporary, to: destination)
+        } catch {
+            for item in setAside.reversed() {
+                try? fileManager.moveItem(at: item.hidden, to: item.original)
+            }
+            throw error
         }
-        try fileManager.moveItem(at: temporary, to: destination)
+        // A copy the Trash refuses stays hidden; removeLeftovers tries again.
+        for item in setAside {
+            try? fileManager.trashItem(at: item.hidden, resultingItemURL: nil)
+        }
     }
 
     /// Entitlements that belong to Anthropic's team. An app signed on this
@@ -138,12 +154,17 @@ enum CloneMaker {
         return output
     }
 
-    /// Hidden copies left by a renewal that stopped halfway.
+    /// Hidden copies left by a renewal that stopped halfway. An old clone
+    /// set aside goes to the Trash rather than being deleted.
     static func removeLeftovers(in folder: URL) {
         let fileManager = FileManager.default
         let items = (try? fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        for item in items where item.lastPathComponent.hasPrefix(".lanes-new-") {
-            try? fileManager.removeItem(at: item)
+        for item in items {
+            if item.lastPathComponent.hasPrefix(".lanes-new-") {
+                try? fileManager.removeItem(at: item)
+            } else if item.lastPathComponent.hasPrefix(".lanes-old-") {
+                try? fileManager.trashItem(at: item, resultingItemURL: nil)
+            }
         }
     }
 

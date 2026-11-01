@@ -52,7 +52,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "person.text.rectangle",
                     title: "Claude Code'un giriş yaptığı hesap",
-                    detail: "Hesabın Kimlik sekmesinde ve aramada göstermek için. Her hesabın Claude Code klasöründeki .claude.json dosyasından (Claude uygulamasının kendi hesabında ~/.claude.json) yalnız oauthAccount altındaki e-posta, ad ve kuruluş adı okunur. Giriş anahtarları bu dosyada değil, Anahtar Zinciri'nde durur ve okunmaz. Dosyanın geri kalanına ve Claude uygulamasının verilerine bakılmaz. Okunan değerler saklanmaz, her seferinde dosyadan yeniden okunur."
+                    detail: "Genel Bakış kartlarında, hesabın Kimlik sekmesinde ve aramada göstermek için. Her hesabın Claude Code klasöründeki .claude.json dosyasından (Claude uygulamasının kendi hesabında ~/.claude.json) yalnız oauthAccount altındaki e-posta, ad ve kuruluş adı okunur. Giriş anahtarları bu dosyada değil, Anahtar Zinciri'nde durur ve okunmaz. Dosyanın geri kalanına ve Claude uygulamasının verilerine bakılmaz. Okunan değerler saklanmaz, her seferinde dosyadan yeniden okunur."
                 )
                 PrivacyItem(
                     systemImage: "internaldrive",
@@ -62,7 +62,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "macwindow",
                     title: "Öndeki uygulama",
-                    detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi ve Kullanım sayfasında her hesabın önde geçen süresini saymak için. Süreler yalnız bu Mac'te, son 30 gün için saklanır. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Menü Çubuğu ve Dock'tan kapatılabilir."
+                    detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi ve Kullanım sayfasında her hesabın önde geçen süresini saymak için. Süreler yalnız bu Mac'te, son 30 gün için saklanır. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Menü Çubuğu ve Dock'taki ayar yalnız menü çubuğu simgesindeki gösterimi kapatır. Önde geçen süre her zaman, yalnız bu Mac'te sayılır."
                 )
                 PrivacyItem(
                     systemImage: "rectangle.on.rectangle",
@@ -92,13 +92,13 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "folder",
                     title: "Hesap listesi ve hesap klasörleri",
-                    detail: "Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine yalnız Claude yazar. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.",
+                    detail: "Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine Claude yazar. Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için hesabın Claude Code klasörüne bağlantı (symlink) ekler. Terminal klasöründe \"Claude Code'u Terminalde Aç\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.",
                     path: model.paths.root
                 )
                 PrivacyItem(
                     systemImage: "square.on.square",
                     title: "Klonlar",
-                    detail: "Klon biçimindeki her hesap için Claude.app'in bir kopyası ve hangi Claude sürümünden yapıldığını yazan küçük bir clone.json dosyası. Kopyaya yalnız hesabın simgesi eklenir, Claude'un dosyalarına dokunulmaz. Hesap kaldırılınca ya da Standart'a dönünce klon Çöp Sepeti'ne gider.",
+                    detail: "Lanes'te eklediğin her hesap için Claude.app'in bir kopyası ve hangi Claude sürümünden yapıldığını yazan küçük bir clone.json dosyası. Kopyaya hesabın simgesi eklenir. \"Dock'ta gösterme\" açıksa kopyanın Info.plist dosyası değiştirilir ve kopya bu Mac'te yeniden imzalanır. Claude'un öteki dosyalarına dokunulmaz. Hesap kaldırılınca klon Çöp Sepeti'ne gider.",
                     path: model.paths.clonesDirectory
                 )
                 PrivacyItem(
@@ -115,6 +115,11 @@ struct PrivacyPage: View {
                     systemImage: "gearshape",
                     title: "Lanes'in kendi ayarları",
                     detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes). Kısayollar ve her hesabın Claude Code'u açtığı son beş klasör de burada durur. Sahneler hesap listesiyle birlikte profiles.json dosyasında."
+                )
+                PrivacyItem(
+                    systemImage: "magnifyingglass",
+                    title: "Spotlight dizini",
+                    detail: "Hesapların adı, harf simgesi ve kısa bir açıklama, Spotlight'ta aranabilsin diye macOS'un arama dizinine yazılır. Hesap kaldırılınca ya da adı değişince dizin yenilenir."
                 )
             } header: {
                 PrivacySectionHeader(title: "Lanes'in yazdıkları", systemImage: "square.and.pencil")
@@ -139,12 +144,12 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "arrowshape.turn.up.right",
                     title: "Yönlendirilen claude:// bağlantıları",
-                    detail: "Yalnız Hesap Haritası'nda yönlendirme açıkken: başka bir uygulamadan gelen bağlantı, kurala göre seçilen hesabın Claude'una gönderilir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
+                    detail: "Hesap Haritası'nda yönlendirme açıkken, başka bir uygulamadan gelen bağlantı kurala göre seçilen hesabın Claude'una gönderilir. Hesabın Kimlik sekmesindeki \"Claude Ayarlarını Aç\" düğmesi de o hesabın Claude'una ayarlar bağlantısını gönderir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
                 )
                 PrivacyItem(
                     systemImage: "bell",
                     title: "macOS bildirimleri",
-                    detail: "Yalnız Ayarlar > Bildirimler'de açtığın türler için. Bildirimde hesabın adı ve olayın türü yazar, bağlantı ya da hesabın içinden bir şey yazmaz. Bildirimler Mac'inden çıkmaz."
+                    detail: "Yalnız Ayarlar > Bildirimler'de açtığın türler ve kendin kurduğun hatırlatmalar (hesabın günlük süresi, bellek uyarısı) için. Bildirimde hesabın adı ve olayın türü yazar, bağlantı ya da hesabın içinden bir şey yazmaz. Bildirimler Mac'inden çıkmaz."
                 )
                 PrivacyItem(
                     systemImage: "arrow.triangle.2.circlepath",

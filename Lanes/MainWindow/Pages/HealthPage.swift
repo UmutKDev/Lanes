@@ -12,6 +12,8 @@ struct HealthPage: View {
     @State private var orphans: [URL] = []
     @State private var signatures: [ProfileID: CloneSignatureSummary] = [:]
     @State private var checkingSignatures = false
+    /// Bumped after "Yeniden Al", since the link default is not observable.
+    @State private var linkHandlerRefresh = 0
 
     /// Reveals an orphan folder without creating it. If it is gone (deleted
     /// in Finder since the page opened), beeps and rescans the list.
@@ -241,6 +243,9 @@ struct HealthPage: View {
 
     /// The same decision as `linkHandlerRow`, as a status only.
     private var linkHandlerStatus: DSStatus {
+        if model.isLinkRoutingOn, !LinkHandlerRegistry.lanesIsHandler {
+            return .warning
+        }
         let handler = LinkHandlerRegistry.currentHandler()
         if let handler, let claude = model.claude, handler.standardizedFileURL == claude.url.standardizedFileURL {
             return .ok
@@ -316,8 +321,22 @@ struct HealthPage: View {
 
     @ViewBuilder
     private var linkHandlerRow: some View {
+        let _ = linkHandlerRefresh
         let handler = LinkHandlerRegistry.currentHandler()
-        if let handler, let claude = model.claude, handler.standardizedFileURL == claude.url.standardizedFileURL {
+        // Claude may take the default back while routing is on. Lanes does
+        // not fight it, but says so and offers to take it again.
+        if model.isLinkRoutingOn, !LinkHandlerRegistry.lanesIsHandler {
+            HealthRow(state: .warning, title: String(localized: "Yönlendirme açık ama claude:// bağlantılarını Lanes açmıyor")) {
+                Text("Bağlantılar hesaplara yönlendirilmiyor. Yeniden Al'a basarsan Lanes onları yeniden üstlenir.")
+            } accessory: {
+                Button("Yeniden Al") {
+                    Task {
+                        await model.takeLinks()
+                        linkHandlerRefresh += 1
+                    }
+                }
+            }
+        } else if let handler, let claude = model.claude, handler.standardizedFileURL == claude.url.standardizedFileURL {
             HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Claude açıyor")) {
                 Text("Girişler ve bağlantılar her zamanki gibi çalışır.")
             }
@@ -563,7 +582,7 @@ struct CloneSignatureSummary: Equatable {
         if signedHere {
             return valid
                 ? String(localized: "Dock'ta görünmemesi için bu Mac'te imzalandı, imza geçerli. Anthropic'in imzası olmadığı için Gatekeeper'ın kabul etmemesi beklenen bir durum.")
-                : String(localized: "Bu Mac'te yapılan imza geçersiz. Hesap kapalıyken Dock ayarını kapatıp açarak klonu yenileyebilirsin.")
+                : String(localized: "Bu Mac'te yapılan imza geçersiz. Hesap kapalıyken \"Dock'ta gösterme\" ayarını kapat, hesabı bir kez açıp kapat, sonra ayarı yeniden aç. Klon bir sonraki açılışta baştan hazırlanır.")
         }
         let signature = valid ? String(localized: "İmza geçerli") : String(localized: "İmza geçersiz")
         let gate = gatekeeper ? String(localized: "Gatekeeper kabul ediyor") : String(localized: "Gatekeeper kabul etmiyor")

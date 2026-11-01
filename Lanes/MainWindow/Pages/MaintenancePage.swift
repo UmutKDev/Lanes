@@ -113,8 +113,10 @@ struct AccountStorageView: View {
                         // Off while measuring too, as when the sizes were
                         // cleared during a re-measure: the old cache size is
                         // still on screen, but the folders may be gone.
-                        .disabled(isRunning || isMeasuring || (sizes?.cache ?? 0) == 0)
-                        .help(isRunning ? "Önce bu hesabın Claude'unu kapat." : "Claude'un önbellek klasörlerini sil")
+                        // Never for the plain Claude.app account: its folders
+                        // belong to Claude itself, and Lanes does not change them.
+                        .disabled(profile.isDefault || isRunning || isMeasuring || (sizes?.cache ?? 0) == 0)
+                        .help(profile.isDefault ? "Claude uygulamasının kendi klasörlerine Lanes dokunmaz." : isRunning ? "Önce bu hesabın Claude'unu kapat." : "Claude'un önbellek klasörlerini sil")
                         .fixedSize()
                     // Says why the button is off while the account is open.
                     // Always laid out, so opening or quitting moves nothing.
@@ -199,7 +201,7 @@ struct AccountStorageView: View {
     }
 
     private func cleanCache() async {
-        guard !model.isRunning(profile) else { return }
+        guard !profile.isDefault, !model.isRunning(profile) else { return }
         let folders = CacheFolders.urls(in: model.paths.effectiveDesktopDataDirectory(for: profile))
         let freed = sizes?.cache ?? 0
         var failed = false

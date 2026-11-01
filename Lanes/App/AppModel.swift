@@ -74,6 +74,13 @@ final class AppModel {
     /// The clone being made for each account, so a second request, such as
     /// opening an account right after adding it, waits for the same copy.
     @ObservationIgnored private var cloneTasks: [ProfileID: Task<URL?, Never>] = [:]
+    /// Clones of removed accounts that were still running at removal; each
+    /// goes to the Trash once its Claude closes.
+    @ObservationIgnored private var pendingCloneRemovals: Set<ProfileID> = []
+    /// Accounts being opened right now, so a second request (a double
+    /// click, a startup scene and the reopen list together) does not start
+    /// a second Claude on the same folder.
+    @ObservationIgnored private var launchesInProgress: Set<ProfileID> = []
     @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
     /// The account Claude Code is signed in to for each profile, read from
     /// its `.claude.json` (email, name and organization only).
@@ -128,9 +135,9 @@ final class AppModel {
             Log.app.error("Profile list unreadable, restored from backup")
             // Saving now moves the unreadable file aside and keeps it.
             save()
-            notice = Notice(kind: .warning, message: String(localized: "Profil listesi okunamadı, son sağlam kopyasından geri yüklendi. Okunamayan dosya aynı klasörde başka bir adla saklandı."))
+            notice = Notice(kind: .warning, message: String(localized: "Hesap listesi okunamadı, son sağlam kopyasından geri yüklendi. Okunamayan dosya aynı klasörde başka bir adla saklandı."))
         } else if let loadError = startup.loadError {
-            notice = Notice(kind: .error, message: String(localized: "Profil listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
+            notice = Notice(kind: .error, message: String(localized: "Hesap listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
@@ -185,8 +192,30 @@ final class AppModel {
                 MainActor.assumeIsolated { self?.frontChangedToCurrentApp() }
             },
         ]
+        // Time with another macOS user active is nobody's time in front.
+        sleepObservers.append(center.addObserver(forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.frontChanged(to: nil) }
+        })
+        sleepObservers.append(center.addObserver(forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.frontChangedToCurrentApp() }
+        })
         sleepObservers.append(center.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.isPoweringOff = true }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.isPoweringOff = true
+                // The running interval would otherwise be lost with Lanes.
+                self.flushFrontTime()
+                // Lanes still running five minutes later means the shut down
+                // or log out was cancelled. The reopen list is left as it was
+                // saved before the power-off began: a slow shut down may still
+                // be quitting accounts, and saving now would shorten it.
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 300_000_000_000)
+                    guard let self else { return }
+                    self.isPoweringOff = false
+                    self.frontChangedToCurrentApp()
+                }
+            }
         })
         frontChangedToCurrentApp()
         Task { await stepAsideFromSignInIfNeeded() }
@@ -220,6 +249,11 @@ final class AppModel {
         let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
         for item in owned {
             guard let profile = profile(withID: item.id), !profile.isDefault else { continue }
+            // The account in front is in use: idle time starts when it leaves.
+            if front == item.pid {
+                lastActiveAt[item.id] = now
+                continue
+            }
             // An account first seen now gets its whole time from now.
             let lastActive = lastActiveAt[item.id] ?? now
             lastActiveAt[item.id] = lastActive
@@ -357,12 +391,21 @@ final class AppModel {
             frontTime.record(current.id, from: current.since, to: now)
             // Leaving the front is the last moment it was used.
             noteUsed(current.id)
+            if lastActiveAt[current.id] != nil {
+                lastActiveAt[current.id] = now
+            }
             frontTime.prune(now: now, keeping: Set(library.profiles.map(\.id)))
             if let data = try? JSONEncoder().encode(frontTime) {
                 UserDefaults.standard.set(data, forKey: "frontTime")
             }
         }
         currentFront = id.map { (id: $0, since: now) }
+    }
+
+    /// Writes the running front interval, before Lanes quits or the Mac
+    /// powers off.
+    func flushFrontTime() {
+        frontChanged(to: nil)
     }
 
     private func frontChangedToCurrentApp() {
@@ -373,9 +416,15 @@ final class AppModel {
     /// Seconds the account was in front over the last `days` days,
     /// counting the time it has been in front right now.
     func frontSeconds(for id: ProfileID, days: Int) -> Double {
-        var total = frontTime.seconds(for: id, days: days, now: Date())
+        let now = Date()
+        var total = frontTime.seconds(for: id, days: days, now: now)
         if let current = currentFront, current.id == id {
-            total += Date().timeIntervalSince(current.since)
+            // Only the part inside the counted days: an interval that began
+            // before midnight must not fill today's limit.
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: now)
+            let windowStart = calendar.date(byAdding: .day, value: -(max(days, 1) - 1), to: today) ?? today
+            total += max(0, now.timeIntervalSince(max(current.since, windowStart)))
         }
         return total
     }
@@ -519,6 +568,14 @@ final class AppModel {
         refreshClaudeCodeAccounts()
         rememberOpenAccounts()
         warnAboutStrayClones()
+        for id in pendingCloneRemovals {
+            // An account that uses a clone again keeps it.
+            if profile(withID: id).map(CloneCheck.usesClone) == true {
+                pendingCloneRemovals.remove(id)
+            } else {
+                removeClone(of: id)
+            }
+        }
         Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
     }
 
@@ -650,12 +707,20 @@ final class AppModel {
                 try? FileManager.default.removeItem(at: temporary)
                 return existing
             }
-            let current = self.profile(withID: profile.id) ?? profile
+            // Or it may have been removed: no clone for an account that is gone.
+            guard let current = self.profile(withID: profile.id) else {
+                try? FileManager.default.removeItem(at: temporary)
+                return nil
+            }
             if current.hidesFromDock {
                 // Signing again takes a few seconds, so it runs off the main thread.
                 try await Task.detached(priority: .userInitiated) {
                     try CloneMaker.hideFromDock(temporary)
                 }.value
+                guard self.profile(withID: profile.id) != nil else {
+                    try? FileManager.default.removeItem(at: temporary)
+                    return nil
+                }
             }
             try CloneMaker.install(temporary, as: paths.cloneBundle(for: current), icon: MonogramIcon.image(for: current), paths: paths)
             try CloneRecord(profile: current, claudeVersion: claude.version).write(to: paths.cloneRecordFile(for: profile.id))
@@ -664,8 +729,11 @@ final class AppModel {
             Notifier.post(.cloneRenewed, body: String(localized: "\(current.name) klonu hazır."))
             return CloneMaker.existingBundle(in: folder) ?? destination
         } catch {
-            Log.app.error("Clone failed: \(error.localizedDescription, privacy: .public)")
             CloneMaker.removeLeftovers(in: folder)
+            // Removing the account trashes the folder the copy writes into;
+            // that is no error to report.
+            guard self.profile(withID: profile.id) != nil else { return nil }
+            Log.app.error("Clone failed: \(error.localizedDescription, privacy: .public)")
             notice = Notice(kind: .error, message: String(localized: "\(profile.name) için klon hazırlanamadı. \(CloneMaker.explanation(for: error))"))
             Notifier.post(.cloneRenewed, body: String(localized: "\(profile.name) için klon hazırlanamadı."))
             refreshCloneStatuses()
@@ -674,11 +742,20 @@ final class AppModel {
     }
 
     /// Moves an account's clone folder to the Trash. A running clone stays
-    /// until the account closes.
+    /// until the account closes; refreshInstances then removes it.
     private func removeClone(of id: ProfileID) {
         let folder = paths.cloneFolder(for: id)
-        guard FileManager.default.fileExists(atPath: folder.path) else { return }
-        if instances.contains(where: { $0.profileID == id && paths.isClonePath($0.applicationBundlePath) }) { return }
+        guard FileManager.default.fileExists(atPath: folder.path) else {
+            pendingCloneRemovals.remove(id)
+            return
+        }
+        // Matched by the bundle's folder, since a removed account's running
+        // clone no longer maps to a profile.
+        if instances.contains(where: { paths.profileID(forCloneBundle: $0.applicationBundlePath) == id }) {
+            pendingCloneRemovals.insert(id)
+            return
+        }
+        pendingCloneRemovals.remove(id)
         do {
             try FileManager.default.trashItem(at: folder, resultingItemURL: nil)
         } catch {
@@ -714,6 +791,10 @@ final class AppModel {
     }
 
     func openAndWait(_ profile: Profile) async {
+        // A removed account is not opened, even from a list made before.
+        guard self.profile(withID: profile.id) != nil, !launchesInProgress.contains(profile.id) else { return }
+        launchesInProgress.insert(profile.id)
+        defer { launchesInProgress.remove(profile.id) }
         lastActiveAt[profile.id] = Date()
         if let id = activationWarningID, notice?.id == id {
             notice = nil
@@ -725,6 +806,8 @@ final class AppModel {
         }
         refreshInstances()
         let clone = isRunning(profile) ? nil : await prepareClone(for: profile)
+        // The account may have been removed while its clone was made.
+        guard self.profile(withID: profile.id) != nil else { return }
         let action = LaunchPlanner.action(
             for: profile,
             running: instances,
@@ -827,6 +910,11 @@ final class AppModel {
             var isDirectory: ObjCBool = false
             return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
         }
+        if let folder, !profile.allowsFolder(folder) {
+            let name = (folder as NSString).lastPathComponent
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(name) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+            return
+        }
         do {
             try SystemActions.openClaudeCodeInTerminal(
                 for: profile,
@@ -926,6 +1014,23 @@ final class AppModel {
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
         }
+    }
+
+    /// Quits the account's Claude, waits up to 10 seconds for it to close,
+    /// then removes the account. Returns false, with a notice, when it is
+    /// still open, so no Claude is left running on a removed account.
+    func quitAndRemoveProfile(_ profile: Profile) async -> Bool {
+        quit(profile)
+        for _ in 0..<20 where isRunning(profile) {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            refreshInstances()
+        }
+        guard !isRunning(profile) else {
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) kapanmadığı için kaldırılmadı. Claude'u kapatıp yeniden dene."))
+            return false
+        }
+        removeProfile(profile)
+        return true
     }
 
     /// Moves rows of the sidebar's account list, which shows only the
@@ -1176,11 +1281,11 @@ final class AppModel {
             Log.app.info("Saved \(self.library.profiles.count) accounts")
             SpotlightIndex.update(library.activeProfiles)
             if let setAside {
-                notice = Notice(kind: .warning, message: String(localized: "Okunamayan profil listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
+                notice = Notice(kind: .warning, message: String(localized: "Okunamayan hesap listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }
         } catch {
             Log.app.error("Save failed: \(error.localizedDescription)")
-            notice = Notice(kind: .error, message: String(localized: "Profil listesi kaydedilemedi: \(error.localizedDescription)"))
+            notice = Notice(kind: .error, message: String(localized: "Hesap listesi kaydedilemedi: \(error.localizedDescription)"))
         }
     }
 
@@ -1225,7 +1330,7 @@ final class AppModel {
         return (try? JSONDecoder().decode(LinkRules.self, from: data)) ?? LinkRules()
     }
 
-    private func takeLinks() async {
+    func takeLinks() async {
         guard !LinkHandlerRegistry.lanesIsHandler else { return }
         do {
             try await LinkHandlerRegistry.setHandler(Bundle.main.bundleURL)
@@ -1237,7 +1342,7 @@ final class AppModel {
     }
 
     /// Hands the `claude://` default back to Claude if Lanes holds it.
-    private func giveLinksBackToClaude() async {
+    func giveLinksBackToClaude() async {
         guard LinkHandlerRegistry.lanesIsHandler, let claude else { return }
         try? await LinkHandlerRegistry.setHandler(claude.url)
     }
@@ -1315,7 +1420,7 @@ final class AppModel {
             }
         }
         guard let pid = instance(for: profile)?.pid else {
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id), at: 0)
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: openWithClaudeInstead(link, missed: profile) ?? String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id), at: 0)
             return
         }
         if justOpened {
@@ -1331,8 +1436,17 @@ final class AppModel {
         } catch {
             Log.app.error("Link routing failed: \(error.localizedDescription)")
             notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: openWithClaudeInstead(link, missed: profile) ?? String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
         }
+    }
+
+    /// A link the chosen account could not take still opens, in Claude
+    /// itself, so the click is never lost. Returns the outcome line, or nil
+    /// when Claude is missing.
+    private func openWithClaudeInstead(_ link: ClaudeLink, missed profile: Profile) -> String? {
+        guard let claude else { return nil }
+        NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        return String(localized: "Claude uygulamasına iletildi (\(profile.name) hesabına iletilemedi).")
     }
 
     /// Names a link's kind without any part of the link.
