@@ -31,6 +31,7 @@ enum SystemActions {
         #!/bin/zsh -l
         printf '\\e]0;%s\\a' \(title)
         \(changeDirectory)
+        \(ClaudeCodeCommand.pathExport)
         \(ClaudeCodeCommand.command(for: profile, paths: paths, arguments: arguments))
         exec /bin/zsh -l
 

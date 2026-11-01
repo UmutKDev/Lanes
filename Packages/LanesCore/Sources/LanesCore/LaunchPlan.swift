@@ -132,6 +132,32 @@ public enum LaunchAction: Equatable, Sendable {
 /// Builds the shell commands that run Claude Code with a profile's account, for
 /// the "open in Terminal" action and for copying to the clipboard.
 public enum ClaudeCodeCommand {
+    /// Where Claude Code's installers put the `claude` command: the official
+    /// installer (`~/.local/bin`), the older local install, then Homebrew.
+    /// `~` stands for the home folder.
+    public static let wellKnownDirectories = [
+        "~/.local/bin",
+        "~/.claude/local",
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+    ]
+
+    /// A line for a zsh script that puts those folders on PATH. The official
+    /// installer adds `~/.local/bin` only in `~/.zshrc`, which a script run
+    /// by Terminal never reads, so `claude` was "command not found" there.
+    public static var pathExport: String {
+        let folders = wellKnownDirectories.map { $0.hasPrefix("~/") ? "$HOME/" + $0.dropFirst(2) : $0 }
+        return "export PATH=\"" + folders.joined(separator: ":") + ":$PATH\""
+    }
+
+    /// The `claude` paths to try, with `~` expanded against `home`.
+    public static func candidatePaths(home: String) -> [String] {
+        wellKnownDirectories.map { folder in
+            let expanded = folder.hasPrefix("~/") ? home + "/" + folder.dropFirst(2) : folder
+            return expanded + "/claude"
+        }
+    }
+
     /// `CLAUDE_CONFIG_DIR='…' claude`, or plain `claude` for the default profile.
     public static func command(for profile: Profile, paths: ProfilePaths, arguments: [String] = []) -> String {
         var parts: [String] = []
