@@ -250,20 +250,3 @@ struct ShortcutsSettings: View {
         .settingsForm()
     }
 }
-
-struct WindowBadgeSettings: View {
-    @AppStorage(Preferences.Key.showsFrontAccountInMenuBar) private var showsFrontAccount = true
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle("Simge öndeki Claude'un hesabını göstersin", isOn: $showsFrontAccount)
-            } header: {
-                Text("Menü çubuğu")
-            } footer: {
-                Text("Öndeki pencere Lanes'in açtığı bir hesaba aitse menü çubuğundaki simge o hesabın rengini ve harfini alır. Başka bir uygulamaya geçince simge eski hâline döner. Lanes Claude pencerelerine bir şey eklemez.")
-            }
-        }
-        .settingsForm()
-    }
-}

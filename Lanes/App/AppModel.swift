@@ -903,7 +903,8 @@ final class AppModel {
         }
     }
 
-    /// Removes the profile from Lanes. Its folders stay on disk, but adding
+    /// Removes the profile from Lanes. Its data folder stays on disk and its
+    /// clone goes to the Trash. Adding
     /// the account again creates a new, empty folder, so the user signs in
     /// again.
     func removeProfile(_ profile: Profile) {
@@ -918,7 +919,10 @@ final class AppModel {
             var rules = linkRules
             rules.prune(profiles: Set(library.profiles.map(\.id)))
             if rules != linkRules { setLinkRules(rules) }
-            notice = Notice(kind: .info, message: String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında duruyor."))
+            let folderStays = FileManager.default.fileExists(atPath: paths.profileDirectory(for: profile.id).path)
+            notice = Notice(kind: .info, message: folderStays
+                ? String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında duruyor, Claude kopyası Çöp Sepeti'nde.")
+                : String(localized: "\(profile.name) kaldırıldı. Claude kopyası Çöp Sepeti'nde."))
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
         }

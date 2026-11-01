@@ -97,7 +97,12 @@ struct UsagePage: View {
         .chartXAxis {
             AxisMarks(values: days) { _ in
                 AxisGridLine()
-                AxisValueLabel(format: .dateTime.day(), centered: true)
+            }
+            // Labels at each day's noon, not centred between marks: a
+            // centred label needs a next mark, so the last day (today)
+            // lost its label.
+            AxisMarks(values: middays(days)) { _ in
+                AxisValueLabel(format: .dateTime.day(), anchor: .top)
             }
         }
         .frame(height: Self.sessionsChartHeight)
@@ -149,7 +154,12 @@ struct UsagePage: View {
         .chartXAxis {
             AxisMarks(values: days) { _ in
                 AxisGridLine()
-                AxisValueLabel(format: .dateTime.weekday(.abbreviated), centered: true)
+            }
+            // Labels at each day's noon, not centred between marks: a
+            // centred label needs a next mark, so the last day (today)
+            // lost its label.
+            AxisMarks(values: middays(days)) { _ in
+                AxisValueLabel(format: .dateTime.weekday(.abbreviated), anchor: .top)
             }
         }
         .chartYAxisLabel("dakika")
@@ -178,6 +188,11 @@ struct UsagePage: View {
     /// The chart's days, each once and oldest first: one axis label per bar.
     private func chartDays(_ days: [Date]) -> [Date] {
         Array(Set(days)).sorted()
+    }
+
+    /// Noon of each day, where its label sits under its bar.
+    private func middays(_ days: [Date]) -> [Date] {
+        days.map { $0.addingTimeInterval(12 * 60 * 60) }
     }
 
     /// Every day of the chart, empty ones too, from the first day's start

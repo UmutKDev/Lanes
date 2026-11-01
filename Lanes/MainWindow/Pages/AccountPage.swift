@@ -573,9 +573,13 @@ private struct AccountClaudeCodeTab: View {
                 Section {
                     ForEach(recent, id: \.self) { folder in
                         AccountFolderRow(url: folder) {
+                            // Fixed size: the path beside it has the higher
+                            // layout priority and squeezed the title away.
                             Button("Aç") {
                                 model.openClaudeCode(profile, in: folder)
                             }
+                            .fixedSize()
+                            .help("Claude Code'u bu klasörde, Terminalde aç")
                             DSIconButton("Listeden çıkar", systemImage: "minus.circle.fill", role: .destructive) {
                                 model.forgetRecentFolder(folder.path, for: profile)
                             }
@@ -608,26 +612,21 @@ private struct AccountClaudeCodeTab: View {
     }
 }
 
-/// A one-line command on a soft fill. It scrolls sideways instead of
-/// breaking inside a path or an identifier.
+/// A command on a soft fill, wrapped when it is wider than the page, with a
+/// copy button.
 private struct CommandLineBlock: View {
     let text: String
 
     var body: some View {
-        HStack(spacing: DS.Space.s) {
-            ScrollView(.horizontal) {
-                Text(verbatim: text)
-                    .font(DS.Typography.code)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .textSelection(.enabled)
-                    .padding(.vertical, DS.Space.s)
-            }
-            // A legacy scroller ("Always show scroll bars" or a mouse) would
-            // sit inside the block over the command; the hover help, text
-            // selection and the copy button still give the whole command.
-            .scrollIndicators(.never)
-            .help(text)
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+            // Wrapped instead of a hidden horizontal scroll, which read as a
+            // command cut off at the right edge.
+            Text(verbatim: text)
+                .font(DS.Typography.code)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
+                .padding(.vertical, DS.Space.s)
             DSCopyButton(text: text)
         }
         .padding(.leading, DS.Space.m)
