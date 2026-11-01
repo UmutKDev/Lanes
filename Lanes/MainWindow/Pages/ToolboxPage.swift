@@ -238,13 +238,18 @@ struct ToolboxPage: View {
     /// Reads the saved server list (not the editor's unsaved text) and
     /// drops switches for servers and accounts that are gone.
     private func reloadServers() {
-        let servers = (try? Data(contentsOf: toolbox.mcpConfigFile)).flatMap { try? MCPConfig.servers(in: $0) } ?? [:]
+        let parsed = (try? Data(contentsOf: toolbox.mcpConfigFile)).flatMap { try? MCPConfig.servers(in: $0) }
+        let servers = parsed ?? [:]
         savedServers = servers.keys.sorted().map { (name: $0, isRemote: MCPConfig.isRemote(servers[$0] ?? .null)) }
         var settings = MCPAccountSettings.load(from: toolbox.mcpAccountsFile)
-        let before = settings
-        settings.prune(servers: Set(servers.keys), profiles: Set(model.library.profiles.map(\.id)))
-        if settings != before {
-            try? settings.save(to: toolbox.mcpAccountsFile)
+        // Forget switches only when both lists were really read; a file
+        // that can't be read for a moment must not turn servers back on.
+        if let parsed, !model.library.profiles.isEmpty {
+            let before = settings
+            settings.prune(servers: Set(parsed.keys), profiles: Set(model.library.profiles.map(\.id)))
+            if settings != before {
+                try? settings.save(to: toolbox.mcpAccountsFile)
+            }
         }
         mcpAccounts = settings
     }
@@ -280,6 +285,11 @@ struct ToolboxPage: View {
     }
 
     private func importPack() {
+        let saved = (try? String(contentsOf: toolbox.mcpConfigFile, encoding: .utf8)) ?? MCPConfig.template
+        guard mcpText == saved else {
+            model.notice = AppModel.Notice(kind: .warning, message: String(localized: "MCP sunucularında kaydedilmemiş değişiklik var. Önce kaydet, sonra ekip paketini içe aktar."))
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: TeamPack.fileExtension) ?? .json, .json]
         panel.allowsMultipleSelection = false

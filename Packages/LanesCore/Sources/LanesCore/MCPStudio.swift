@@ -180,7 +180,8 @@ public struct TeamPack: Codable, Equatable, Sendable {
         var total = 0
         for item in Toolbox.Item.allCases {
             for (path, url) in textFiles(under: toolbox.url(of: item), relativeTo: item.rawValue, isFolder: item.isFolder, skipped: &skipped) {
-                guard let data = try? Data(contentsOf: url) else { skipped.append(path); continue }
+                let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                guard size <= maximumFileSize, let data = try? Data(contentsOf: url) else { skipped.append(path); continue }
                 guard data.count <= maximumFileSize, let text = String(data: data, encoding: .utf8), !text.contains("\0") else {
                     skipped.append(path)
                     continue
@@ -242,9 +243,15 @@ public struct TeamPack: Codable, Equatable, Sendable {
                 result.skippedFiles.append(path)
                 continue
             }
-            try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try Data(text.utf8).write(to: url, options: .withoutOverwriting)
-            result.addedFiles.append(path)
+            // One file that can't be written (say a file where the pack has
+            // a folder) doesn't stop the rest; it is listed as skipped.
+            do {
+                try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try Data(text.utf8).write(to: url, options: .withoutOverwriting)
+                result.addedFiles.append(path)
+            } catch {
+                result.skippedFiles.append(path)
+            }
         }
         return result
     }
@@ -279,6 +286,29 @@ public struct TeamPack: Codable, Equatable, Sendable {
                 names.append(name)
             }
             fields[key] = .object(cleared)
+        }
+        // A token in the address: the user name and password go, and the
+        // query keeps its parameter names with empty values.
+        if case let .string(address)? = fields["url"], var components = URLComponents(string: address) {
+            var changed = false
+            if components.user != nil || components.password != nil {
+                components.user = nil
+                components.password = nil
+                names.append("url (kullanıcı:parola)")
+                changed = true
+            }
+            if let items = components.queryItems, !items.isEmpty, items.contains(where: { !($0.value ?? "").isEmpty }) {
+                components.queryItems = items.map { URLQueryItem(name: $0.name, value: "") }
+                names += items.map { "url ?\($0.name)" }
+                changed = true
+            }
+            if components.fragment != nil {
+                components.fragment = nil
+                changed = true
+            }
+            if changed, let cleaned = components.string {
+                fields["url"] = .string(cleaned)
+            }
         }
         return (.object(fields), names.sorted())
     }

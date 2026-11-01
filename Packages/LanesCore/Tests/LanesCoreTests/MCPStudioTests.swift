@@ -124,6 +124,24 @@ final class MCPStudioTests: XCTestCase {
         XCTAssertNil(TeamPack.destination(of: "commands/.hidden", in: toolbox))
     }
 
+    func testURLSecretsAreBlanked() {
+        let (clean, names) = TeamPack.blank(.object(["url": .string("https://bob:pw@mcp.example.com/sse?token=abc&team=1#x")]))
+        XCTAssertEqual(clean, .object(["url": .string("https://mcp.example.com/sse?token=&team=")]))
+        XCTAssertEqual(names, ["url (kullanıcı:parola)", "url ?team", "url ?token"])
+        let (plain, none) = TeamPack.blank(.object(["url": .string("https://mcp.example.com/mcp")]))
+        XCTAssertEqual(plain, .object(["url": .string("https://mcp.example.com/mcp")]))
+        XCTAssertEqual(none, [])
+    }
+
+    func testInstallSkipsUnwritableFiles() throws {
+        let pack = TeamPack(kind: TeamPack.kind, version: 1, exportedAt: Date(), mcpServers: [:], files: ["commands/a/b.md": "x", "commands/c.md": "y"], blanked: [])
+        try FileManager.default.createDirectory(at: toolbox.url(of: .commands), withIntermediateDirectories: true)
+        try Data("file, not folder".utf8).write(to: toolbox.url(of: .commands).appendingPathComponent("a"))
+        let result = try pack.install(into: toolbox)
+        XCTAssertEqual(result.addedFiles, ["commands/c.md"])
+        XCTAssertEqual(result.skippedFiles, ["commands/a/b.md"])
+    }
+
     func testNotAPack() {
         XCTAssertThrowsError(try TeamPack.decode(Data(#"{"kind":"lanes-accounts"}"#.utf8)))
     }
