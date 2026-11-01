@@ -55,8 +55,8 @@ enum Preferences {
         UserDefaults.standard.object(forKey: Key.showsRunningCountInMenuBar) as? Bool ?? true
     }
 
-    /// Debug builds show the Faz 0 checks and the pages that are not built
-    /// yet; builds for testers hide them until the setting is turned on.
+    /// Debug builds show the Faz 0 checks; builds for testers hide them until
+    /// the setting is turned on.
     static let developerPagesDefault: Bool = {
         #if DEBUG
         return true
@@ -64,10 +64,6 @@ enum Preferences {
         return false
         #endif
     }()
-
-    static var showsDeveloperPages: Bool {
-        UserDefaults.standard.object(forKey: Key.showsDeveloperPages) as? Bool ?? developerPagesDefault
-    }
 
     /// Off until Faz 0 shows that links can be delivered to the right window.
     static var linkRoutingEnabled: Bool {

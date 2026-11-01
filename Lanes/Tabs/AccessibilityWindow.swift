@@ -78,10 +78,6 @@ struct AccessibilityWindow {
         return moved == .success
     }
 
-    func raise() {
-        AXUIElementPerformAction(element, kAXRaiseAction as CFString)
-    }
-
     private static func elementValue(_ element: AXUIElement, _ attribute: String) -> AXUIElement? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,

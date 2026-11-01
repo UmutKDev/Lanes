@@ -76,8 +76,8 @@ enum Destination: Hashable {
         }
     }
 
-    /// Whether the sidebar lists the page. Pages that are not built yet and
-    /// the Faz 0 checks only show with the developer pages setting.
+    /// Whether the sidebar lists the page. Only the Faz 0 checks need the
+    /// developer pages setting.
     func isVisible(showingDeveloperPages: Bool) -> Bool {
         switch self {
         case .validation: return showingDeveloperPages
@@ -136,17 +136,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .advanced: return "slider.horizontal.3"
         }
     }
-
-    /// Panes that are not built yet only show with the developer pages setting.
-    var isBuilt: Bool {
-        switch self {
-        case .general, .menuBarAndDock, .tabs, .shortcuts, .notifications, .updates, .advanced: return true
-        }
-    }
-
-    static func visible(showingDeveloperPages: Bool) -> [SettingsPane] {
-        allCases.filter { $0.isBuilt || showingDeveloperPages }
-    }
 }
 
 enum AccountTab: String, CaseIterable, Identifiable {
@@ -163,22 +152,11 @@ enum AccountTab: String, CaseIterable, Identifiable {
         switch self {
         case .general: return String(localized: "Genel")
         case .identity: return String(localized: "Kimlik")
-        case .desktop: return String(localized: "Desktop")
+        case .desktop: return String(localized: "Uygulama")
         case .claudeCode: return String(localized: "Claude Code")
         case .security: return String(localized: "Güvenlik")
         case .storage: return String(localized: "Depolama")
         }
-    }
-
-    /// Tabs that are not built yet only show with the developer pages setting.
-    var isBuilt: Bool {
-        switch self {
-        case .general, .identity, .desktop, .claudeCode, .security, .storage: return true
-        }
-    }
-
-    static func visible(showingDeveloperPages: Bool) -> [AccountTab] {
-        allCases.filter { $0.isBuilt || showingDeveloperPages }
     }
 }
 

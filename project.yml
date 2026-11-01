@@ -50,7 +50,7 @@ targets:
         SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
         # Updates are checked by default instead of asking on the second launch.
         SUEnableAutomaticChecks: true
-        NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Normal kullanımda bağlantı, ileti ya da başka bir komut göndermez."
+        NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Bağlantı yönlendirme açıksa claude:// bağlantılarını da seçilen hesabın Claude'una iletir, \"Claude Ayarlarını Aç\" düğmesi de ayarlar bağlantısını gönderir. Giriş bağlantılarını hiçbir zaman iletmez."
         # Declared so Faz 0 can test taking over claude:// links. Lanes hands
         # the default back to Claude on launch unless link routing is on.
         CFBundleURLTypes:
@@ -65,8 +65,6 @@ targets:
       properties:
         # Needed under the hardened runtime to send Apple Events to Claude.
         com.apple.security.automation.apple-events: true
-        # Voice mode in accounts that run inside Lanes. macOS still asks.
-        com.apple.security.device.audio-input: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes

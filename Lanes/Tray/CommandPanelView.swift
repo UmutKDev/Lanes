@@ -505,7 +505,7 @@ struct AccountCardView: View {
             SystemActions.copy(model.claudeCodeCommand(for: profile))
         }
         Divider()
-        Button("Hesap Ayarları…") {
+        Button("Hesap Sayfası") {
             router.showAccount(profile)
         }
         if isRunning {

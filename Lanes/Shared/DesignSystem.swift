@@ -59,7 +59,6 @@ enum DS {
         static let rowTitle: Font = .body
         static let rowSubtitle: Font = .subheadline
         static let caption: Font = .caption
-        static let metric: Font = .title3.weight(.semibold)
         static let metricSmall: Font = .callout.weight(.semibold)
         static let code: Font = .system(.callout, design: .monospaced)
         static let path: Font = .system(.caption, design: .monospaced)
@@ -124,7 +123,7 @@ enum DS {
 
     /// Monogram sizes. Only these sizes are used.
     enum Monogram {
-        /// Tab strip, web tab accessory.
+        /// Tab strip, menu bar panel, link table rows.
         static let tiny: CGFloat = 16
         /// Sidebar, settings, lists, inline labels.
         static let small: CGFloat = 20
@@ -872,22 +871,9 @@ extension View {
         modifier(DSHoverHighlight(cornerRadius: cornerRadius))
     }
 
-    /// Floating glass surface (notice bar). Not for content cards.
-    func dsFloatingGlass(cornerRadius: CGFloat = DS.Radius.floating, tint: Color? = nil) -> some View {
-        glassEffect(
-            tint.map { Glass.regular.tint($0) } ?? Glass.regular,
-            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        )
-    }
-
     /// The one prominent action of a context (toolbar, card, panel footer).
     func dsPrimaryAction(tint: Color? = nil) -> some View {
         buttonStyle(.glassProminent).tint(tint)
-    }
-
-    /// Secondary action outside Forms. Inside Forms keep the default bordered style.
-    func dsSecondaryAction() -> some View {
-        buttonStyle(.glass)
     }
 
     /// Overlays an empty state instead of swapping the root view.

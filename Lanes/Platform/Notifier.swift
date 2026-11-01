@@ -14,6 +14,7 @@ enum Notifier {
         case idleQuit
         case dailyLimit
         case memoryHigh
+        case launchFailed
 
         var id: String { rawValue }
 
@@ -28,13 +29,15 @@ enum Notifier {
             case .idleQuit: return String(localized: "Kullanılmayan bir hesap kapatıldı")
             case .dailyLimit: return String(localized: "Bir hesap günlük süresini doldurdu")
             case .memoryHigh: return String(localized: "Açık hesaplar çok bellek kullanıyor")
+            case .launchFailed: return String(localized: "Bir hesap açılamadı")
             }
         }
 
         /// Reminders the user turns on where they set them (a daily limit,
-        /// a memory limit) have no switch of their own.
+        /// a memory limit) have no switch of their own, and neither does a
+        /// failed open, which shows only when no Lanes window could show it.
         static var switchable: [Kind] {
-            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh }
+            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh && $0 != .launchFailed }
         }
 
         var isEnabled: Bool {

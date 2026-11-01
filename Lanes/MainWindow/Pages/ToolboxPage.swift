@@ -177,9 +177,14 @@ struct ToolboxPage: View {
         } catch MCPConfig.Failure.noServerList {
             mcpSaved = false
             mcpStatus = String(localized: "Kaydedilmedi: \"mcpServers\" nesnesi yok.")
-        } catch {
+        } catch MCPConfig.Failure.notJSON {
             mcpSaved = false
             mcpStatus = String(localized: "Kaydedilmedi: geçerli bir JSON değil.")
+        } catch {
+            // The JSON was fine; the folder or file could not be written
+            // (permissions, full disk), so say that instead.
+            mcpSaved = false
+            mcpStatus = String(localized: "Kaydedilmedi: \(error.localizedDescription)")
         }
     }
 }

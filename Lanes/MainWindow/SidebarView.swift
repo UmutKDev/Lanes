@@ -80,14 +80,12 @@ struct SidebarView: View {
                 }
 
                 if !isSearching {
-                    if showsDeveloperPages {
-                        Section("Yönlendirme") {
-                            rows([.accountMap, .links])
-                        }
+                    Section("Yönlendirme") {
+                        rows([.accountMap, .links])
+                    }
 
-                        Section("Kitaplık") {
-                            rows([.toolbox, .scenes])
-                        }
+                    Section("Kitaplık") {
+                        rows([.toolbox, .scenes])
                     }
 
                     Section("Sistem") {
@@ -136,9 +134,21 @@ struct SidebarView: View {
             ),
             presenting: profilePendingRemoval
         ) { profile in
-            Button("Kaldır", role: .destructive) {
-                navigation.forget(profile.id)
-                model.removeProfile(profile)
+            if model.isRunning(profile) {
+                // Removing an open account would leave its Claude running on
+                // a folder Lanes no longer knows, so it is closed first.
+                Button("Kapat ve Kaldır", role: .destructive) {
+                    Task {
+                        if await model.quitAndRemoveProfile(profile) {
+                            navigation.forget(profile.id)
+                        }
+                    }
+                }
+            } else {
+                Button("Kaldır", role: .destructive) {
+                    navigation.forget(profile.id)
+                    model.removeProfile(profile)
+                }
             }
         } message: { profile in
             Text(removalMessage(for: profile))
@@ -169,7 +179,7 @@ struct SidebarView: View {
             ? String(localized: "Hesabın klasörü silinmez, yerinde kalır: \(folder). Claude kopyası Çöp Sepeti'ne taşınır. Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
             : String(localized: "Bu hesap hiç açılmadığı için klasörü yok. Claude kopyası Çöp Sepeti'ne taşınır.")
         if model.isRunning(profile) {
-            message += "\n\n" + String(localized: "Bu hesabın Claude'u şu an açık. Kaldırmadan önce onu kapatman iyi olur.")
+            message += "\n\n" + String(localized: "Bu hesabın Claude'u şu an açık. Lanes önce onu kapatır, sonra hesabı kaldırır.")
         }
         return message
     }
@@ -260,8 +270,14 @@ struct InspectorView: View {
                                 .textSelection(.enabled)
                         }
                     }
-                    LabeledContent("Mod", value: profile.mode.displayName)
-                    LabeledContent("Tür", value: profile.accountClass.displayName)
+                    // Claude.app's own account has no launch mode or class of
+                    // its own; the page and the panel say the same.
+                    if profile.isDefault {
+                        LabeledContent("Tür", value: String(localized: "Claude uygulamasının kendi hesabı"))
+                    } else {
+                        LabeledContent("Açılış biçimi", value: profile.mode.displayName)
+                        LabeledContent("Tür", value: profile.accountClass.displayName)
+                    }
                 }
             }
             Section("Çalışan Claude pencereleri") {

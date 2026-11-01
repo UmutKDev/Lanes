@@ -375,7 +375,7 @@ private struct TabButton: View {
                 model.openClaudeCode(profile)
             }
             Divider()
-            Button("Hesap Ayarları…") {
+            Button("Hesap Sayfası") {
                 router.showAccount(profile)
             }
         }

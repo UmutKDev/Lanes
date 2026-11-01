@@ -64,6 +64,12 @@ struct AccountIdentityTab: View {
                      : "Claude Code'un bu hesap için tuttuğu dosyadan alındı. Lanes yalnız e-posta, ad ve kuruluş alanlarını okur; giriş anahtarlarına ve Claude uygulamasının verilerine dokunmaz.")
             }
             Section {
+                Button("Claude Ayarlarını Aç", action: openClaudeSettings)
+                    .disabled(!model.isRunning(profile))
+            } footer: {
+                Text("Claude'un ayarları bu hesabın kendi penceresinde açılır. Bunun için hesap açık olmalı.")
+            }
+            Section {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
                     Text("Not")
                     TextField("Not", text: $note, prompt: Text("Örneğin hangi iş için"), axis: .vertical)
@@ -103,6 +109,24 @@ struct AccountIdentityTab: View {
             }
         }
         .onDisappear(perform: commit)
+    }
+
+    /// Sends the settings link to this account's own Claude, the same GURL
+    /// event link routing uses, so the settings never open in another
+    /// account's window.
+    private func openClaudeSettings() {
+        guard let pid = model.instance(for: profile)?.pid,
+              let url = URL(string: "claude://claude.ai/settings"),
+              let link = ClaudeLink(url: url) else { return }
+        let name = profile.name
+        Task {
+            do {
+                try await AppleEvents.sendLink(link, to: pid)
+                await InstanceLauncher.activate(pid: pid)
+            } catch {
+                model.notice = AppModel.Notice(kind: .warning, message: String(localized: "Claude'un ayarları \(name) hesabında açılamadı: \(error.localizedDescription)"))
+            }
+        }
     }
 
     private func commit() {

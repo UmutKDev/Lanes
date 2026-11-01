@@ -9,7 +9,6 @@ import SwiftUI
 struct AccountPage: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     let profileID: ProfileID
 
     var body: some View {
@@ -31,17 +30,17 @@ struct AccountPage: View {
 
     /// Claude.app's own account only shows what Lanes can do with it.
     private func tabs(for profile: Profile) -> [AccountTab] {
-        let visible = AccountTab.visible(showingDeveloperPages: showsDeveloperPages)
-        return profile.isDefault ? visible.filter { [.general, .claudeCode].contains($0) } : visible
+        let all = AccountTab.allCases
+        return profile.isDefault ? all.filter { [.general, .claudeCode].contains($0) } : all
     }
 
     private var tabBinding: Binding<AccountTab> {
         Binding(get: { tab }, set: { navigation.accountTab = $0 })
     }
 
-    /// The chosen tab, or General when the setting hides it.
+    /// The chosen tab.
     private var tab: AccountTab {
-        navigation.accountTab.isBuilt || showsDeveloperPages ? navigation.accountTab : .general
+        navigation.accountTab
     }
 
     /// One line: state, class and mode, shortcut, archive. One string, so it
@@ -481,7 +480,7 @@ private struct AccountDesktopTab: View {
     var body: some View {
         let dataDirectory = model.paths.effectiveDesktopDataDirectory(for: profile)
         Form {
-            Section("Claude Desktop") {
+            Section("Claude uygulaması") {
                 LabeledContent("Durum") {
                     Group {
                         if let instance = model.instance(for: profile) {
@@ -524,7 +523,7 @@ private struct AccountDesktopTab: View {
                 Text("Veri klasörü")
             } footer: {
                 Text(profile.isDefault
-                     ? String(localized: "Ana hesap Claude'un kendi klasörünü kullanır.")
+                     ? String(localized: "Claude uygulamasının kendi hesabı, Claude'un varsayılan klasörünü kullanır.")
                      : String(localized: "Oturumların, ayarların ve önbellek bu klasörde durur. Başka hiçbir hesap bu klasörü görmez."))
             }
         }
@@ -553,7 +552,7 @@ private struct AccountClaudeCodeTab: View {
                 Text("Yerel Claude Code")
             } footer: {
                 Text(profile.isDefault
-                     ? String(localized: "Ana hesap Claude Code'un kendi klasörünü (~/.claude) kullanır.")
+                     ? String(localized: "Claude uygulamasının kendi hesabı, Claude Code'un varsayılan klasörünü (~/.claude) kullanır.")
                      : String(localized: "Bu hesabın Claude Code oturumları ve ayarları bu klasörde durur. Diğer hesaplar aynı anda kendi klasörleriyle çalışabilir."))
             }
             Section("Komut") {
@@ -756,6 +755,8 @@ struct CloneStatusRow: View {
         let isPreparing = model.clonesInProgress.contains(profile.id)
         let needsWork = model.cloneStatuses[profile.id]?.needsWork == true
         let isRunning = model.isRunning(profile)
+        // makeClone needs Claude.app to copy; without it the button would do nothing.
+        let hasClaude = model.claude != nil
         DSStatusRow(isPreparing ? .loading : dsStatus, title: Text(isPreparing ? String(localized: "Klon hazırlanıyor…") : text)) {
             EmptyView()
         } accessory: {
@@ -764,8 +765,8 @@ struct CloneStatusRow: View {
             }
             .controlSize(.small)
             .fixedSize()
-            .disabled(isRunning || isPreparing || !needsWork)
-            .help(isRunning ? "Açık bir klon yenilenmez. Hesabı kapatınca yeniden dene." : "Klonu şimdi oluştur ya da yenile")
+            .disabled(isRunning || isPreparing || !needsWork || !hasClaude)
+            .help(isRunning ? "Açık bir klon yenilenmez. Hesabı kapatınca yeniden dene." : (hasClaude ? "Klonu şimdi oluştur ya da yenile" : "Claude bulunamadı"))
             .opacity(needsWork ? 1 : 0)
             .accessibilityHidden(!needsWork)
         }
