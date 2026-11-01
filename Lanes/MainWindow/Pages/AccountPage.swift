@@ -567,20 +567,34 @@ private struct AccountClaudeCodeTab: View {
     let profile: Profile
 
     /// Whether Claude Code uses `~/.claude`. Claude gets its environment at
-    /// launch, so it changes only while the account is closed. Nothing is
-    /// moved either way.
+    /// launch, so it changes only while the account is closed. Turning it
+    /// off copies the account's own sessions into its new folder;
+    /// `~/.claude` itself never changes.
     private var sharedToggle: some View {
         let isRunning = model.isRunning(profile)
         return Toggle("~/.claude ile ortak", isOn: Binding(
             get: { profile.usesSharedClaudeCode },
             set: { on in
+                let wasShared = profile.usesSharedClaudeCode
                 var changed = profile
                 changed.usesSharedClaudeCode = on
                 model.updateProfile(changed)
+                if wasShared, !on {
+                    model.copySharedSessions(for: changed, quietWhenNone: true)
+                }
             }
         ))
         .disabled(isRunning)
         .help(isRunning ? String(localized: "Önce bu hesabın Claude'unu kapat.") : "")
+    }
+
+    /// For an account that left `~/.claude` before Lanes copied sessions,
+    /// or whose app started more sessions there since.
+    private var copySessionsButton: some View {
+        Button("Oturumları ~/.claude'dan Kopyala") {
+            model.copySharedSessions(for: profile)
+        }
+        .help("Bu hesabın Claude uygulamasında görünen oturumları ~/.claude'dan bu klasöre kopyalar. ~/.claude değişmez.")
     }
 
     var body: some View {
@@ -591,6 +605,9 @@ private struct AccountClaudeCodeTab: View {
                 PathRow(url: model.paths.effectiveClaudeCodeConfigDirectory(for: profile))
                 if !profile.isDefault {
                     sharedToggle
+                    if !profile.usesSharedClaudeCode {
+                        copySessionsButton
+                    }
                 }
             } header: {
                 Text("Yerel Claude Code")

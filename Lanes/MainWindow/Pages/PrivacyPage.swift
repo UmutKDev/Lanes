@@ -56,6 +56,12 @@ struct PrivacyPage: View {
                     help: "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez."
                 )
                 PrivacyItem(
+                    systemImage: "doc.on.doc",
+                    title: "Claude uygulamasının Code oturum kayıtları",
+                    detail: "Yalnız oturum numaraları okunur; saklanmaz.",
+                    help: "Bir hesapta \"~/.claude ile ortak\" kapatılınca, claude-code-sessions kayıtlarında geçen oturumların dosyaları ~/.claude'dan hesabın kendi klasörüne kopyalanır. ~/.claude değişmez."
+                )
+                PrivacyItem(
                     systemImage: "person.text.rectangle",
                     title: "Claude Code'un giriş yaptığı hesap",
                     detail: "Yalnız e-posta, ad, kuruluş adı ve hesap numarası okunur, saklanmaz.",

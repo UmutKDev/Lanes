@@ -1561,6 +1561,37 @@ final class AppModel {
         resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
     }
 
+    /// Copies the account's own Claude Code sessions from `~/.claude` into
+    /// its own folder. The Claude app keeps listing the Code sessions it
+    /// started while the account shared `~/.claude`; without their files in
+    /// the new folder it shows "session not found". Only sessions the app's
+    /// records name are copied, `~/.claude` is only read, and nothing
+    /// already in the account's folder is replaced.
+    ///
+    /// - Parameter quietWhenNone: No notice when there is nothing to copy,
+    ///   as when the shared folder was just turned off.
+    func copySharedSessions(for profile: Profile, quietWhenNone: Bool = false) {
+        guard let own = paths.claudeCodeConfigDirectory(for: profile),
+              let data = paths.desktopDataDirectory(for: profile) else { return }
+        let shared = paths.claudeCodeDefaultConfigDirectory.appendingPathComponent("projects", isDirectory: true)
+        let target = own.appendingPathComponent("projects", isDirectory: true)
+        let name = profile.name
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                let ids = SharedSessionCopy.sessionIDs(inDesktopData: data)
+                return SharedSessionCopy.copy(SharedSessionCopy.plan(sessionIDs: ids, sharedProjects: shared, targetProjects: target))
+            }.value
+            if result.failed > 0 {
+                notice = Notice(kind: .warning, message: String(localized: "\(result.failed) oturum kopyalanamadı."))
+            } else if result.copied > 0 {
+                notice = Notice(kind: .info, message: String(localized: "\(name) hesabının oturumları kendi klasörüne kopyalandı (\(result.copied))."))
+            } else if !quietWhenNone {
+                notice = Notice(kind: .info, message: String(localized: "Kopyalanacak oturum yok. Bu hesabın oturumları zaten kendi klasöründe."))
+            }
+            Log.app.info("Copied \(result.copied, privacy: .public) shared Claude Code sessions, \(result.failed, privacy: .public) failed")
+        }
+    }
+
     /// Copies Lanes made with "Başka Hesapla Sürdür", by path, with the
     /// file's date right after copying.
     private static let handoffCopiesKey = "sessionHandoffCopies"

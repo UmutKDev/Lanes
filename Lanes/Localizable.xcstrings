@@ -10112,6 +10112,98 @@
           }
         }
       }
+    },
+    "%lld oturum kopyalanamadı.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld session couldn't be copied."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld sessions couldn't be copied."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ hesabının oturumları kendi klasörüne kopyalandı (%lld).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessions copied to %1$@'s own folder (%2$lld)."
+          }
+        }
+      }
+    },
+    "Kopyalanacak oturum yok. Bu hesabın oturumları zaten kendi klasöründe.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to copy. This account's sessions are already in its own folder."
+          }
+        }
+      }
+    },
+    "Oturumları ~/.claude'dan Kopyala": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Sessions from ~/.claude"
+          }
+        }
+      }
+    },
+    "Bu hesabın Claude uygulamasında görünen oturumları ~/.claude'dan bu klasöre kopyalar. ~/.claude değişmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copies the sessions this account's Claude app lists from ~/.claude into this folder. ~/.claude doesn't change."
+          }
+        }
+      }
+    },
+    "Claude uygulamasının Code oturum kayıtları": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Claude app's Code session records"
+          }
+        }
+      }
+    },
+    "Yalnız oturum numaraları okunur; saklanmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only session IDs are read; nothing is kept."
+          }
+        }
+      }
+    },
+    "Bir hesapta \"~/.claude ile ortak\" kapatılınca, claude-code-sessions kayıtlarında geçen oturumların dosyaları ~/.claude'dan hesabın kendi klasörüne kopyalanır. ~/.claude değişmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When \"Shared with ~/.claude\" is turned off for an account, the files of the sessions named in its claude-code-sessions records are copied from ~/.claude into the account's own folder. ~/.claude doesn't change."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
