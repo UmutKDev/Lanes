@@ -184,7 +184,7 @@ final class AppModel {
         let store = ProfileStore(paths: paths)
         let claudeFolder = paths.claudeDesktopDefaultDataDirectory
         let startup = store.startup(
-            claudeAppAccountName: FileManager.default.fileExists(atPath: claudeFolder.path) ? String(localized: "Claude uygulaması") : nil
+            claudeAppAccountName: FileManager.default.fileExists(atPath: claudeFolder.path) ? String(localized: "Ana hesap") : nil
         )
         self.paths = paths
         self.store = store
@@ -209,6 +209,20 @@ final class AppModel {
         } else if startup.addedClaudeAppAccount {
             save()
         }
+        renameDefaultAccountIfUntouched()
+    }
+
+    /// 1.0.0 to 1.0.1 named the Claude app's account "Claude uygulaması",
+    /// the same as its kind line. A name the user never changed becomes
+    /// "Ana hesap", once.
+    private func renameDefaultAccountIfUntouched() {
+        let key = "renamedDefaultAccount"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        let oldNames: Set<String> = ["Claude uygulaması", "Claude app"]
+        guard let index = library.profiles.firstIndex(where: { $0.isDefault && oldNames.contains($0.name) }) else { return }
+        library.profiles[index].rename(to: String(localized: "Ana hesap"))
+        save()
     }
 
     func start() {

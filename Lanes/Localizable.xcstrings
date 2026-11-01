@@ -10032,6 +10032,26 @@
           }
         }
       }
+    },
+    "Ana hesap": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main account"
+          }
+        }
+      }
+    },
+    "Claude Code: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code: %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
