@@ -105,6 +105,11 @@ final class AppModel {
     @ObservationIgnored private var claudeCodeWrites: [ProfileID: ClaudeCodeActivityWatcher.Write] = [:]
     /// Each account's estimated Claude Code state; idle accounts are left out.
     private(set) var claudeCodePulse: [ProfileID: ClaudeCodePulse] = [:]
+    /// The project folder each account's Claude Code last wrote in, kept
+    /// apart from the dates so views redraw only when it changes.
+    private(set) var claudeCodeFolders: [ProfileID: String] = [:]
+    /// Goes up with every session write, for pages that list sessions.
+    private(set) var claudeCodeWriteCount = 0
     @ObservationIgnored private var resourceTimer: Timer?
     /// The day each account's daily limit reminder last showed.
     @ObservationIgnored private var limitRemindedOn: [ProfileID: String] = [:]
@@ -259,8 +264,10 @@ final class AppModel {
         }
         sampleResources()
         activityWatcher.onWrite = { [weak self] id, write in
-            self?.claudeCodeWrites[id] = write
-            self?.updateClaudeCodePulse()
+            guard let self else { return }
+            claudeCodeWrites[id] = write
+            claudeCodeWriteCount += 1
+            updateClaudeCodePulse()
         }
         watchClaudeCodeActivity()
         seedClaudeCodeActivity()
@@ -318,13 +325,17 @@ final class AppModel {
         if pulse != claudeCodePulse {
             claudeCodePulse = pulse
         }
+        let folders = claudeCodeWrites.mapValues(\.projectFolderName)
+        if folders != claudeCodeFolders {
+            claudeCodeFolders = folders
+        }
     }
 
     /// The encoded project folder an account's Claude Code is writing in
     /// right now, while its pulse is working.
     func claudeCodeWorkingFolder(for id: ProfileID) -> String? {
         guard claudeCodePulse[id] == .working else { return nil }
-        return claudeCodeWrites[id]?.projectFolderName
+        return claudeCodeFolders[id]
     }
 
     /// Readable project names by encoded folder name, so views showing the
@@ -334,7 +345,7 @@ final class AppModel {
     /// The project an account's Claude Code last wrote in, by name, while
     /// it is working or was used minutes ago.
     func claudeCodeActiveProject(for profile: Profile) -> String? {
-        guard claudeCodePulse[profile.id] != nil, let folder = claudeCodeWrites[profile.id]?.projectFolderName else { return nil }
+        guard claudeCodePulse[profile.id] != nil, let folder = claudeCodeFolders[profile.id] else { return nil }
         if let cached = projectNameCache[folder] {
             return cached
         }

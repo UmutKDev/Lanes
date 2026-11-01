@@ -17,18 +17,23 @@ final class ClaudeCodeActivityWatcher {
     var onWrite: ((ProfileID, Write) -> Void)?
 
     private var stream: FSEventStreamRef?
-    private var roots: [(id: ProfileID, path: String)] = []
+    /// Watched folders and the accounts using each; two accounts can share
+    /// one Claude Code folder.
+    private var roots: [String: [ProfileID]] = [:]
 
     /// Watches these folders, replacing the previous set. Folders that do
     /// not exist yet are skipped; the caller passes them again later.
     func watch(_ folders: [ProfileID: URL]) {
-        let existing = folders.compactMap { id, url -> (id: ProfileID, path: String)? in
+        var existing: [String: [ProfileID]] = [:]
+        for (id, url) in folders {
             var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else { return nil }
-            return (id, url.resolvingSymlinksInPath().standardizedFileURL.path)
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else { continue }
+            existing[Self.canonicalPath(url.path), default: []].append(id)
         }
-        .sorted { $0.path < $1.path }
-        guard existing.map(\.path) != roots.map(\.path) || existing.map(\.id) != roots.map(\.id) else { return }
+        for key in existing.keys {
+            existing[key]?.sort { $0.rawValue < $1.rawValue }
+        }
+        guard existing != roots else { return }
         stop()
         roots = existing
         guard !existing.isEmpty else { return }
@@ -40,11 +45,21 @@ final class ClaudeCodeActivityWatcher {
             release: nil,
             copyDescription: nil
         )
-        let callback: FSEventStreamCallback = { _, info, count, paths, _, _ in
+        let callback: FSEventStreamCallback = { _, info, count, paths, flags, _ in
             guard let info else { return }
             let watcher = Unmanaged<ClaudeCodeActivityWatcher>.fromOpaque(info).takeUnretainedValue()
             let list = Unmanaged<CFArray>.fromOpaque(paths).takeUnretainedValue() as? [String] ?? []
-            let changed = Array(list.prefix(count))
+            // Removals (Claude Code clearing old sessions at start) and
+            // renames are not work, so only writes and new files count.
+            let removed = FSEventStreamEventFlags(kFSEventStreamEventFlagItemRemoved | kFSEventStreamEventFlagItemRenamed)
+            let written = FSEventStreamEventFlags(kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemCreated)
+            var changed: [String] = []
+            for index in 0..<min(count, list.count) {
+                let flag = flags[index]
+                if flag & removed == 0, flag & written != 0 {
+                    changed.append(list[index])
+                }
+            }
             MainActor.assumeIsolated {
                 watcher.handle(changed)
             }
@@ -54,7 +69,7 @@ final class ClaudeCodeActivityWatcher {
             kCFAllocatorDefault,
             callback,
             &context,
-            existing.map(\.path) as CFArray,
+            Array(existing.keys) as CFArray,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
             1.0,
             flags
@@ -72,16 +87,26 @@ final class ClaudeCodeActivityWatcher {
         self.stream = nil
     }
 
+    /// The real path, keeping /private, which FSEvents reports and
+    /// URL.resolvingSymlinksInPath would drop.
+    static func canonicalPath(_ path: String) -> String {
+        guard let resolved = realpath(path, nil) else { return path }
+        defer { free(resolved) }
+        return String(cString: resolved)
+    }
+
     private func handle(_ paths: [String]) {
         let now = Date()
         var latest: [ProfileID: Write] = [:]
         for path in paths where path.hasSuffix(".jsonl") {
-            guard let root = roots.first(where: { path.hasPrefix($0.path + "/") }) else { continue }
+            guard let root = roots.keys.first(where: { path.hasPrefix($0 + "/") }), let ids = roots[root] else { continue }
             // projects/<folder>/<session>.jsonl; deeper files (subagent
             // logs) still name their project by the first part.
-            let relative = path.dropFirst(root.path.count + 1).split(separator: "/")
+            let relative = path.dropFirst(root.count + 1).split(separator: "/")
             guard relative.count >= 2 else { continue }
-            latest[root.id] = Write(date: now, projectFolderName: String(relative[0]))
+            for id in ids {
+                latest[id] = Write(date: now, projectFolderName: String(relative[0]))
+            }
         }
         for (id, write) in latest {
             onWrite?(id, write)

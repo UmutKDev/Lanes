@@ -74,8 +74,10 @@ public struct ProjectMap: Equatable, Sendable {
     /// twice (two profiles on the same Claude Code folder) counts once.
     public init(lists: [(profileID: ProfileID, sessions: ClaudeCodeSessionList)]) {
         var byFolder: [String: [ProfileID: Use]] = [:]
+        var seen: Set<String> = []
         for (profileID, list) in lists {
             for session in list.sessions {
+                guard seen.insert("\(profileID.rawValue)/\(session.projectFolderName)/\(session.id)").inserted else { continue }
                 var uses = byFolder[session.projectFolderName] ?? [:]
                 if var use = uses[profileID] {
                     use.sessionCount += 1

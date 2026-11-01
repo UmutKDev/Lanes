@@ -47,6 +47,7 @@ final class ProjectMapTests: XCTestCase {
         let list = ClaudeCodeSessionList(sessions: [session("a", "-p", 1)])
         let map = ProjectMap(lists: [(work, list), (work, list)])
         XCTAssertEqual(map.projects[0].uses.count, 1)
+        XCTAssertEqual(map.projects[0].sessionCount, 1)
         XCTAssertFalse(map.projects[0].isShared)
     }
 

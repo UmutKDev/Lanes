@@ -59,9 +59,11 @@ struct SessionsPage: View {
         }
         .dsEmptyState(!isLoading && isEmpty) {
             DSEmptyState(
-                "Oturum yok",
-                systemImage: Destination.sessions.symbol,
-                description: Text("Bir hesapla Claude Code'u açtığında oturumları burada görünür. Lanes yalnız oturum dosyalarının adına ve tarihine bakar, içlerini açmaz.")
+                mode == .sessions ? "Oturum yok" : "Proje yok",
+                systemImage: mode == .sessions ? Destination.sessions.symbol : "folder",
+                description: mode == .sessions
+                    ? Text("Bir hesapla Claude Code'u açtığında oturumları burada görünür. Lanes yalnız oturum dosyalarının adına ve tarihine bakar, içlerini açmaz.")
+                    : Text("Claude Code'u bir klasörde açtığında proje burada, o projede çalışan hesaplarla birlikte görünür.")
             )
         }
         .searchable(text: $search, placement: .toolbar, prompt: "Projede ara")
@@ -96,10 +98,15 @@ struct SessionsPage: View {
                 .disabled(isLoading)
             }
         }
-        .task { await load() }
-        // A session Claude Code just wrote shows up without a manual refresh.
-        .onChange(of: model.claudeCodePulse) { _, _ in
-            Task { await load() }
+        // A session Claude Code just wrote shows up without a manual
+        // refresh. A new write cancels the pending load, so a busy session
+        // rescans at most every few seconds.
+        .task(id: model.claudeCodeWriteCount) {
+            if !rows.isEmpty {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard !Task.isCancelled else { return }
+            }
+            await load()
         }
     }
 
@@ -234,7 +241,7 @@ private struct ProjectRowView: View {
                 if let path = row.path {
                     DSPathText(url: PathRow.displayURL(for: URL(fileURLWithPath: path, isDirectory: true)))
                 } else {
-                    Text("Klasör artık yok")
+                    Text("Klasör bulunamadı")
                         .font(DS.Typography.path)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
