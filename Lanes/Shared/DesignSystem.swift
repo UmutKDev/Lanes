@@ -88,7 +88,9 @@ enum DS {
 
     /// Layout metrics shared across windows.
     enum Metrics {
-        static let windowMinWidth: CGFloat = 900
+        /// A page and the inspector side by side (the sidebar steps aside
+        /// when all three do not fit). At 920 pt the account forms clipped.
+        static let windowMinWidth: CGFloat = 1000
         /// Detail width the window keeps for a page while the sidebar and the
         /// inspector are both open; below it the sidebar steps aside.
         static let threeColumnDetailWidth: CGFloat = 680
