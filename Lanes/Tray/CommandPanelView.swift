@@ -208,7 +208,7 @@ struct CommandPanelView: View {
         let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles
         guard !text.isEmpty else { return profiles }
         return profiles.filter { profile in
-            SearchText.matches(text, in: [profile.name, profile.email ?? "", profile.note ?? ""])
+            SearchText.matches(text, in: [profile.name, model.email(for: profile) ?? "", profile.note ?? ""])
         }
     }
 

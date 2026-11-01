@@ -77,6 +77,9 @@ final class AppModel {
     /// opening an account right after adding it, waits for the same copy.
     @ObservationIgnored private var cloneTasks: [ProfileID: Task<URL?, Never>] = [:]
     @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
+    /// The account Claude Code is signed in to for each profile, read from
+    /// its `.claude.json` (email, name and organization only).
+    private(set) var claudeCodeAccounts: [ProfileID: ClaudeCodeAccount] = [:]
     /// Memory and CPU of each open account's Claude, read every few seconds.
     private(set) var resourceUsage: [ProfileID: ResourceUsage] = [:]
     /// When each open account was last in front or opened, for quitting
@@ -515,9 +518,30 @@ final class AppModel {
             refreshCloneStatuses()
         }
         knownPIDs = pids
+        refreshClaudeCodeAccounts()
         rememberOpenAccounts()
         warnAboutStrayClones()
         Log.instances.debug("Scan: \(self.instances.count) running, \(self.instances.filter { $0.profileID == nil }.count) outside Lanes")
+    }
+
+    /// Re-reads which account Claude Code is signed in to for every profile.
+    /// Only `oauthAccount`'s email, display name and organization name are
+    /// read from each `.claude.json`; nothing that signs in is touched.
+    func refreshClaudeCodeAccounts() {
+        var found: [ProfileID: ClaudeCodeAccount] = [:]
+        for profile in library.profiles {
+            if let account = ClaudeCodeAccount.read(from: paths.claudeCodeAccountFile(for: profile)) {
+                found[profile.id] = account
+            }
+        }
+        if found != claudeCodeAccounts {
+            claudeCodeAccounts = found
+        }
+    }
+
+    /// The account's email: what Claude Code reports, else what the user typed.
+    func email(for profile: Profile) -> String? {
+        claudeCodeAccounts[profile.id]?.email ?? profile.email
     }
 
     /// Claude.app and every clone on disk, including Faz 0 clones in the
