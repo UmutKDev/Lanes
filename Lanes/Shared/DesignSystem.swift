@@ -88,10 +88,10 @@ enum DS {
 
     /// Layout metrics shared across windows.
     enum Metrics {
-        /// Sidebar + the account page's tab bar (its six segments need about
-        /// 520 pt) + the inspector, so opening the inspector never squeezes
-        /// the sidebar to a sliver or pushes the inspector off the window.
-        static let windowMinWidth: CGFloat = 980
+        static let windowMinWidth: CGFloat = 900
+        /// Detail width the window keeps for a page while the sidebar and the
+        /// inspector are both open; below it the sidebar steps aside.
+        static let threeColumnDetailWidth: CGFloat = 680
         static let windowMinHeight: CGFloat = 580
         static let sidebarMin: CGFloat = 200
         static let sidebarIdeal: CGFloat = 230
