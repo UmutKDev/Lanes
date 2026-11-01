@@ -97,6 +97,7 @@ struct ImportClaudeFolderSheet: View {
             color = nextFreeColor()
         }
         .onChange(of: selection) {
+            pickError = nil
             suggestName()
         }
         .task {
