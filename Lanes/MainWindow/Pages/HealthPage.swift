@@ -388,8 +388,15 @@ struct HealthPage: View {
             }
         } else {
             HealthRow(state: .info, title: profile.name) {
-                Text("Klasörü: \(shown). Lanes bu oturumda açılışını görmedi, ayrılık denetlenmedi.")
-                    .help(folder.path)
+                // The sentence first and the folder on its own line, so the
+                // shortened path never reads as part of the sentence.
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    Text("Lanes bu oturumda açılışını görmedi, ayrılık denetlenmedi.")
+                    Text(verbatim: shown)
+                        .font(DS.Typography.path)
+                        .textSelection(.enabled)
+                        .help(folder.path)
+                }
             }
         }
     }
