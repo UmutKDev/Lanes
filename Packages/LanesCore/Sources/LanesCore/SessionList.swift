@@ -42,8 +42,10 @@ public struct ClaudeCodeSessionList: Equatable, Sendable {
 
     /// The project folder a session ran in. Claude Code turns every `/` (and
     /// `.`) of the path into `-`, so a name with hyphens has more than one
-    /// reading. The first reading that exists on disk wins, trying the
-    /// fewest splits first; nil when none exists.
+    /// reading. The reading with the fewest splits that exists on disk
+    /// wins; within a name, a plain `-` before one `.`. Nil when none
+    /// exists. Only `exists` checks are made, never a folder listing, so
+    /// protected folders such as Documents never ask for access.
     public static func projectPath(forFolderName name: String, exists: (String) -> Bool) -> String? {
         guard name.hasPrefix("-") else { return nil }
         let parts = name.dropFirst().split(separator: "-", omittingEmptySubsequences: false).map(String.init)
@@ -53,14 +55,18 @@ public struct ClaudeCodeSessionList: Equatable, Sendable {
         // Walk the parts, joining with "-" while the joined name is not a
         // folder of its own, so "/Users/u/my-app" reads back.
         while index < parts.count {
-            var component = parts[index]
-            var next = index + 1
-            var best: (String, Int)? = exists(path + "/" + component) ? (component, next) : nil
-            while next < parts.count {
-                component += "-" + parts[next]
-                next += 1
-                if exists(path + "/" + component) {
-                    best = (component, next)
+            var best: (String, Int)?
+            for next in (index + 1)...parts.count {
+                // Each "-" may also have been a ".": "repo.worktrees",
+                // ".config". One dot per name is tried, so the checks stay
+                // few; nothing is listed, only checked.
+                let pieces = Array(parts[index..<next])
+                var candidates = [pieces.joined(separator: "-")]
+                for dot in 1..<max(pieces.count, 1) {
+                    candidates.append(pieces[..<dot].joined(separator: "-") + "." + pieces[dot...].joined(separator: "-"))
+                }
+                if let found = candidates.first(where: { exists(path + "/" + $0) }) {
+                    best = (found, next)
                 }
             }
             guard let (found, end) = best else { return nil }

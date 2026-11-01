@@ -457,9 +457,26 @@ private struct WorktreeSheet: View {
     @State private var profileID: ProfileID?
     @State private var error: String?
     @State private var isWorking = false
+    @State private var hasGit = GitWorktree.isAvailable
 
     var body: some View {
         Form {
+            if !hasGit {
+                Section {
+                    DSStatusRow(.warning, title: Text("Xcode Komut Satırı Araçları gerekiyor")) {
+                        Text("Worktree'yi git oluşturur ve bu Mac'te git kurulu değil. Kurulum Apple'ın penceresinde birkaç dakika sürer; bitince Yeniden Dene'ye bas.")
+                    } accessory: {
+                        HStack {
+                            Button("Araçları Kur…") {
+                                GitWorktree.installCommandLineTools()
+                            }
+                            Button("Yeniden Dene") {
+                                hasGit = GitWorktree.isAvailable
+                            }
+                        }
+                    }
+                }
+            }
             Section {
                 LabeledContent("Depo", value: repository.lastPathComponent)
                 TextField("Dal", text: $branch, prompt: Text("feature/giris"))
@@ -503,7 +520,7 @@ private struct WorktreeSheet: View {
                     start()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(isWorking || !WorktreePlan.isValidBranchName(branch) || folderExists || selectedProfile == nil)
+                .disabled(!hasGit || isWorking || !WorktreePlan.isValidBranchName(branch) || folderExists || selectedProfile == nil)
             }
         }
         .interactiveDismissDisabled(isWorking)
