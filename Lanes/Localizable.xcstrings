@@ -10052,6 +10052,66 @@
           }
         }
       }
+    },
+    "Claude Code ile uygulama farklı hesaplarda.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code and the app are signed in to different accounts."
+          }
+        }
+      }
+    },
+    "Yalnız e-posta, ad, kuruluş adı ve hesap numarası okunur, saklanmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only email, name, organization name, and account number are read, never stored."
+          }
+        }
+      }
+    },
+    "Claude uygulamasının hesap numarası": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Claude app's account number"
+          }
+        }
+      }
+    },
+    "Claude Code aynı hesapta mı diye bakmak için; saklanmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To check whether Claude Code uses the same account; never stored."
+          }
+        }
+      }
+    },
+    "Her hesabın Claude config.json dosyasından yalnız lastKnownAccountUuid alınır. Aynı dosyadaki giriş anahtarları kullanılmaz, saklanmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only lastKnownAccountUuid is taken from each account's Claude config.json. The sign-in keys in the same file are not used or stored."
+          }
+        }
+      }
+    },
+    "Hesap klasörlerinin içini de açmaz; tek istisna aşağıdaki iki hesap bilgisidir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It doesn't look inside account folders either; the only exceptions are the two account details below."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

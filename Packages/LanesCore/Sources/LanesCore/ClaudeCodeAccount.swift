@@ -1,19 +1,23 @@
 import Foundation
 
 /// The account Claude Code says it is signed in to, read from its own
-/// `.claude.json`. Only the three plain fields of `oauthAccount` are read:
-/// the email address, the display name and the organization name. Tokens are
-/// not in that file (Claude Code keeps them in the Keychain) and nothing else
-/// in it is looked at.
+/// `.claude.json`. Only four plain fields of `oauthAccount` are read: the
+/// email address, the display name, the organization name and the account
+/// number (`accountUuid`, used to tell whether Claude Code and the Claude
+/// app are signed in to the same account). Tokens are not in that file
+/// (Claude Code keeps them in the Keychain) and nothing else in it is looked at.
 public struct ClaudeCodeAccount: Equatable, Sendable {
     public let email: String
     public let displayName: String?
     public let organizationName: String?
+    /// The account number, lowercased; nil when missing or not a UUID.
+    public let accountUuid: String?
 
-    public init(email: String, displayName: String? = nil, organizationName: String? = nil) {
+    public init(email: String, displayName: String? = nil, organizationName: String? = nil, accountUuid: String? = nil) {
         self.email = email
         self.displayName = displayName
         self.organizationName = organizationName
+        self.accountUuid = accountUuid
     }
 
     /// The account in a `.claude.json` file's contents, or nil when Claude
@@ -28,7 +32,8 @@ public struct ClaudeCodeAccount: Equatable, Sendable {
         return ClaudeCodeAccount(
             email: email,
             displayName: clean(account["displayName"]),
-            organizationName: clean(account["organizationName"])
+            organizationName: clean(account["organizationName"]),
+            accountUuid: DesktopAccount.normalizedUuid(account["accountUuid"])
         )
     }
 
