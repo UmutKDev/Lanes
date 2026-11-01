@@ -30,10 +30,13 @@ public struct LinkRules: Codable, Equatable, Sendable {
 
     public var fallback: Target
     public var byKind: [LinkKind: Target]
+    /// "Akıllı Yönlendirme" rules, tried in order before the per-kind ones.
+    public var rules: [LinkRule]
 
-    public init(fallback: Target = .frontmost, byKind: [LinkKind: Target] = [:]) {
+    public init(fallback: Target = .frontmost, byKind: [LinkKind: Target] = [:], rules: [LinkRule] = []) {
         self.fallback = fallback
         self.byKind = byKind
+        self.rules = rules
     }
 
     public init(from decoder: Decoder) throws {
@@ -45,6 +48,8 @@ public struct LinkRules: Codable, Equatable, Sendable {
             if let kind = LinkKind(rawValue: key) { byKind[kind] = value }
         }
         self.byKind = byKind
+        // One by one, so a rule this Lanes cannot read drops only itself.
+        rules = ((try? container.decode([LossyLinkRule].self, forKey: .rules)) ?? []).compactMap(\.rule)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -53,10 +58,11 @@ public struct LinkRules: Codable, Equatable, Sendable {
         var raw: [String: Target] = [:]
         for (kind, target) in byKind { raw[kind.rawValue] = target }
         try container.encode(raw, forKey: .byKind)
+        try container.encode(rules, forKey: .rules)
     }
 
     enum CodingKeys: String, CodingKey {
-        case fallback, byKind
+        case fallback, byKind, rules
     }
 
     public func target(for kind: LinkKind) -> Target {
@@ -66,14 +72,7 @@ public struct LinkRules: Codable, Equatable, Sendable {
     /// The account the link goes to. A rule naming an account that no longer
     /// exists falls back to the front account, then the default one.
     public func profile(for route: ClaudeLink.Route, frontmost: ProfileID?, library: ProfileLibrary) -> Profile? {
-        let frontProfile = frontmost.flatMap(library.profile(withID:))
-        switch target(for: LinkKind(route)) {
-        case let .profile(id):
-            if let profile = library.profile(withID: id) { return profile }
-            return frontProfile ?? library.defaultProfile
-        case .frontmost:
-            return frontProfile ?? library.defaultProfile
-        }
+        decide(route: route, sourceApp: nil, now: Date(), frontmost: frontmost, library: library).profile
     }
 
     /// Drops rules for accounts that no longer exist.
@@ -85,5 +84,18 @@ public struct LinkRules: Codable, Equatable, Sendable {
             if case let .profile(id) = target { return profiles.contains(id) }
             return true
         }
+        rules = rules.filter { rule in
+            if case let .profile(id) = rule.target { return profiles.contains(id) }
+            return true
+        }
+    }
+}
+
+/// Decodes a rule, or nil when it cannot be read, without failing the list.
+private struct LossyLinkRule: Decodable {
+    let rule: LinkRule?
+
+    init(from decoder: Decoder) throws {
+        rule = try? LinkRule(from: decoder)
     }
 }

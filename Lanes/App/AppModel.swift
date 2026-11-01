@@ -27,16 +27,8 @@ final class AppModel {
         }
     }
 
-    struct ReceivedLink: Identifiable {
-        let id = UUID()
-        /// What kind of link arrived. The link itself is never kept, because
-        /// a sign-in link can carry a one-time code.
-        var kind: String
-        var receivedAt: Date
-        var outcome: String
-        /// The account it went to, when Lanes routed it.
-        var target: ProfileID? = nil
-    }
+    /// A link that reached Lanes: its kind, never the link itself.
+    typealias ReceivedLink = LinkLogEntry
 
     let paths: ProfilePaths
     @ObservationIgnored private let store: ProfileStore
@@ -45,7 +37,16 @@ final class AppModel {
     private(set) var library: ProfileLibrary
     private(set) var instances: [RunningInstance] = []
     private(set) var claude: ClaudeInstallation?
+    /// The last 30 days of links, newest first. Kept on disk, so "why did
+    /// this go there" still has an answer tomorrow.
     private(set) var receivedLinks: [ReceivedLink] = []
+    @ObservationIgnored private var linkLog = LinkLog()
+    /// The last app in front that was neither Lanes nor Claude, for when
+    /// a link arrives after Lanes itself came forward.
+    @ObservationIgnored private var lastExternalFrontApp: LinkSourceApp?
+    /// When Lanes started, so checks can tell this run's links from older
+    /// ones in the 30-day log.
+    let launchedAt = Date()
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
     var notice: Notice? {
@@ -152,6 +153,11 @@ final class AppModel {
     @ObservationIgnored private var lastMemoryAlert: Date?
     /// How long each account was in front, per day.
     private(set) var frontTime: FrontTimeLog = AppModel.loadFrontTime()
+    /// Claude Code time per account, project and day, for Zaman Çizelgesi.
+    private(set) var projectTime: ProjectTimeLog = AppModel.loadProjectTime()
+    @ObservationIgnored private var projectTimeDirty = false
+    /// The last write per account and project, for Zaman Çizelgesi.
+    @ObservationIgnored private var projectLastWrite: [ProfileID: [String: Date]] = [:]
     /// The account in front now and since when, not yet in frontTime.
     @ObservationIgnored private var currentFront: (id: ProfileID, since: Date)?
     /// True while time in front is paused because nobody touched the Mac.
@@ -187,6 +193,8 @@ final class AppModel {
         self.shortcuts = AppModel.loadShortcuts()
         self.recentFolders = AppModel.loadRecentFolders()
         self.linkRules = AppModel.loadLinkRules()
+        self.linkLog = LinkLog.load(from: paths.root.appendingPathComponent("LinkLog.json", isDirectory: false), now: Date())
+        self.receivedLinks = linkLog.entries
         validation.currentClaude = { [weak self] in self?.claude }
 
         if startup.restoredFromBackup {
@@ -234,6 +242,9 @@ final class AppModel {
                     self.refreshInstances()
                 }
                 self.frontChanged(to: self.instances.first(where: { $0.pid == pid })?.profileID)
+                if let app, let source = self.externalApp(app) {
+                    self.lastExternalFrontApp = source
+                }
                 guard pid != ProcessInfo.processInfo.processIdentifier else { return }
                 self.hideOtherAccountsIfFocusing(front: pid)
                 if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
@@ -304,6 +315,15 @@ final class AppModel {
         sampleResources()
         activityWatcher.onWrite = { [weak self] id, write in
             guard let self else { return }
+            // Per project, so two sessions of one account in two projects
+            // each keep their own stretch of work.
+            let last = projectLastWrite[id]?[write.projectFolderName]
+            if let last, projectTime.recordWrite(id, folderName: write.projectFolderName, at: write.date, previous: (date: last, folderName: write.projectFolderName)) {
+                projectTimeDirty = true
+            }
+            if (last ?? .distantPast) < write.date {
+                projectLastWrite[id, default: [:]][write.projectFolderName] = write.date
+            }
             claudeCodeWrites[id] = write
             claudeCodeWriteCount += 1
             updateClaudeCodePulse()
@@ -469,6 +489,8 @@ final class AppModel {
     /// asked to be quit after sitting unused.
     private func sampleResources() {
         pauseFrontTimeWhileIdle()
+        saveProjectTimeIfNeeded()
+        postWeeklySummaryIfDue()
         watchClaudeCodeActivity()
         updateClaudeCodePulse()
         let owned = instances.compactMap { instance in
@@ -695,6 +717,64 @@ final class AppModel {
         return total
     }
 
+    // MARK: Zaman Çizelgesi
+
+    private static func loadProjectTime() -> ProjectTimeLog {
+        guard let data = UserDefaults.standard.data(forKey: "projectTime") else { return ProjectTimeLog() }
+        return (try? JSONDecoder().decode(ProjectTimeLog.self, from: data)) ?? ProjectTimeLog()
+    }
+
+    /// Saved at most every ten seconds, from the resource timer, because
+    /// Claude Code writes its session files many times a minute.
+    private func saveProjectTimeIfNeeded() {
+        guard projectTimeDirty else { return }
+        projectTimeDirty = false
+        projectTime.prune(now: Date(), keeping: Set(library.profiles.map(\.id)))
+        if let data = try? JSONEncoder().encode(projectTime) {
+            UserDefaults.standard.set(data, forKey: "projectTime")
+        }
+    }
+
+    /// The week holding `date`, with the time the front account has been in
+    /// front right now added to today.
+    func timesheet(forWeekContaining date: Date) -> Timesheet {
+        var extra: [ProfileID: Double] = [:]
+        if let current = currentFront {
+            let today = Calendar.current.startOfDay(for: Date())
+            extra[current.id] = max(0, Date().timeIntervalSince(max(current.since, today)))
+        }
+        return Timesheet(
+            weekStart: Timesheet.weekStart(containing: date),
+            accounts: library.profiles.map { (id: $0.id, name: $0.name) },
+            front: frontTime,
+            projects: projectTime,
+            extraFront: extra,
+            projectName: { [weak self] folder in self?.projectName(forFolderName: folder) ?? folder }
+        )
+    }
+
+    /// A readable project name, looked up on disk once per folder.
+    func projectName(forFolderName folder: String) -> String {
+        if let cached = projectNameCache[folder] { return cached }
+        let name = ClaudeCodeProjectName.name(forFolderName: folder)
+        projectNameCache[folder] = name
+        return name
+    }
+
+    /// On Monday from 09:00, once a week, last week's time per account,
+    /// when "Pazartesi özeti" is on.
+    private func postWeeklySummaryIfDue(now: Date = Date()) {
+        guard Notifier.Kind.weeklySummary.isEnabled else { return }
+        let calendar = Calendar.current
+        guard calendar.component(.weekday, from: now) == 2, calendar.component(.hour, from: now) >= 9 else { return }
+        let thisWeek = FrontTimeLog.dayKey(Timesheet.weekStart(containing: now))
+        guard UserDefaults.standard.string(forKey: "weeklySummarySentFor") != thisWeek,
+              let lastWeek = calendar.date(byAdding: .day, value: -7, to: now) else { return }
+        UserDefaults.standard.set(thisWeek, forKey: "weeklySummarySentFor")
+        guard let summary = timesheet(forWeekContaining: lastWeek).summary else { return }
+        Notifier.post(.weeklySummary, body: String(localized: "Geçen hafta: \(summary)"))
+    }
+
     private static func loadFrontTime() -> FrontTimeLog {
         guard let data = UserDefaults.standard.data(forKey: "frontTime") else { return FrontTimeLog() }
         return (try? JSONDecoder().decode(FrontTimeLog.self, from: data)) ?? FrontTimeLog()
@@ -857,6 +937,44 @@ final class AppModel {
         }
         if found != claudeCodeAccounts {
             claudeCodeAccounts = found
+        }
+        warnAboutIdentityMismatches()
+    }
+
+    // MARK: Kimlik Bekçisi
+
+    /// The address Claude Code is signed in with when it is not one the
+    /// account expects; nil when it matches, no domain is set, or Claude
+    /// Code has not been signed in.
+    func identityMismatch(for profile: Profile) -> String? {
+        guard !profile.expectedEmailDomains.isEmpty,
+              let email = claudeCodeAccounts[profile.id]?.email,
+              !profile.expectsEmail(email) else { return nil }
+        return email
+    }
+
+    /// The mismatches already told about, so each shows once.
+    @ObservationIgnored private var reportedMismatches: [ProfileID: String] = [:]
+    /// The "Dikkat" banner shown on opening Claude Code with a mismatch,
+    /// taken down once the mismatch is gone.
+    @ObservationIgnored private var identityNotice: (id: UUID, profileID: ProfileID)?
+
+    /// Posts a notification the first time an account's Claude Code is seen
+    /// signed in with an unexpected address. The user set the domain up,
+    /// so it shows whatever the notification settings say.
+    private func warnAboutIdentityMismatches() {
+        var current: [ProfileID: String] = [:]
+        for profile in library.profiles where !profile.isArchived {
+            if let email = identityMismatch(for: profile) { current[profile.id] = email }
+        }
+        for id in current.keys where reportedMismatches[id] != current[id] {
+            guard let profile = profile(withID: id) else { continue }
+            Notifier.post(.identityMismatch, body: String(localized: "\(profile.name) hesabının Claude Code'u beklenmeyen bir hesapla giriş yapmış. Ayrıntılar hesabın Kimlik sekmesinde."), force: true)
+        }
+        reportedMismatches = current
+        if let shown = identityNotice, current[shown.profileID] == nil {
+            if notice?.id == shown.id { notice = nil }
+            identityNotice = nil
         }
     }
 
@@ -1216,6 +1334,11 @@ final class AppModel {
     /// Returns whether Terminal opened.
     @discardableResult
     func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) -> Bool {
+        if let email = identityMismatch(for: profile) {
+            let warning = Notice(kind: .warning, message: String(localized: "Dikkat: \(profile.name) hesabının Claude Code'u beklenmeyen bir adresle (\(email)) giriş yapmış."))
+            notice = warning
+            identityNotice = (id: warning.id, profileID: profile.id)
+        }
         let folder = chosen ?? defaultProjectFolder(for: profile)
         if let folder {
             guard FileManager.default.fileExists(atPath: folder.path) else {
@@ -2021,12 +2144,13 @@ final class AppModel {
         try? await LinkHandlerRegistry.setHandler(claude.url)
     }
 
-    func receive(_ url: URL) {
+    func receive(_ url: URL, senderPID: pid_t? = nil) {
         // A link that launches Lanes arrives before start() has looked for
         // Claude.
         if claude == nil {
             claude = ClaudeInstallation.find(paths: paths)
         }
+        let source = linkSourceApp(senderPID: senderPID)
         let link = ClaudeLink(url: url)
         let outcome: String
         switch ClaudeLink.handling(for: url) {
@@ -2054,7 +2178,7 @@ final class AppModel {
             }
         case .openWithClaude where Preferences.linkRoutingEnabled:
             if let link, case let .routable(route) = link.kind {
-                Task { await deliver(link, route: route) }
+                Task { await deliver(link, route: route, source: source) }
                 return
             }
             outcome = String(localized: "İletilmedi.")
@@ -2067,30 +2191,42 @@ final class AppModel {
                 outcome = String(localized: "Claude bulunamadı, iletilmedi.")
             }
         }
-        receivedLinks.insert(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome), at: 0)
+        logLink(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome, source: source?.name))
     }
 
     /// Sends a routable link to the account the rules pick, opening it first
     /// when it is closed. An account resting after its limit hands the link
     /// to its stand-in.
-    private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
+    private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route, source: LinkSourceApp?) async {
         let kind = Self.kindName(link)
         let focusTarget = focusSettings?.linkProfileID
             .flatMap { library.profile(withID: $0) }
             .flatMap { $0.isArchived ? nil : $0 }
-        guard let chosen = focusTarget ?? linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+        let decision: (profile: Profile?, reason: LinkReason)
+        if let focusTarget {
+            decision = (focusTarget, .focus)
+        } else {
+            decision = linkRules.decide(route: route, sourceApp: source?.bundleIdentifier, now: Date(), frontmost: lastFrontProfileID, library: library)
+        }
+        var reason = Self.describe(decision.reason, source: source)
+        func log(_ outcome: String, target: ProfileID? = nil) {
+            logLink(ReceivedLink(kind: kind, receivedAt: Date(), outcome: outcome, target: target, reason: reason, source: source?.name))
+        }
+        guard let chosen = decision.profile else {
             // No Lanes account has been in front: the link goes to Claude.app.
+            reason = String(localized: "Hiçbir Lanes hesabı öne gelmedi ve varsayılan hesap yok.")
             if let claude {
                 NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
-                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Claude uygulamasına iletildi.")), at: 0)
+                log(String(localized: "Claude uygulamasına iletildi."))
             } else {
-                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
+                log(String(localized: "Hedef hesap yok, iletilmedi."))
             }
             return
         }
         let profile = LimitWatch.effective(chosen, in: library, now: Date())
         if profile.id != chosen.id {
             Log.app.info("Link handed to a stand-in while the chosen account rests")
+            reason += " " + String(localized: "\(chosen.name) limit sonrası dinlendiği için yerine \(profile.name) seçildi.")
         }
         var justOpened = false
         if !isRunning(profile) {
@@ -2102,7 +2238,7 @@ final class AppModel {
             }
         }
         guard let pid = instance(for: profile)?.pid else {
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: openWithClaudeInstead(link, missed: profile) ?? String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id), at: 0)
+            log(openWithClaudeInstead(link, missed: profile) ?? String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id)
             return
         }
         if justOpened {
@@ -2117,11 +2253,11 @@ final class AppModel {
             let outcome = profile.id == chosen.id
                 ? String(localized: "\(profile.name) hesabına iletildi.")
                 : String(localized: "\(profile.name) hesabına iletildi (\(chosen.name) dinleniyor).")
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: outcome, target: profile.id), at: 0)
+            log(outcome, target: profile.id)
         } catch {
             Log.app.error("Link routing failed: \(error.localizedDescription)")
             notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: openWithClaudeInstead(link, missed: profile) ?? String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
+            log(openWithClaudeInstead(link, missed: profile) ?? String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id)
         }
     }
 
@@ -2132,6 +2268,81 @@ final class AppModel {
         guard let claude else { return nil }
         NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
         return String(localized: "Claude uygulamasına iletildi (\(profile.name) hesabına iletilemedi).")
+    }
+
+    /// Adds a link to the 30-day log and saves it.
+    private func logLink(_ entry: ReceivedLink) {
+        linkLog.add(entry, now: Date())
+        receivedLinks = linkLog.entries
+        saveLinkLog()
+    }
+
+    func clearLinkLog() {
+        linkLog.removeAll()
+        receivedLinks = []
+        saveLinkLog()
+    }
+
+    private func saveLinkLog() {
+        do {
+            try linkLog.save(to: paths.root.appendingPathComponent("LinkLog.json", isDirectory: false))
+        } catch {
+            Log.app.error("Saving the link log failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// The app the link was clicked in: the app that sent the open
+    /// request, else the app in front, else the last app other than Lanes
+    /// and Claude that was in front. Lanes and Claude windows never count.
+    /// Only the app's identifier and name are kept.
+    private func linkSourceApp(senderPID: pid_t?) -> LinkSourceApp? {
+        let sender = senderPID.flatMap { NSRunningApplication(processIdentifier: $0) }
+        for app in [sender, NSWorkspace.shared.frontmostApplication].compactMap({ $0 }) {
+            if let source = externalApp(app) { return source }
+            // A link from a Claude window has no outside source.
+            if isClaude(app) { return nil }
+        }
+        // Only Lanes itself was in the way: the app before it counts.
+        return NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
+            ? lastExternalFrontApp : nil
+    }
+
+    private func isClaude(_ app: NSRunningApplication) -> Bool {
+        app.bundleIdentifier == ClaudeInstallation.bundleIdentifier
+            || instances.contains(where: { $0.pid == app.processIdentifier })
+    }
+
+    /// An app that can be a link's source: a regular app that is neither
+    /// Lanes nor a Claude window.
+    private func externalApp(_ app: NSRunningApplication) -> LinkSourceApp? {
+        guard app.activationPolicy == .regular,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              !instances.contains(where: { $0.pid == app.processIdentifier }),
+              let bundleID = app.bundleIdentifier,
+              bundleID != ClaudeInstallation.bundleIdentifier,
+              bundleID != Bundle.main.bundleIdentifier else { return nil }
+        return LinkSourceApp(bundleIdentifier: bundleID, name: app.localizedName ?? bundleID)
+    }
+
+    /// Why a link went where it went, in a sentence for the Bağlantılar log.
+    static func describe(_ reason: LinkReason, source: LinkSourceApp?) -> String {
+        switch reason {
+        case .focus:
+            return String(localized: "Açık odak filtresi bu hesabı seçiyor.")
+        case let .rule(name):
+            if let source {
+                return String(localized: "\"\(name)\" kuralı uydu (\(source.name) uygulamasından geldi).")
+            }
+            return String(localized: "\"\(name)\" kuralı uydu.")
+        case let .kind(kind):
+            return String(localized: "\(kind.title) bağlantıları için Hesap Haritası kuralı.")
+        case .fallback:
+            return String(localized: "Hiçbir kural uymadı; \"Kural yoksa\" ayarı bu hesabı seçiyor.")
+        case .frontmost:
+            return String(localized: "Hiçbir kural uymadı; en son öne gelen hesap seçildi.")
+        case .defaultAccount:
+            return String(localized: "Hiçbir kural uymadı ve hiçbir hesap öne gelmedi; varsayılan hesap seçildi.")
+        }
     }
 
     /// Names a link's kind without any part of the link.

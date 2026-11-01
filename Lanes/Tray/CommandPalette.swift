@@ -135,7 +135,7 @@ final class PaletteController: NSObject, NSWindowDelegate {
             ))
         }
         let router = router
-        let pages: [Destination] = [.overview, .sessions, .usage, .scenes, .accountMap, .links, .toolbox, .integrations, .setup, .health, .maintenance, .privacy, .settings]
+        let pages: [Destination] = [.overview, .sessions, .usage, .timesheet, .scenes, .accountMap, .links, .toolbox, .integrations, .setup, .health, .maintenance, .privacy, .settings]
         for page in pages {
             items.append(PaletteItem(
                 id: "page:\(page.title)",

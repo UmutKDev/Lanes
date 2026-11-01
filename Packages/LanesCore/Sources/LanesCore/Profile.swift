@@ -100,6 +100,10 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// Project folders that belong to this account: `lanes claude` started
     /// in one of them, or below, runs Claude Code with this account.
     public var linkedFolders: [String] { didSet { keptFields[Field.linkedFolders.rawValue] = nil } }
+    /// "Kimlik Bekçisi": the email domains (or whole addresses) this
+    /// account's Claude Code should be signed in with, such as
+    /// `musteri.com`. Empty means no check.
+    public var expectedEmailDomains: [String] { didSet { keptFields[Field.expectedEmailDomains.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -123,7 +127,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         isArchived: Bool = false,
         defaultProjectFolder: String? = nil,
         limitedUntil: Date? = nil,
-        linkedFolders: [String] = []
+        linkedFolders: [String] = [],
+        expectedEmailDomains: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -143,6 +148,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.defaultProjectFolder = defaultProjectFolder
         self.limitedUntil = limitedUntil
         self.linkedFolders = linkedFolders
+        self.expectedEmailDomains = expectedEmailDomains
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -168,7 +174,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil, linkedFolders
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil, linkedFolders, expectedEmailDomains
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -209,6 +215,7 @@ extension Profile {
         defaultProjectFolder = try read(String.self, .defaultProjectFolder)
         limitedUntil = try read(Date.self, .limitedUntil)
         linkedFolders = try read([String].self, .linkedFolders) ?? []
+        expectedEmailDomains = try read([String].self, .expectedEmailDomains) ?? []
         keptFields = kept
     }
 
@@ -240,6 +247,25 @@ extension Profile {
         if let defaultProjectFolder, !defaultProjectFolder.isEmpty { try write(defaultProjectFolder, .defaultProjectFolder) }
         if let limitedUntil { try write(limitedUntil, .limitedUntil) }
         if !linkedFolders.isEmpty { try write(linkedFolders, .linkedFolders) }
+        if !expectedEmailDomains.isEmpty { try write(expectedEmailDomains, .expectedEmailDomains) }
+    }
+
+    /// Whether `email` is one the account expects. True when no domain is
+    /// set. An entry with `@` must match the whole address; otherwise the
+    /// address's domain must be the entry or one of its subdomains.
+    /// Case is ignored.
+    public func expectsEmail(_ email: String) -> Bool {
+        let entries = expectedEmailDomains
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .map { $0.hasPrefix("@") ? String($0.dropFirst()) : $0 }
+            .filter { !$0.isEmpty }
+        guard !entries.isEmpty else { return true }
+        let address = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard let at = address.lastIndex(of: "@") else { return false }
+        let domain = String(address[address.index(after: at)...])
+        return entries.contains { entry in
+            entry.contains("@") ? address == entry : (domain == entry || domain.hasSuffix("." + entry))
+        }
     }
 
     /// Whether the account is resting after hitting its limit.

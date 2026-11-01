@@ -17,6 +17,8 @@ enum Notifier {
         case launchFailed
         case limitReset
         case claudeCodeDone
+        case weeklySummary
+        case identityMismatch
 
         var id: String { rawValue }
 
@@ -34,6 +36,8 @@ enum Notifier {
             case .launchFailed: return String(localized: "Bir hesap açılamadı")
             case .limitReset: return String(localized: "Bir hesabın dinlenmesi bitti")
             case .claudeCodeDone: return String(localized: "Claude Code bitirdi ya da onay bekliyor")
+            case .weeklySummary: return String(localized: "Pazartesi özeti")
+            case .identityMismatch: return String(localized: "Kimlik Bekçisi: beklenmeyen hesap")
             }
         }
 
@@ -41,7 +45,7 @@ enum Notifier {
         /// a memory limit) have no switch of their own, and neither does a
         /// failed open, which shows only when no Lanes window could show it.
         static var switchable: [Kind] {
-            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh && $0 != .launchFailed && $0 != .limitReset && $0 != .claudeCodeDone }
+            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh && $0 != .launchFailed && $0 != .limitReset && $0 != .claudeCodeDone && $0 != .identityMismatch }
         }
 
         var isEnabled: Bool {

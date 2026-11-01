@@ -17,7 +17,7 @@ struct SidebarView: View {
                 // not lost among the page rows.
                 if !isSearching {
                     Section {
-                        rows([.overview, .sessions, .usage])
+                        rows([.overview, .sessions, .usage, .timesheet])
                     }
                 }
 
@@ -30,7 +30,8 @@ struct SidebarView: View {
                                 size: DS.Monogram.small,
                                 isRunning: model.isRunning(profile),
                                 pulse: model.claudeCodePulse[profile.id],
-                                pulseProject: model.claudeCodeActiveProject(for: profile)
+                                pulseProject: model.claudeCodeActiveProject(for: profile),
+                                identityMismatch: model.identityMismatch(for: profile)
                             )
                                 .badge(shortcutBadge(for: profile))
                                 // An explicit tag: inside a movable ForEach the row

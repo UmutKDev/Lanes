@@ -65,6 +65,11 @@ struct PrivacyPage: View {
                     detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi ve Kullanım sayfasında her hesabın önde geçen süresini saymak için. Süreler yalnız bu Mac'te, son 30 gün için saklanır. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Menü Çubuğu ve Dock'taki ayar yalnız menü çubuğu simgesindeki gösterimi kapatır. Önde geçen süre her zaman, yalnız bu Mac'te sayılır."
                 )
                 PrivacyItem(
+                    systemImage: "calendar.badge.clock",
+                    title: "Projelerde geçen Claude Code süresi",
+                    detail: "Zaman Çizelgesi için. Claude Code bir projenin oturum dosyasını en çok beş dakika arayla yazdıkça o süre hesaba ve projeye eklenir. Yalnız dosyaların değişme zamanına bakılır, içleri okunmaz. Saklanan yalnız hesap kimliği, Claude Code'un proje klasör adı ve günlük saniyedir; son 62 gün, yalnız bu Mac'te. Pazartesi özeti açıksa bu süreler bir bildirimle gösterilir."
+                )
+                PrivacyItem(
                     systemImage: "rectangle.on.rectangle",
                     title: "Sekmeli modda etkin Claude penceresinin yeri ve boyutu",
                     detail: "Yalnız sekmeli mod açıkken ve Erişilebilirlik izniyle. Lanes pencereyi sekme çubuğunun altına taşır ve öteki hesapları gizler. Pencerelerin içine, başlıklarına ya da yazılanlara bakmaz."
@@ -155,7 +160,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "arrowshape.turn.up.right",
                     title: "Yönlendirilen claude:// bağlantıları",
-                    detail: "Hesap Haritası'nda yönlendirme açıkken, başka bir uygulamadan gelen bağlantı kurala göre seçilen hesabın Claude'una gönderilir. Hesabın Kimlik sekmesindeki \"Claude Ayarlarını Aç\" düğmesi de o hesabın Claude'una ayarlar bağlantısını gönderir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
+                    detail: "Hesap Haritası'nda yönlendirme açıkken, başka bir uygulamadan gelen bağlantı kurala göre seçilen hesabın Claude'una gönderilir. Hesabın Kimlik sekmesindeki \"Claude Ayarlarını Aç\" düğmesi de o hesabın Claude'una ayarlar bağlantısını gönderir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz. Bağlantılar sayfası son 30 günü LinkLog.json dosyasında tutar: yalnız türü, zamanı, tıklandığı uygulamanın adı, gittiği hesap ve neden oraya gittiği. Akıllı kurallar için bağlantı geldiğinde öndeki uygulamanın kimliğine bakılır; o uygulamanın içinden bir şey okunmaz."
                 )
                 PrivacyItem(
                     systemImage: "bell",

@@ -132,11 +132,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
+        // The app that asked macOS to open the link, for "Akıllı
+        // Yönlendirme" source rules. Only its process ID is read.
+        let senderPID = NSAppleEventManager.shared().currentAppleEvent?
+            .attributeDescriptor(forKeyword: AEKeyword(keySenderPIDAttr))?.int32Value
         for url in urls {
             if url.scheme?.lowercased() == LanesCommand.scheme {
                 perform(LanesCommand(url: url))
             } else {
-                model.receive(url)
+                model.receive(url, senderPID: senderPID)
             }
         }
     }

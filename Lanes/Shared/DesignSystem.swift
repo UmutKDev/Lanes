@@ -834,6 +834,9 @@ struct DSAccountLabel: View {
     /// The account's estimated Claude Code state, shown after the name.
     var pulse: ClaudeCodePulse?
     var pulseProject: String?
+    /// The address Claude Code signed in with when it is not one the
+    /// account expects (Kimlik Bekçisi).
+    var identityMismatch: String?
 
     var body: some View {
         Label {
@@ -843,6 +846,12 @@ struct DSAccountLabel: View {
                     .truncationMode(.tail)
                 ClaudeCodePulseIcon(pulse: pulse, project: pulseProject)
                 RestingIcon(profile: profile)
+                if let identityMismatch {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(DS.Palette.danger)
+                        .help("Kimlik Bekçisi: Claude Code \(identityMismatch) ile giriş yapmış")
+                        .accessibilityLabel(Text("Beklenmeyen hesap"))
+                }
             }
             .animation(DS.Motion.standard, value: pulse)
         } icon: {

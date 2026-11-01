@@ -252,6 +252,8 @@ private struct DetailView: View {
             LinksPage()
         case .usage:
             UsagePage()
+        case .timesheet:
+            TimesheetPage()
         case .setup:
             SetupPage()
         case .health:
