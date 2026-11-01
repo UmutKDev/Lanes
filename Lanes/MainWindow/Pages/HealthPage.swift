@@ -420,12 +420,18 @@ struct HealthPage: View {
         }
     }
 
-    /// Looks the command up the way Terminal would, through a login shell.
+    /// Looks in the folders Claude Code's installers use, then asks an
+    /// interactive login shell: the official installer adds its folder to
+    /// PATH only in `~/.zshrc`, which a plain login shell does not read.
     private static func findClaudeCommand() async -> String? {
-        let output = await ShellRunner.run("/bin/zsh", ["-lc", "command -v claude"])
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if let path = ClaudeCodeCommand.candidatePaths(home: home).first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
+            return path
+        }
+        let output = await ShellRunner.run("/bin/zsh", ["-lic", "command -v claude"])
         guard output.status == 0 else { return nil }
-        let path = output.text.split(separator: "\n").last.map(String.init) ?? ""
-        return path.hasPrefix("/") ? path : nil
+        // An interactive shell may print its own lines first.
+        return output.text.split(separator: "\n").map(String.init).last { $0.hasPrefix("/") }
     }
 }
 

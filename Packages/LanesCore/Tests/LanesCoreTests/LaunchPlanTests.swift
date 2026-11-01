@@ -57,6 +57,15 @@ final class LaunchPlanTests: XCTestCase {
         }
     }
 
+    func testClaudeCommandLookupCoversTheOfficialInstaller() {
+        XCTAssertEqual(
+            ClaudeCodeCommand.pathExport,
+            "export PATH=\"$HOME/.local/bin:$HOME/.claude/local:/opt/homebrew/bin:/usr/local/bin:$PATH\""
+        )
+        XCTAssertEqual(ClaudeCodeCommand.candidatePaths(home: "/Users/umut").first, "/Users/umut/.local/bin/claude")
+        XCTAssertTrue(ClaudeCodeCommand.candidatePaths(home: "/Users/umut").contains("/opt/homebrew/bin/claude"))
+    }
+
     func testClaudeCodeCommand() {
         let standard = Profile(name: "Kişisel", color: .blue, isDefault: true)
         XCTAssertEqual(ClaudeCodeCommand.command(for: standard, paths: paths), "claude")
