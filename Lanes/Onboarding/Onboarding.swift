@@ -257,6 +257,14 @@ struct OnboardingView: View {
         leaving = true
         Preferences.finishOnboarding()
         let destination: Destination = step != .done && model.unfinishedSetupCount > 0 ? .setup : .overview
+        guard Preferences.showsDockIconWithWindow else {
+            // Without the Dock icon setting, the tour (which always shows
+            // one) goes first so Lanes drops back to the menu bar, and the
+            // main window then opens the way the setting asks.
+            close()
+            router.showMainWindow(destination)
+            return
+        }
         let shown = router.showMainWindow(destination)
         Task { @MainActor in
             _ = await shown.value
@@ -684,8 +692,10 @@ private struct LaneRace: View {
                 }
             }
         }
-        .padding(.trailing, OnboardingMetrics.margin)
-        .offset(x: shown ? rest[index % rest.count] : -640)
+        // Room for the furthest resting offset, so every lane's end stays
+        // inside the window.
+        .padding(.trailing, OnboardingMetrics.margin + 60)
+        .offset(x: shown || reduceMotion ? rest[index % rest.count] : -640)
         .opacity(shown ? 1 : 0)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: response, dampingFraction: 0.78).delay(0.08 * Double(index)), value: shown)
         .animation(.easeInOut(duration: 0.45), value: active)
@@ -797,7 +807,7 @@ private struct DockStage: View {
                         .animation(.spring(response: 0.22, dampingFraction: 0.45), value: bouncing)
                     runningDot
                 }
-                .scaleEffect(shown ? 1 : 0.2, anchor: .bottom)
+                .scaleEffect(shown || reduceMotion ? 1 : 0.2, anchor: .bottom)
                 .opacity(shown ? 1 : 0)
                 .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.45, dampingFraction: 0.6).delay(0.35 + 0.12 * Double(index)), value: shown)
             }
@@ -877,7 +887,7 @@ private struct ClaudeAppStage: View {
                             .lineLimit(1)
                     }
                     .opacity(shown ? (installed ? 1 : 0.4) : 0)
-                    .offset(x: shown ? 0 : -18)
+                    .offset(x: shown || reduceMotion ? 0 : -18)
                     .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25 + 0.1 * Double(index)), value: shown)
                 }
             }
@@ -1203,7 +1213,7 @@ private struct LanesStage: View {
                 .padding(.leading, 6)
                 .padding(.vertical, 4)
                 .background(Capsule().fill(account.color.opacity(0.12)))
-                .offset(x: shown ? 0 : -420)
+                .offset(x: shown || reduceMotion ? 0 : -420)
                 .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.6 + 0.1 * Double(index), dampingFraction: 0.8).delay(0.1 * Double(index)), value: shown)
             }
             HStack(spacing: DS.Space.m) {
