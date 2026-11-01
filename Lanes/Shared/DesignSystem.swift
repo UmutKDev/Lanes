@@ -831,12 +831,19 @@ struct DSAccountLabel: View {
     let profile: Profile
     var size: CGFloat = DS.Monogram.small
     var isRunning = false
+    /// The account's estimated Claude Code state, shown after the name.
+    var pulse: ClaudeCodePulse?
+    var pulseProject: String?
 
     var body: some View {
         Label {
-            Text(profile.name)
-                .lineLimit(1)
-                .truncationMode(.tail)
+            HStack(spacing: DS.Space.xs) {
+                Text(profile.name)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                ClaudeCodePulseIcon(pulse: pulse, project: pulseProject)
+            }
+            .animation(DS.Motion.standard, value: pulse)
         } icon: {
             MonogramView(profile: profile, size: size, isRunning: isRunning)
         }

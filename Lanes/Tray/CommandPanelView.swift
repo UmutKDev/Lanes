@@ -428,10 +428,16 @@ struct AccountCardView: View {
                 MonogramView(profile: profile, size: DS.Monogram.panel, isRunning: isRunning)
                     .frame(width: DS.Panel.leadingSlot)
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                    Text(profile.name)
-                        .font(DS.Typography.rowTitle.weight(.medium))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    HStack(spacing: DS.Space.xs) {
+                        Text(profile.name)
+                            .font(DS.Typography.rowTitle.weight(.medium))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        ClaudeCodePulseIcon(
+                            pulse: model.claudeCodePulse[profile.id],
+                            project: model.claudeCodeActiveProject(for: profile)
+                        )
+                    }
                     Text(subtitle(isRunning: isRunning))
                         .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)

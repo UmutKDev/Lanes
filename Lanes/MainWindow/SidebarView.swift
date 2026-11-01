@@ -25,7 +25,13 @@ struct SidebarView: View {
                 if !isSearching || !active.isEmpty {
                     Section("Hesaplar") {
                         ForEach(active) { profile in
-                            DSAccountLabel(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
+                            DSAccountLabel(
+                                profile: profile,
+                                size: DS.Monogram.small,
+                                isRunning: model.isRunning(profile),
+                                pulse: model.claudeCodePulse[profile.id],
+                                pulseProject: model.claudeCodeActiveProject(for: profile)
+                            )
                                 .badge(shortcutBadge(for: profile))
                                 // An explicit tag: inside a movable ForEach the row
                                 // would otherwise be tagged with the profile's id,
