@@ -117,6 +117,8 @@ final class AppModel {
     @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
     @ObservationIgnored private let sampler = ResourceSampler()
     @ObservationIgnored private let activityWatcher = ClaudeCodeActivityWatcher()
+    @ObservationIgnored private let accountFrame = AccountFrame()
+    @ObservationIgnored private let clipboardGuard = ClipboardGuard()
     @ObservationIgnored private let doneNotices: ClaudeCodeDoneNotices
     /// "Bitti Haberi" is on: Claude Code sessions Lanes starts tell Lanes
     /// when they finish or wait for an approval.
@@ -227,6 +229,7 @@ final class AppModel {
         monitor.start()
         refreshInstances()
         refreshCloneStatuses()
+        updateAccountGuards()
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil,
@@ -242,6 +245,7 @@ final class AppModel {
                     self.refreshInstances()
                 }
                 self.frontChanged(to: self.instances.first(where: { $0.pid == pid })?.profileID)
+                self.updateAccountGuards(front: pid)
                 if let app, let source = self.externalApp(app) {
                     self.lastExternalFrontApp = source
                 }
@@ -544,6 +548,33 @@ final class AppModel {
         for instance in instances where instance.pid != pid && instance.profileID != nil {
             NSRunningApplication(processIdentifier: instance.pid)?.hide()
         }
+    }
+
+    // MARK: Hesap Rengi Çerçevesi and Pano Bekçisi
+
+    /// Draws the front account's coloured border and tells the clipboard
+    /// guard which account is in front. Both are off until turned on.
+    func updateAccountGuards(front pid: pid_t? = NSWorkspace.shared.frontmostApplication?.processIdentifier) {
+        let id = pid.flatMap { pid in instances.first(where: { $0.pid == pid })?.profileID }
+        let frontProfile = id.flatMap { self.profile(withID: $0) }
+        if Preferences.accountFrameEnabled, let pid, let frontProfile {
+            accountFrame.show(pid: pid, color: frontProfile.color.nsColor)
+        } else {
+            accountFrame.hide()
+        }
+        if Preferences.clipboardGuardEnabled {
+            clipboardGuard.onCrossAccount = { [weak self] from, to in
+                self?.warnAboutCrossAccountPaste(from: from, to: to)
+            }
+            clipboardGuard.frontChanged(to: frontProfile?.id)
+        } else {
+            clipboardGuard.stop()
+        }
+    }
+
+    private func warnAboutCrossAccountPaste(from: ProfileID, to: ProfileID) {
+        guard let source = profile(withID: from), let target = profile(withID: to) else { return }
+        Notifier.post(.clipboardCrossAccount, body: String(localized: "Panodaki şey \(source.name) hesabında kopyalandı; şimdi \(target.name) hesabındasın. Yapıştırmadan önce emin ol."), force: true)
     }
 
     // MARK: Reopening and recent order
@@ -1352,7 +1383,7 @@ final class AppModel {
             }
         }
         do {
-            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile))
+            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments(for: profile.id) + doneNotices.arguments(for: profile))
             if let folder = chosen {
                 var recent = recentFolders[profile.id] ?? RecentFolders()
                 recent.use(folder.path)
@@ -1527,7 +1558,7 @@ final class AppModel {
                 for: profile,
                 paths: paths,
                 in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
-                arguments: resumeArguments + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
+                arguments: resumeArguments + Toolbox(paths: paths).mcpArguments(for: profile.id) + doneNotices.arguments(for: profile)
             )
             Log.app.info("Resumed a Claude Code session")
         } catch {

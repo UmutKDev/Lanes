@@ -186,6 +186,8 @@ private struct GeneralSettings: View {
     @State private var loginItemError: String?
     @AppStorage(Preferences.Key.focusModeEnabled) private var focusMode = false
     @AppStorage(Preferences.Key.reopensLastAccounts) private var reopensLast = false
+    @AppStorage(Preferences.Key.accountFrameEnabled) private var accountFrame = false
+    @AppStorage(Preferences.Key.clipboardGuardEnabled) private var clipboardGuard = false
 
     var body: some View {
         Form {
@@ -215,6 +217,24 @@ private struct GeneralSettings: View {
             } footer: {
                 Text("Ekranda yalnız öndeki hesabın Claude'u kalır, ötekiler Cmd-H ile gizlenir gibi gizlenir. Kapanmazlar; Dock'tan, Cmd-Tab'dan ya da Lanes'ten açınca geri gelirler. Sekmeli mod açıkken bu ayar kullanılmaz.")
             }
+            Section {
+                Toggle("Öndeki Claude penceresini hesabın renginde çerçevele", isOn: $accountFrame)
+                Toggle("Başka hesapta kopyalananı yapıştırmadan önce uyar", isOn: Binding(
+                    get: { clipboardGuard },
+                    set: { isOn in
+                        clipboardGuard = isOn
+                        if isOn {
+                            Task { _ = await Notifier.requestPermission() }
+                        }
+                    }
+                ))
+            } header: {
+                Text("Hesapları karıştırma")
+            } footer: {
+                Text("Çerçeve, öndeki pencerenin hangi hesaba ait olduğunu bir bakışta gösterir; tıklamaları engellemez. Pano uyarısı, bir hesabın Claude'unda kopyalayıp on dakika içinde başka bir hesabınkine geçince bir kez bildirim gösterir. Lanes panoda ne olduğunu okumaz, yalnız değişip değişmediğine bakar.")
+            }
+            .onChange(of: accountFrame) { model.updateAccountGuards() }
+            .onChange(of: clipboardGuard) { model.updateAccountGuards() }
             Section {
                 LabeledContent("Sürüm") {
                     Text(model.claude?.version ?? String(localized: "Bulunamadı"))
