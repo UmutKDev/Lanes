@@ -120,6 +120,8 @@ struct OpenSceneIntent: AppIntent {
 
 struct QuitAccountIntent: AppIntent {
     static let title: LocalizedStringResource = "Claude Hesabını Kapat"
+    /// Answers in the background, so the app in front stays in front.
+    static let openAppWhenRun = false
     static let description = IntentDescription("Bir hesabın Claude'unu ⌘Q gibi kapatır. Kapalıysa bir şey yapmaz.")
 
     @Parameter(title: "Hesap")
@@ -161,6 +163,8 @@ struct StartClaudeCodeIntent: AppIntent {
 
 struct MarkLimitedIntent: AppIntent {
     static let title: LocalizedStringResource = "Hesabı Dinlenmeye Al"
+    /// Answers in the background, so the app in front stays in front.
+    static let openAppWhenRun = false
     static let description = IntentDescription("Limite takılan bir hesabı belirtilen saat kadar dinlenmeye alır; bağlantılar bu sürede aynı türdeki başka bir hesaba gider. 0 saat dinlenmeyi bitirir.")
 
     @Parameter(title: "Hesap")
@@ -180,6 +184,8 @@ struct MarkLimitedIntent: AppIntent {
 
 struct GetFrontAccountIntent: AppIntent {
     static let title: LocalizedStringResource = "Öndeki Claude Hesabı"
+    /// Answers in the background, so the app in front stays in front.
+    static let openAppWhenRun = false
     static let description = IntentDescription("En son önde olan Lanes hesabının adını verir.")
 
     @MainActor
@@ -192,6 +198,8 @@ struct GetFrontAccountIntent: AppIntent {
 
 struct GetFrontTimeIntent: AppIntent {
     static let title: LocalizedStringResource = "Bugünkü Claude Süresi"
+    /// Answers in the background, so the app in front stays in front.
+    static let openAppWhenRun = false
     static let description = IntentDescription("Bir hesabın bugün önde kaldığı süreyi dakika olarak verir (tahmini; boşta geçen süre sayılmaz).")
 
     @Parameter(title: "Hesap")
@@ -207,6 +215,8 @@ struct GetFrontTimeIntent: AppIntent {
 
 struct WorkingClaudeCodeIntent: AppIntent {
     static let title: LocalizedStringResource = "Claude Code Çalışan Hesaplar"
+    /// Answers in the background, so the app in front stays in front.
+    static let openAppWhenRun = false
     static let description = IntentDescription("Claude Code'un şu an çalıştığı hesapların adlarını verir. Oturum dosyalarının değişme zamanından tahmin edilir.")
 
     @MainActor

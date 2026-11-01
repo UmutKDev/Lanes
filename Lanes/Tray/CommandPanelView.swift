@@ -188,8 +188,8 @@ struct CommandPanelView: View {
                 ForEach(matchingProfiles) { profile in
                     AccountCardView(profile: profile, onClose: onClose)
                 }
-                if matchingProfiles.isEmpty && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Odak filtresi bu türdeki hesapları gizliyor.")
+                if hiddenByFocusCount > 0 && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Odak filtresi \(hiddenByFocusCount) hesabı gizliyor.")
                         .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
@@ -205,6 +205,11 @@ struct CommandPanelView: View {
                 }
             }
         }
+    }
+
+    /// Active accounts the current Focus filter leaves out of the panel.
+    private var hiddenByFocusCount: Int {
+        model.library.activeProfiles.filter { !model.isShownUnderFocus($0) }.count
     }
 
     /// Accounts whose name, email or note holds the search text, ignoring
