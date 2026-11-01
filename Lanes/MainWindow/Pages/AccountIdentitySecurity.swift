@@ -62,8 +62,9 @@ struct AccountIdentityTab: View {
                 Text("Claude hesabı")
             } footer: {
                 Text(model.claudeCodeAccounts[profile.id] == nil
-                     ? "Claude Code'a giriş yapılınca kendiliğinden dolar. Lanes giriş anahtarlarına dokunmaz."
-                     : "Claude Code'un hesap dosyasından alındı. Lanes giriş anahtarlarına dokunmaz.")
+                     ? "Claude Code'a giriş yapılınca kendiliğinden dolar."
+                     : "Claude Code'un hesap dosyasından alındı.")
+                    .help("Lanes giriş anahtarlarına dokunmaz.")
             }
             Section {
                 let current = model.profile(withID: profile.id) ?? profile

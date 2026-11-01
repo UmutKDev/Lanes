@@ -334,7 +334,7 @@ private struct UpdateSettings: View {
                 Text("Lanes")
             } footer: {
                 if model.updater.isAvailable {
-                    Text("Lanes güncellemeleri GitHub'dan denetler ve yüklemeden önce imzayı doğrular. Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği budur.")
+                    Text("Güncellemeler GitHub'dan denetlenir, imza yüklemeden önce doğrulanır.")
                 } else {
                     Text("Bu derleme kendini güncellemez; güncellemeler yalnız DMG sürümlerinde var.")
                 }
@@ -397,11 +397,6 @@ private struct AdvancedSettings: View {
                 Text("Tanılama")
             } footer: {
                 Text("Sürümleri, hesapları ve klasör yollarını içerir. Hesap adları yerine numara, ev klasörü yerine ~ yazar; hesap klasörlerinin içi okunmaz.")
-            }
-            Section {
-                DSStatusRow(.info, title: Text("Lanes'in dokunmadıkları")) {
-                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz ve saklamaz. Claude Code'un hesap dosyasından yalnız e-posta, ad ve kuruluş adını okur.")
-                }
             }
         }
         .settingsForm()

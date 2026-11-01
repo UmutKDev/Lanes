@@ -51,7 +51,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("lanes komut satırı aracı")
             } footer: {
-                Text("Terminal \"command not found\" derse ~/.local/bin klasörünü PATH'e ekle: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zshrc")
+                Text("Terminal \"lanes\" komutunu bulamazsa ~/.local/bin klasörünü PATH'e ekle.")
             }
 
             Section {
@@ -96,10 +96,8 @@ struct IntegrationsPage: View {
             } header: {
                 Text("lanes:// adresleri")
             } footer: {
-                VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Herhangi bir web sayfası da bu adresleri açabildiği için adresler yalnız hesap, sahne ve pencere açar; hiçbir şeyi silmez ya da değiştirmez.")
-                    Text("Hesap adı yerine sıra numarası da yazılabilir: lanes://open?account=2")
-                }
+                Text("Bu adresler yalnız hesap, sahne ve pencere açar; hiçbir şeyi silmez ya da değiştirmez.")
+                    .help("Hesap adı yerine sıra numarası da yazılabilir: lanes://open?account=2")
             }
 
             Section {

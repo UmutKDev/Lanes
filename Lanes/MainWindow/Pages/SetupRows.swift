@@ -107,7 +107,7 @@ struct SetupClaudeCodeRow: View {
             }
         } else {
             DSStatusRow(.warning, title: title) {
-                Text("Terminal ve oturumlar için. Kur, resmî kurulum betiğini claude.ai'dan indirip çalıştırır.")
+                Text("Terminal ve oturumlar için. \"Kur\" resmî kurulum betiğini claude.ai'dan indirip çalıştırır.")
             } accessory: {
                 installButton(String(localized: "Kur"))
             }
@@ -397,7 +397,7 @@ struct SetupGitRow: View {
                 }
             } else {
                 DSStatusRow(.info, title: title) {
-                    Text("Yalnız Worktree Fırlatıcı için. Kur, Apple'ın kurulum penceresini açar.")
+                    Text("Yalnız Worktree Fırlatıcı için. \"Kur\" Apple'ın kurulum penceresini açar.")
                 } accessory: {
                     HStack(spacing: DS.Space.s) {
                         DSIconButton("Yeniden Denetle", systemImage: "arrow.clockwise") {

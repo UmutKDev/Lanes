@@ -44,7 +44,8 @@ struct TabSettings: View {
                 Text("Erişilebilirlik izni")
             } footer: {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Claude penceresini taşımak ve boyutlandırmak için gerekir. Lanes pencerelerin içine ve başlıklarına bakmaz. Sekmeli modu kapatınca izni Sistem Ayarları'ndan geri alabilirsin.")
+                    Text("Claude penceresini taşımak ve boyutlandırmak için gerekir. Sekmeli modu kapatınca izni geri alabilirsin.")
+                        .help("Lanes pencerelerin içine ve başlıklarına bakmaz. İzni Sistem Ayarları'ndan geri alabilirsin.")
                     Button("Sistem Ayarları'nı Aç") {
                         AccessibilityPermission.openSettings()
                     }

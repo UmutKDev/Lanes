@@ -15,10 +15,11 @@ struct PrivacyPage: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
-                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Sohbetlerini ve hesap klasörlerinin içini de açmaz; tek istisna aşağıdaki Claude Code hesap adıdır.")
+                    Text("Lanes giriş bilgilerine, çerezlere, Anahtar Zinciri'ne ve sohbetlere dokunmaz.")
                         .font(DS.Typography.rowTitle)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .help("Hesap klasörlerinin içini de açmaz; tek istisna aşağıdaki Claude Code hesap adıdır.")
                 }
                 .padding(.vertical, DS.Space.xs)
             }
@@ -27,7 +28,8 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "terminal",
                     title: "Çalışan Claude'ların komut satırı",
-                    detail: "Her Claude'un hangi hesaba ait olduğunu bulmak için. Ortam değişkenleri okunmadan atılır."
+                    detail: "Her Claude'un hangi hesaba ait olduğunu bulmak için.",
+                    help: "Ortam değişkenleri okunmadan atılır."
                 )
                 PrivacyItem(
                     systemImage: "info.circle",
@@ -37,72 +39,85 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "link",
                     title: "claude:// bağlantılarını hangi uygulamanın açtığı",
-                    detail: "macOS'un varsayılan uygulama ayarından. Lanes bu ayarı yalnız Hesap Haritası'nda yönlendirme açıkken kendine alır, kapatınca Claude'a geri verir."
+                    detail: "macOS'un varsayılan uygulama ayarından.",
+                    help: "Lanes bu ayarı yalnız Hesap Haritası'nda yönlendirme açıkken kendine alır, kapatınca Claude'a geri verir."
                 )
                 PrivacyItem(
                     systemImage: "clock",
                     title: "Klasörlerin değişme saati",
-                    detail: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde, Claude'unun kendi klasörünü kullandığını doğrulamak için. Dosyaların kendisi açılmaz."
+                    detail: "Claude'un kendi klasörünü kullandığını doğrulamak için; dosyalar açılmaz.",
+                    help: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde."
                 )
                 PrivacyItem(
                     systemImage: "doc.text",
                     title: "Claude Code oturum dosyalarının adı ve tarihi",
-                    detail: "Oturumlar, Projeler ve Kullanım sayfaları için. Yalnız hangi dosyanın ne zaman değiştiğine bakılır; sohbetler açılmaz. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez."
+                    detail: "Yalnız değişme zamanlarına bakılır; sohbetler açılmaz.",
+                    help: "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez."
                 )
                 PrivacyItem(
                     systemImage: "person.text.rectangle",
                     title: "Claude Code'un giriş yaptığı hesap",
-                    detail: "Her hesabın .claude.json dosyasından yalnız e-posta, ad ve kuruluş adı okunur ve saklanmaz. Giriş anahtarları Anahtar Zinciri'nde durur ve okunmaz."
+                    detail: "Yalnız e-posta, ad ve kuruluş adı okunur, saklanmaz.",
+                    help: "Her hesabın .claude.json dosyasından okunur. Giriş anahtarları Anahtar Zinciri'nde durur ve okunmaz."
                 )
                 PrivacyItem(
                     systemImage: "internaldrive",
                     title: "Hesap klasörlerinin boyutu",
-                    detail: "Yalnız Bakım sayfası ya da Depolama sekmesi açıkken. Dosyalar açılmaz. \"Önbelleği Temizle\" yalnız Claude'un yeniden oluşturduğu önbellek klasörlerini, hesap kapalıyken ve sen onaylayınca siler."
+                    detail: "Yalnız Bakım sayfası ya da Depolama sekmesi açıkken; dosyalar açılmaz.",
+                    help: "\"Önbelleği Temizle\" yalnız Claude'un yeniden oluşturduğu önbellek klasörlerini, hesap kapalıyken ve sen onaylayınca siler."
                 )
                 PrivacyItem(
                     systemImage: "macwindow",
                     title: "Öndeki uygulama",
-                    detail: "Menü çubuğu simgesi ve Kullanım sayfasındaki önde geçen süre için. Yalnız öndeki uygulamanın süreç numarasına bakılır. Süreler yalnız bu Mac'te, son 30 gün için saklanır. Menü çubuğu ayarı yalnız simgedeki gösterimi kapatır, süre yine sayılır."
+                    detail: "Önde geçen süre için; yalnız bu Mac'te, 30 gün saklanır.",
+                    help: "Menü çubuğu simgesi ve Kullanım sayfası için yalnız öndeki uygulamanın süreç numarasına bakılır. Menü çubuğu ayarı yalnız simgedeki gösterimi kapatır, süre yine sayılır."
                 )
                 PrivacyItem(
                     systemImage: "rectangle.dashed",
                     title: "Öndeki Claude penceresinin yeri",
-                    detail: "Yalnız Hesap Rengi Çerçevesi açıkken. Pencerenin yalnız sahibi ve sınırları okunur, hiçbir şey saklanmaz."
+                    detail: "Yalnız Hesap Rengi Çerçevesi açıkken; hiçbir şey saklanmaz.",
+                    help: "Pencerenin yalnız sahibi ve sınırları okunur."
                 )
                 PrivacyItem(
                     systemImage: "doc.on.clipboard",
                     title: "Panonun değişip değişmediği",
-                    detail: "Yalnız Pano Bekçisi açıkken. Panonun içeriği okunmaz, diske bir şey yazılmaz."
+                    detail: "Yalnız Pano Bekçisi açıkken; içeriği okunmaz.",
+                    help: "Diske bir şey yazılmaz."
                 )
                 PrivacyItem(
                     systemImage: "calendar.badge.clock",
                     title: "Projelerde geçen Claude Code süresi",
-                    detail: "Zaman Çizelgesi için. Yalnız oturum dosyalarının değişme zamanına bakılır. Hesap, proje klasörü adı ve günlük süre son 62 gün için yalnız bu Mac'te saklanır."
+                    detail: "Zaman Çizelgesi için; yalnız bu Mac'te, 62 gün saklanır.",
+                    help: "Yalnız oturum dosyalarının değişme zamanına bakılır. Hesap, proje klasörü adı ve günlük süre saklanır."
                 )
                 PrivacyItem(
                     systemImage: "rectangle.on.rectangle",
                     title: "Sekmeli modda etkin Claude penceresinin yeri ve boyutu",
-                    detail: "Yalnız sekmeli mod açıkken, Erişilebilirlik izniyle. Pencerelerin içine ve başlıklarına bakılmaz."
+                    detail: "Yalnız sekmeli mod açıkken, Erişilebilirlik izniyle.",
+                    help: "Pencerelerin içine ve başlıklarına bakılmaz."
                 )
                 PrivacyItem(
                     systemImage: "memorychip",
                     title: "Açık Claude'ların bellek ve işlemci kullanımı",
-                    detail: "On saniyede bir, Genel Bakış ve \"Kullanılmayınca kapat\" için. Claude'un içine bakılmaz."
+                    detail: "Genel Bakış ve \"Kullanılmayınca kapat\" için.",
+                    help: "On saniyede bir ölçülür. Claude'un içine bakılmaz."
                 )
                 PrivacyItem(
                     systemImage: "square.grid.2x2",
                     title: "Sahne pencerelerinin yeri ve boyutu",
-                    detail: "Yalnız bir sahnenin yerleşimini kaydettiğinde ya da açtığında, Erişilebilirlik izniyle."
+                    detail: "Yalnız sahne kaydedilirken ya da açılırken, Erişilebilirlik izniyle."
                 )
                 PrivacyItem(
                     systemImage: "stethoscope",
                     title: "Sağlık sayfasındaki denetimler",
-                    detail: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles içindeki klasör adları. Klasörlerin içi açılmaz."
+                    detail: "Klasörlerin yalnız adlarına bakılır, içleri açılmaz.",
+                    help: "Otomasyon izninin durumu (izin sorulmadan), claude komutunun yeri ve Profiles içindeki klasör adları."
                 )
                 PrivacyItem(
                     systemImage: "checklist",
                     title: "Kurulum sayfasındaki denetimler",
-                    detail: "Claude'un ve claude komutunun yeri, sürümü ve izinlerin durumu. İzinler yalnız ilgili düğmeye basınca istenir."
+                    detail: "İzinler yalnız ilgili düğmeye basınca istenir.",
+                    help: "Claude'un ve claude komutunun yeri, sürümü ve izinlerin durumu."
                 )
             } header: {
                 PrivacySectionHeader(title: "Lanes'in baktıkları", systemImage: "eye")
@@ -112,40 +127,47 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "folder",
                     title: "Hesap listesi ve hesap klasörleri",
-                    detail: "Hesap listesi profiles.json'da, yedeği profiles.backup.json'da durur. Hesap klasörlerini Lanes oluşturur, içine Claude yazar; Lanes yalnız Araç Kutusu için bağlantı (symlink) ekler. cli-accounts.tsv, lanes komut satırı aracı için yalnız hesap adlarını, kimliklerini ve klasör yollarını tutar; araç kurulursa ~/.local/bin/lanes dosyasına yazılır.",
+                    detail: "Hesap klasörlerini Lanes oluşturur, içine Claude yazar.",
+                    help: "Hesap listesi profiles.json'da, yedeği profiles.backup.json'da durur. Lanes hesap klasörlerine yalnız Araç Kutusu için bağlantı (symlink) ekler. cli-accounts.tsv, lanes komut satırı aracı için yalnız hesap adlarını, kimliklerini ve klasör yollarını tutar; araç kurulursa ~/.local/bin/lanes dosyasına yazılır.",
                     path: model.paths.root
                 )
                 PrivacyItem(
                     systemImage: "square.on.square",
                     title: "Klonlar",
-                    detail: "Her hesap için Claude.app'in bir kopyası. Kopyaya hesabın simgesi eklenir; \"Dock'ta gösterme\" açıksa kopya bu Mac'te yeniden imzalanır. Hesap kaldırılınca klon Çöp Sepeti'ne gider.",
+                    detail: "Her hesap için Claude.app'in bir kopyası.",
+                    help: "Kopyaya hesabın simgesi eklenir; \"Dock'ta gösterme\" açıksa kopya bu Mac'te yeniden imzalanır. Hesap kaldırılınca klon Çöp Sepeti'ne gider.",
                     path: model.paths.clonesDirectory
                 )
                 PrivacyItem(
                     systemImage: "list.bullet.rectangle",
                     title: "Sistem günlüğü",
-                    detail: "Hesap adı, klasör ya da bağlantı içermeyen olay kayıtları. Tanılama bilgisi yalnız sen isteyince hazırlanır ve Mac'inden çıkmaz."
+                    detail: "Hesap adı, klasör ya da bağlantı içermez.",
+                    help: "Tanılama bilgisi yalnız sen isteyince hazırlanır ve Mac'inden çıkmaz."
                 )
                 PrivacyItem(
                     systemImage: "wrench.and.screwdriver",
                     title: "Araç Kutusu",
-                    detail: "Paylaşılan öğeler Toolbox klasöründe durur, hesaplara yalnız bağlantı (symlink) eklenir. Hesabın kendi dosyaları okunmaz, değiştirilmez. Hesaba özel MCP ayarları yalnız senin okuyabildiğin bir dosyaya yazılır. Ekip Paketi'ne ortam değişkenlerinin ve başlıkların değerleri girmez."
+                    detail: "Hesaplara yalnız bağlantı (symlink) eklenir; hesabın dosyaları değişmez.",
+                    help: "Paylaşılan öğeler Toolbox klasöründe durur. Hesabın kendi dosyaları okunmaz. Hesaba özel MCP ayarları yalnız senin okuyabildiğin bir dosyaya yazılır. Ekip Paketi'ne ortam değişkenlerinin ve başlıkların değerleri girmez."
                 )
                 PrivacyItem(
                     systemImage: "bell.badge",
                     title: "Bitti Haberi kancası",
-                    detail: "Yalnız Bitti Haberi açıksa. Hesabın settings.json dosyası okunmaz, değiştirilmez. Kanca, Claude Code'un verisini okumadan atar ve bir olay dosyasına yalnız hesabı, olayı, terminal adını ve proje yolunu yazar; Lanes bu dosyayı bildirimi gösterince siler. Özellik kapatılınca klasör silinir.",
+                    detail: "Yalnız Bitti Haberi açıkken; hesabın settings.json dosyası değişmez.",
+                    help: "Hesabın settings.json dosyası okunmaz. Kanca, Claude Code'un verisini okumadan atar ve bir olay dosyasına yalnız hesabı, olayı, terminal adını ve proje yolunu yazar; Lanes bu dosyayı bildirimi gösterince siler. Özellik kapatılınca klasör silinir.",
                     path: model.paths.root.appendingPathComponent(ClaudeCodeHooks.folderName, isDirectory: true)
                 )
                 PrivacyItem(
                     systemImage: "gearshape",
                     title: "Lanes'in kendi ayarları",
-                    detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes). Kısayollar ve her hesabın son beş Claude Code klasörü de burada durur."
+                    detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes).",
+                    help: "Kısayollar ve her hesabın son beş Claude Code klasörü de burada durur."
                 )
                 PrivacyItem(
                     systemImage: "magnifyingglass",
                     title: "Spotlight dizini",
-                    detail: "Hesapların adı ve kısa bir açıklaması, Spotlight'ta aranabilsin diye macOS'un arama dizinine yazılır. Hesap kaldırılınca ya da adı değişince dizin yenilenir."
+                    detail: "Hesapların adı ve kısa bir açıklaması.",
+                    help: "Spotlight'ta aranabilsin diye macOS'un arama dizinine yazılır. Hesap kaldırılınca ya da adı değişince dizin yenilenir."
                 )
             } header: {
                 PrivacySectionHeader(title: "Lanes'in yazdıkları", systemImage: "square.and.pencil")
@@ -155,7 +177,8 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "arrow.down.circle",
                     title: "lanes:// adresleri ve Kestirmeler eylemleri",
-                    detail: "Yalnız bir hesabı ya da sahneyi açar, bir sayfayı gösterir; hiçbir şeyi silmez ya da değiştirmez. Kestirmeler'e yalnız hesap ve sahne adları verilir."
+                    detail: "Yalnız açar ve gösterir; hiçbir şeyi silmez ya da değiştirmez.",
+                    help: "Bir hesabı ya da sahneyi açar, bir sayfayı gösterir. Kestirmeler'e yalnız hesap ve sahne adları verilir."
                 )
             } header: {
                 PrivacySectionHeader(title: "Lanes'e gelenler", systemImage: "arrow.down.circle")
@@ -165,27 +188,32 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "macwindow.on.rectangle",
                     title: "Claude'a \"yeniden aç\" komutu",
-                    detail: "Bir hesabın penceresini öne getirmek için. macOS bir kez Otomasyon izni sorabilir."
+                    detail: "Bir hesabın penceresini öne getirmek için.",
+                    help: "macOS bir kez Otomasyon izni sorabilir."
                 )
                 PrivacyItem(
                     systemImage: "arrowshape.turn.up.right",
                     title: "Yönlendirilen claude:// bağlantıları",
-                    detail: "Hesap Haritası'nda yönlendirme açıkken bağlantı, kurala göre seçilen hesabın Claude'una gönderilir. Giriş ve OAuth bağlantıları hiç gönderilmez. Bağlantının kendisi saklanmaz; LinkLog.json son 30 gün için yalnız türünü, zamanını, geldiği uygulamayı, gittiği hesabı ve nedenini tutar. Akıllı kurallar için yalnız öndeki uygulamanın kimliğine bakılır."
+                    detail: "Kurala göre seçilen hesaba gider; bağlantının kendisi saklanmaz.",
+                    help: "Yalnız Hesap Haritası'nda yönlendirme açıkken. Giriş ve OAuth bağlantıları hiç gönderilmez. LinkLog.json son 30 gün için yalnız türünü, zamanını, geldiği uygulamayı, gittiği hesabı ve nedenini tutar. Akıllı kurallar için yalnız öndeki uygulamanın kimliğine bakılır."
                 )
                 PrivacyItem(
                     systemImage: "bell",
                     title: "macOS bildirimleri",
-                    detail: "Yalnız açtığın bildirim türleri ve hatırlatmalar için. Bildirimde yalnız hesabın adı ve olayın türü yazar; bildirimler Mac'inden çıkmaz."
+                    detail: "Yalnız hesap adı ve olay türü yazar; Mac'inden çıkmaz.",
+                    help: "Yalnız açtığın bildirim türleri ve hatırlatmalar için."
                 )
                 PrivacyItem(
                     systemImage: "arrow.triangle.2.circlepath",
                     title: "Güncelleme denetimi",
-                    detail: "Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği. GitHub'daki sürüm listesini indirir, Lanes'in sürümü dışında bilgi göndermez. Ayarlar > Güncellemeler'den kapatılabilir."
+                    detail: "GitHub'a yalnız Lanes'in sürümü gider.",
+                    help: "Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği. GitHub'daki sürüm listesini indirir. Ayarlar > Güncellemeler'den kapatılabilir."
                 )
                 PrivacyItem(
                     systemImage: "arrow.down.app",
                     title: "Claude Code kurulumu",
-                    detail: "Yalnız Kurulum sayfasında \"Kur\" düğmesine bastığında. Lanes resmî kurulum betiğini yalnız claude.ai'dan indirip senin yetkilerinle çalıştırır; çerez ya da giriş bilgisi göndermez."
+                    detail: "Yalnız Kurulum sayfasında \"Kur\" düğmesine basınca.",
+                    help: "Lanes resmî kurulum betiğini yalnız claude.ai'dan indirip senin yetkilerinle çalıştırır; çerez ya da giriş bilgisi göndermez."
                 )
             } header: {
                 PrivacySectionHeader(title: "Lanes'in gönderdikleri", systemImage: "paperplane")
@@ -213,12 +241,14 @@ private struct PrivacySectionHeader: View {
     }
 }
 
-/// One thing Lanes touches: a symbol, a title, what and why in a caption,
-/// and, for folders, the path on its own line under the title.
+/// One thing Lanes touches: a symbol, a title, a one-line caption with the
+/// fact that matters, the rest in the row's tooltip, and, for folders, the
+/// path on its own line under the title.
 private struct PrivacyItem: View {
     let systemImage: String
     let title: LocalizedStringKey
     let detail: LocalizedStringKey
+    var help: LocalizedStringKey?
     var path: URL?
 
     var body: some View {
@@ -243,5 +273,6 @@ private struct PrivacyItem: View {
                 .frame(width: DS.Metrics.statusIcon)
         }
         .padding(.vertical, DS.Space.xxs)
+        .help(help.map { Text($0) } ?? Text(verbatim: ""))
     }
 }

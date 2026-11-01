@@ -81,9 +81,10 @@ struct SetupPage: View {
                     .foregroundStyle(.tint)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Sen bir düğmeye basmadan Lanes hiçbir şey kurmaz, indirmez ya da izin istemez.")
+                    Text("Lanes için gerekenler burada.")
                         .font(DS.Typography.rowTitle)
                         .fixedSize(horizontal: false, vertical: true)
+                        .help("Sen bir düğmeye basmadan Lanes hiçbir şey kurmaz, indirmez ya da izin istemez.")
                     Button("Başlarken Turunu Aç") { router.showOnboarding() }
                         .buttonStyle(.link)
                 }

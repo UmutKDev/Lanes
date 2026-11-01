@@ -296,7 +296,7 @@ struct HealthPage: View {
                 Text("Klonlar")
             } footer: {
                 if !profiles.isEmpty {
-                    Text("Özel simge yüzünden klonların sıkı imza denetiminden geçmemesi beklenen bir durum.")
+                    Text("Özel simge yüzünden klonlar sıkı imza denetiminden geçmez; bu beklenir.")
                 }
             }
         }

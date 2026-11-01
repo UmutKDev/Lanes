@@ -77,7 +77,7 @@ struct UsagePage: View {
         } header: {
             Text("Son 14 gün, günlük Claude Code oturumları")
         } footer: {
-            footerText("Lanes oturum dosyalarını sayar, içlerini okumaz. Kullanım sınırları Claude'un ayarlarında görünür.")
+            footerText("Kullanım sınırları Claude'un ayarlarında görünür.")
         }
     }
 

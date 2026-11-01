@@ -45,21 +45,16 @@ struct AddProfileSheet: View {
             }
             Section {
                 Toggle("Ekledikten sonra bu hesabı aç", isOn: $opensAfterAdding)
-            } footer: {
-                Text("Giriş Claude'un penceresinde yapılır, Lanes giriş bilgilerini görmez.")
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section("Yeni pencerede giriş") {
                 // Faz 0.5 check 3: the return link of a Google or email
                 // link sign-in reaches the main Claude, not the new
                 // window. Typing the emailed code works in any window.
                 SignInStep(number: 1, text: "Google ya da Apple yerine e-posta adresinle devam et.")
-                SignInStep(number: 2, text: "E-postadaki bağlantıya tıklama, ana Claude penceresinde açılır.")
+                SignInStep(number: 2, text: "E-postadaki bağlantıyı açma: ana Claude penceresinde açılır.")
                 SignInStep(number: 3, text: "Doğrulama kodunu yeni pencereye yaz.")
             }
+            .help("Giriş Claude'un penceresinde yapılır, Lanes giriş bilgilerini görmez.")
         }
         .formStyle(.grouped)
         .toolbar {
@@ -77,9 +72,9 @@ struct AddProfileSheet: View {
                 .disabled(!canAdd)
             }
         }
-        // Tall enough to show every option without scrolling on a normal
-        // screen; the sheet still scrolls on a short one.
-        .frame(minWidth: 480, idealWidth: 520, minHeight: 460, idealHeight: 660)
+        // Just tall enough for the content, so the buttons sit right below
+        // the sign-in steps; the sheet still scrolls on a short screen.
+        .frame(minWidth: 480, idealWidth: 520, minHeight: 400, idealHeight: 540)
         .presentationSizing(.fitted)
         .onAppear {
             color = nextFreeColor()
