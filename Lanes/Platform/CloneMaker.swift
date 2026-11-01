@@ -192,6 +192,14 @@ enum CloneMaker {
             throw Failure.outsideClonesFolder
         }
         try FileManager.default.trashItem(at: bundle, resultingItemURL: nil)
+        // The account's folder under Clones was made only to hold this
+        // bundle. Left empty, it would sit there forever.
+        let folder = bundle.deletingLastPathComponent()
+        if paths.isClonePath(folder.path),
+           let rest = try? FileManager.default.contentsOfDirectory(atPath: folder.path),
+           rest.allSatisfy({ $0 == ".DS_Store" }) {
+            try? FileManager.default.removeItem(at: folder)
+        }
     }
 }
 

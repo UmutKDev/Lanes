@@ -120,13 +120,13 @@ struct AccountStorageView: View {
                         .fixedSize()
                     // Says why the button is off while the account is open.
                     // Always laid out, so opening or quitting moves nothing.
-                    Text("Önce bu hesabın Claude'unu kapat.")
+                    Text(profile.isDefault ? "Claude uygulamasının kendi klasörü" : "Önce bu hesabın Claude'unu kapat.")
                         .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .opacity(isRunning ? 1 : 0)
-                        .accessibilityHidden(!isRunning)
+                        .opacity(profile.isDefault || isRunning ? 1 : 0)
+                        .accessibilityHidden(!(profile.isDefault || isRunning))
                     Spacer(minLength: 0)
                     ProgressView()
                         .controlSize(.small)

@@ -1239,7 +1239,10 @@ final class AppModel {
     func orphanProfileFolders() -> [URL] {
         let profilesDirectory = paths.root.appendingPathComponent("Profiles", isDirectory: true)
         let names = (try? FileManager.default.contentsOfDirectory(atPath: profilesDirectory.path)) ?? []
+        // The Faz 0 clone check keeps its own folder there; it is Lanes', not
+        // a removed account's.
         return OrphanProfileFolders.find(folderNames: names, library: library)
+            .filter { $0 != ValidationModel.cloneTestProfile.id.rawValue }
             .map { profilesDirectory.appendingPathComponent($0, isDirectory: true) }
     }
 
