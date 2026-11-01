@@ -568,6 +568,38 @@ private struct AccountClaudeCodeTab: View {
                     }
                 }
             }
+            Section {
+                if let path = profile.defaultProjectFolder, !path.isEmpty {
+                    AccountFolderRow(url: URL(fileURLWithPath: path, isDirectory: true)) {
+                        if model.defaultProjectFolder(for: profile) == nil {
+                            Label("Bulunamadı", systemImage: "exclamationmark.triangle.fill")
+                                .labelStyle(.iconOnly)
+                                .foregroundStyle(DS.Palette.warning)
+                                .help("Bu klasör artık yok ya da izin verilen klasörlerin dışında. \"Terminalde Aç\" şimdilik ana klasörde açılıyor.")
+                        }
+                        Button("Değiştir…") {
+                            if let folder = ClaudeCodeFolderPicker.chooseDefault() {
+                                model.setDefaultProjectFolder(folder, for: profile)
+                            }
+                        }
+                        .fixedSize()
+                        DSIconButton("Varsayılanı kaldır", systemImage: "minus.circle.fill", role: .destructive) {
+                            model.setDefaultProjectFolder(nil, for: profile)
+                        }
+                    }
+                } else {
+                    Button("Varsayılan Klasör Seç…") {
+                        if let folder = ClaudeCodeFolderPicker.chooseDefault() {
+                            model.setDefaultProjectFolder(folder, for: profile)
+                        }
+                    }
+                    .fixedSize()
+                }
+            } header: {
+                Text("Varsayılan klasör")
+            } footer: {
+                Text("\"Terminalde Aç\" Claude Code'u bu klasörde başlatır. Seçilmezse ana klasörde başlar ve Claude Code her seferinde klasöre güvenip güvenmediğini sorar.")
+            }
             if !recent.isEmpty {
                 Section {
                     ForEach(recent, id: \.self) { folder in
@@ -704,6 +736,15 @@ enum ClaudeCodeFolderPicker {
         chooseFolders(
             prompt: String(localized: "Claude Code'u Burada Aç"),
             message: String(localized: "Claude Code'un başlayacağı klasörü seç."),
+            allowsMultipleSelection: false
+        ).first
+    }
+
+    /// For the account's default folder: nothing opens, it is only saved.
+    static func chooseDefault() -> URL? {
+        chooseFolders(
+            prompt: String(localized: "Varsayılan Yap"),
+            message: String(localized: "\"Terminalde Aç\" Claude Code'u bundan sonra bu klasörde başlatır."),
             allowsMultipleSelection: false
         ).first
     }

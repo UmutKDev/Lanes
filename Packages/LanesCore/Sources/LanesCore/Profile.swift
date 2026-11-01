@@ -90,6 +90,9 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// data but leave the overview, the panel, ⌘1-9, the Dock menu and
     /// Spotlight until they are taken out of the archive.
     public var isArchived: Bool { didSet { keptFields[Field.isArchived.rawValue] = nil } }
+    /// The folder "Terminalde Aç" starts Claude Code in when no other
+    /// folder is chosen. nil means the home folder.
+    public var defaultProjectFolder: String? { didSet { keptFields[Field.defaultProjectFolder.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -110,7 +113,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         hidesFromDock: Bool = false,
         idleQuitMinutes: Int? = nil,
         dailyLimitMinutes: Int? = nil,
-        isArchived: Bool = false
+        isArchived: Bool = false,
+        defaultProjectFolder: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -127,6 +131,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.idleQuitMinutes = idleQuitMinutes
         self.dailyLimitMinutes = dailyLimitMinutes
         self.isArchived = isArchived
+        self.defaultProjectFolder = defaultProjectFolder
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -152,7 +157,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -190,6 +195,7 @@ extension Profile {
         idleQuitMinutes = try read(Int.self, .idleQuitMinutes)
         dailyLimitMinutes = try read(Int.self, .dailyLimitMinutes)
         isArchived = try read(Bool.self, .isArchived) ?? false
+        defaultProjectFolder = try read(String.self, .defaultProjectFolder)
         keptFields = kept
     }
 
@@ -218,6 +224,7 @@ extension Profile {
         if let idleQuitMinutes, idleQuitMinutes > 0 { try write(idleQuitMinutes, .idleQuitMinutes) }
         if let dailyLimitMinutes, dailyLimitMinutes > 0 { try write(dailyLimitMinutes, .dailyLimitMinutes) }
         if isArchived { try write(isArchived, .isArchived) }
+        if let defaultProjectFolder, !defaultProjectFolder.isEmpty { try write(defaultProjectFolder, .defaultProjectFolder) }
     }
 
     /// Whether Claude Code may open in `path` for this account.

@@ -85,6 +85,11 @@ final class AppModel {
     /// a second Claude on the same folder.
     @ObservationIgnored private var launchesInProgress: Set<ProfileID> = []
     @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
+    /// Clones caught opening outside Lanes and being reopened right now.
+    @ObservationIgnored private var redirectingStrayPIDs: Set<pid_t> = []
+    @ObservationIgnored private var unredirectablePIDs: Set<pid_t> = []
+    /// The stray clone warning on screen, cleared once no stray is left.
+    @ObservationIgnored private var strayNoticeID: Notice.ID?
     /// The account Claude Code is signed in to for each profile, read from
     /// its `.claude.json` (email, name and organization only).
     private(set) var claudeCodeAccounts: [ProfileID: ClaudeCodeAccount] = [:]
@@ -157,6 +162,9 @@ final class AppModel {
         SpotlightIndex.update(library.activeProfiles)
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
+        }
+        monitor.onLaunch = { [weak self] app in
+            self?.redirectStrayClone(app)
         }
         monitor.start()
         refreshInstances()
@@ -669,14 +677,70 @@ final class AppModel {
 
     private func warnAboutStrayClones() {
         let stray = strayClones
+        unredirectablePIDs.formIntersection(stray.map(\.pid))
+        if stray.isEmpty, let id = strayNoticeID {
+            if notice?.id == id {
+                notice = nil
+            }
+            strayNoticeID = nil
+        }
         warnedStrayPIDs.formIntersection(stray.map(\.pid))
-        guard let first = stray.first(where: { !warnedStrayPIDs.contains($0.pid) }) else { return }
+        // The scan can see a stray clone before its launch is reported (it
+        // comes forward first). It is reopened properly rather than warned
+        // about; only one that cannot be redirected gets the warning.
+        let unhandled = stray.filter { instance in
+            guard !redirectingStrayPIDs.contains(instance.pid), !warnedStrayPIDs.contains(instance.pid) else { return false }
+            guard let app = NSRunningApplication(processIdentifier: instance.pid) else { return true }
+            return !redirectStrayClone(app)
+        }
+        guard let first = unhandled.first else { return }
         warnedStrayPIDs.insert(first.pid)
         let name = paths.profileID(forCloneBundle: first.applicationBundlePath).flatMap { profile(withID: $0)?.name }
             ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
         Log.instances.info("A clone was opened without its folder")
         Notifier.post(.strayClone, body: String(localized: "\(name) klonu Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
-        notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
+        let warning = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
+        notice = warning
+        strayNoticeID = warning.id
+    }
+
+    /// A clone opened from Finder, Spotlight, Launchpad or the Dock starts
+    /// without its account's folder and would run on the Claude app's data.
+    /// Lanes asks it to quit, like ⌘Q, and opens the account properly, so
+    /// a clone always ends up on its own account wherever it was opened.
+    /// Only the process's command line is read, as for the account list.
+    /// Returns whether the clone is being reopened.
+    @discardableResult
+    private func redirectStrayClone(_ app: NSRunningApplication) -> Bool {
+        if redirectingStrayPIDs.contains(app.processIdentifier) { return true }
+        // One that refused to quit once is left to the warning.
+        if unredirectablePIDs.contains(app.processIdentifier) { return false }
+        guard let bundle = app.bundleURL?.path, paths.isClonePath(bundle),
+              let id = paths.profileID(forCloneBundle: bundle),
+              let profile = profile(withID: id), !profile.isArchived,
+              !launchesInProgress.contains(id) else { return false }
+        let pid = app.processIdentifier
+        guard let arguments = ProcessInspector.arguments(of: pid),
+              !arguments.isHelperProcess, arguments.userDataDirectory == nil else { return false }
+        redirectingStrayPIDs.insert(pid)
+        Log.instances.notice("A clone opened outside Lanes; reopening it on its own account")
+        app.terminate()
+        Task {
+            // Claude may still be saving; it gets a few seconds to close.
+            for _ in 0..<20 where !app.isTerminated {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
+            if !app.isTerminated {
+                Log.instances.error("A clone opened outside Lanes did not quit; leaving the warning to the user")
+                unredirectablePIDs.insert(pid)
+                redirectingStrayPIDs.remove(pid)
+                refreshInstances()
+                return
+            }
+            redirectingStrayPIDs.remove(pid)
+            await openAndWait(profile)
+        }
+        return true
     }
 
     func instance(for profile: Profile) -> RunningInstance? {
@@ -934,8 +998,10 @@ final class AppModel {
         InstanceLauncher.terminate(pid: instance.pid)
     }
 
-    /// Opens Claude Code in Terminal, in `folder` or the home folder.
-    func openClaudeCode(_ profile: Profile, in folder: URL? = nil) {
+    /// Opens Claude Code in Terminal, in `folder`, else in the account's
+    /// default project folder, else in the home folder.
+    func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) {
+        let folder = chosen ?? defaultProjectFolder(for: profile)
         if let folder {
             guard FileManager.default.fileExists(atPath: folder.path) else {
                 forgetRecentFolder(folder.path, for: profile)
@@ -949,7 +1015,7 @@ final class AppModel {
         }
         do {
             try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments())
-            if let folder {
+            if let folder = chosen {
                 var recent = recentFolders[profile.id] ?? RecentFolders()
                 recent.use(folder.path)
                 recentFolders[profile.id] = recent
@@ -958,6 +1024,27 @@ final class AppModel {
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
         }
+    }
+
+    /// The account's default project folder, when it still exists and the
+    /// account may use it. A missing one is skipped quietly, so Terminal
+    /// still opens, in the home folder.
+    func defaultProjectFolder(for profile: Profile) -> URL? {
+        guard let path = profile.defaultProjectFolder, !path.isEmpty else { return nil }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue,
+              profile.allowsFolder(path) else { return nil }
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    func setDefaultProjectFolder(_ folder: URL?, for profile: Profile) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        if let folder, !updated.allowsFolder(folder.path) {
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+            return
+        }
+        updated.defaultProjectFolder = folder?.path
+        updateProfile(updated)
     }
 
     /// Continues a Claude Code session in Terminal, with the account it
