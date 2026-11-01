@@ -955,6 +955,9 @@ final class AppModel {
 
     /// The mismatches already told about, so each shows once.
     @ObservationIgnored private var reportedMismatches: [ProfileID: String] = [:]
+    /// The "Dikkat" banner shown on opening Claude Code with a mismatch,
+    /// taken down once the mismatch is gone.
+    @ObservationIgnored private var identityNotice: (id: UUID, profileID: ProfileID)?
 
     /// Posts a notification the first time an account's Claude Code is seen
     /// signed in with an unexpected address. The user set the domain up,
@@ -969,6 +972,10 @@ final class AppModel {
             Notifier.post(.identityMismatch, body: String(localized: "\(profile.name) hesabının Claude Code'u beklenmeyen bir hesapla giriş yapmış. Ayrıntılar hesabın Kimlik sekmesinde."), force: true)
         }
         reportedMismatches = current
+        if let shown = identityNotice, current[shown.profileID] == nil {
+            if notice?.id == shown.id { notice = nil }
+            identityNotice = nil
+        }
     }
 
     /// The account's email: what Claude Code reports, else what the user typed.
@@ -1328,7 +1335,9 @@ final class AppModel {
     @discardableResult
     func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) -> Bool {
         if let email = identityMismatch(for: profile) {
-            notice = Notice(kind: .warning, message: String(localized: "Dikkat: \(profile.name) hesabının Claude Code'u beklenmeyen bir adresle (\(email)) giriş yapmış."))
+            let warning = Notice(kind: .warning, message: String(localized: "Dikkat: \(profile.name) hesabının Claude Code'u beklenmeyen bir adresle (\(email)) giriş yapmış."))
+            notice = warning
+            identityNotice = (id: warning.id, profileID: profile.id)
         }
         let folder = chosen ?? defaultProjectFolder(for: profile)
         if let folder {

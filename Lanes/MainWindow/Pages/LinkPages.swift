@@ -131,8 +131,15 @@ struct LinksPage: View {
                     .help(link.kind)
             }
             TableColumn("Hesap") { link in
+                // No view that reads the model from the environment here:
+                // table cells being removed (clearing the log) lose it.
                 if let id = link.target, let profile = model.profile(withID: id) {
-                    DSAccountLabel(profile: profile, size: DS.Monogram.tiny)
+                    HStack(spacing: DS.Space.xs) {
+                        MonogramView(profile: profile, size: DS.Monogram.tiny)
+                        Text(profile.name)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                 } else {
                     Text("—")
                         .foregroundStyle(.secondary)
@@ -151,6 +158,7 @@ struct LinksPage: View {
                     .truncationMode(.tail)
                     .help(link.outcome)
             }
+            .width(min: 80, ideal: 150)
             TableColumn("Neden") { link in
                 Text(link.reason ?? "—")
                     .foregroundStyle(.secondary)
@@ -158,6 +166,7 @@ struct LinksPage: View {
                     .truncationMode(.tail)
                     .help(link.reason ?? "")
             }
+            .width(min: 140, ideal: 300)
         }
         .tableStyle(.inset)
         .scrollEdgeEffectStyle(.soft, for: .top)
@@ -183,7 +192,11 @@ struct LinksPage: View {
             }
         }
         .confirmationDialog("Bağlantı günlüğü temizlensin mi?", isPresented: $isConfirmingClear) {
-            Button("Temizle", role: .destructive) { model.clearLinkLog() }
+            Button("Temizle", role: .destructive) {
+                // After the dialog has gone, so the table doesn't update
+                // its rows while the sheet is still dismissing.
+                DispatchQueue.main.async { model.clearLinkLog() }
+            }
         } message: {
             Text("Son 30 günün kayıtları silinir. Bağlantıların kendisi zaten hiç saklanmaz.")
         }
