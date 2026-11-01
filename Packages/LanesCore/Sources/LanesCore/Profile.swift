@@ -93,6 +93,10 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// The folder "Terminalde Aç" starts Claude Code in when no other
     /// folder is chosen. nil means the home folder.
     public var defaultProjectFolder: String? { didSet { keptFields[Field.defaultProjectFolder.rawValue] = nil } }
+    /// Until when the user marked the account as having hit its Claude
+    /// limit. Links go to another account meanwhile. The user enters it;
+    /// Lanes reads no usage data from Claude.
+    public var limitedUntil: Date? { didSet { keptFields[Field.limitedUntil.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -114,7 +118,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         idleQuitMinutes: Int? = nil,
         dailyLimitMinutes: Int? = nil,
         isArchived: Bool = false,
-        defaultProjectFolder: String? = nil
+        defaultProjectFolder: String? = nil,
+        limitedUntil: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -132,6 +137,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.dailyLimitMinutes = dailyLimitMinutes
         self.isArchived = isArchived
         self.defaultProjectFolder = defaultProjectFolder
+        self.limitedUntil = limitedUntil
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -157,7 +163,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -196,6 +202,7 @@ extension Profile {
         dailyLimitMinutes = try read(Int.self, .dailyLimitMinutes)
         isArchived = try read(Bool.self, .isArchived) ?? false
         defaultProjectFolder = try read(String.self, .defaultProjectFolder)
+        limitedUntil = try read(Date.self, .limitedUntil)
         keptFields = kept
     }
 
@@ -225,6 +232,12 @@ extension Profile {
         if let dailyLimitMinutes, dailyLimitMinutes > 0 { try write(dailyLimitMinutes, .dailyLimitMinutes) }
         if isArchived { try write(isArchived, .isArchived) }
         if let defaultProjectFolder, !defaultProjectFolder.isEmpty { try write(defaultProjectFolder, .defaultProjectFolder) }
+        if let limitedUntil { try write(limitedUntil, .limitedUntil) }
+    }
+
+    /// Whether the account is resting after hitting its limit.
+    public func isResting(at now: Date) -> Bool {
+        limitedUntil.map { $0 > now } ?? false
     }
 
     /// Whether Claude Code may open in `path` for this account.

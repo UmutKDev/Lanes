@@ -44,6 +44,7 @@ struct SidebarView: View {
                                     Button("Claude Code'u Terminalde Aç") {
                                         model.openClaudeCode(profile)
                                     }
+                                    LimitMenu(profile: profile)
                                     Button("Hesabı Çoğalt") {
                                         if let copy = model.duplicateProfile(profile) {
                                             navigation.navigate(to: .account(copy.id))

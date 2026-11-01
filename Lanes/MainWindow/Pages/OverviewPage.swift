@@ -163,6 +163,7 @@ private struct AccountTile: View {
                         pulse: model.claudeCodePulse[profile.id],
                         project: model.claudeCodeActiveProject(for: profile)
                     )
+                    RestingIcon(profile: profile)
                     // Always laid out, so the row never reflows on launch or quit.
                     Text(verbatim: usage?.memory ?? " ")
                         .font(DS.Typography.caption)
@@ -218,6 +219,7 @@ private struct AccountTile: View {
             Button("Claude Code'u Terminalde Aç") {
                 model.openClaudeCode(profile)
             }
+            LimitMenu(profile: profile)
             Divider()
             Button("Hesabı Çoğalt") {
                 if let copy = model.duplicateProfile(profile) {

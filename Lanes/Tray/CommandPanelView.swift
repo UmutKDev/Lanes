@@ -437,6 +437,7 @@ struct AccountCardView: View {
                             pulse: model.claudeCodePulse[profile.id],
                             project: model.claudeCodeActiveProject(for: profile)
                         )
+                        RestingIcon(profile: profile)
                     }
                     Text(subtitle(isRunning: isRunning))
                         .font(DS.Typography.caption)
@@ -510,6 +511,7 @@ struct AccountCardView: View {
         Button("Claude Code Komutunu Kopyala") {
             SystemActions.copy(model.claudeCodeCommand(for: profile))
         }
+        LimitMenu(profile: profile)
         Divider()
         Button("Hesap Sayfası") {
             router.showAccount(profile)

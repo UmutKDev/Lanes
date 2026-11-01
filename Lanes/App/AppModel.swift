@@ -374,6 +374,7 @@ final class AppModel {
         lastActiveAt = lastActiveAt.filter { byProfile[$0.key] != nil }
 
         let now = Date()
+        expireLimits(now: now)
         checkDailyLimits(now: now)
         checkMemory(now: now)
         let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -1290,6 +1291,46 @@ final class AppModel {
 
     /// Puts an account in the archive or takes it out. An archived account
     /// keeps its sign-in and data; it only leaves the lists and ⌘1-9.
+    // MARK: Limit Nöbeti
+
+    /// Marks the account as having hit its Claude limit until `date`, or
+    /// ends its rest when `date` is nil. Links go to its stand-in
+    /// meanwhile, and a notification says when the rest is over.
+    func setLimited(_ profile: Profile, until date: Date?) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        updated.limitedUntil = date
+        updateProfile(updated)
+        let identifier = "limit-\(profile.id.rawValue)"
+        Notifier.cancel(identifier: identifier)
+        guard let date else {
+            notice = Notice(kind: .info, message: String(localized: "\(profile.name) yeniden kullanımda."))
+            return
+        }
+        Notifier.schedule(.limitReset, identifier: identifier, body: String(localized: "\(profile.name) yeniden kullanılabilir."), at: date)
+        let time = date.formatted(date: Calendar.current.isDateInToday(date) ? .omitted : .abbreviated, time: .shortened)
+        if let standIn = LimitWatch.standIn(for: updated, in: library, now: Date()) {
+            notice = Notice(kind: .info, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor. Bağlantılar bu sürede \(standIn.name) hesabına gidecek."))
+        } else {
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor, ama aynı türde boşta başka hesap yok. Bağlantılar yine bu hesaba gider."))
+        }
+    }
+
+    /// The account that takes this one's links while it rests.
+    func limitStandIn(for profile: Profile) -> Profile? {
+        LimitWatch.standIn(for: profile, in: library, now: Date())
+    }
+
+    /// Clears rests whose time has passed, so the lists stop showing them.
+    private func expireLimits(now: Date) {
+        for profile in library.profiles {
+            if let until = profile.limitedUntil, until <= now {
+                var updated = profile
+                updated.limitedUntil = nil
+                updateProfile(updated)
+            }
+        }
+    }
+
     func setArchived(_ profile: Profile, _ archived: Bool) {
         do {
             try library.setArchived(profile.id, archived)
@@ -1646,10 +1687,11 @@ final class AppModel {
     }
 
     /// Sends a routable link to the account the rules pick, opening it first
-    /// when it is closed.
+    /// when it is closed. An account resting after its limit hands the link
+    /// to its stand-in.
     private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
         let kind = Self.kindName(link)
-        guard let profile = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+        guard let chosen = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
             // No Lanes account has been in front: the link goes to Claude.app.
             if let claude {
                 NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
@@ -1658,6 +1700,10 @@ final class AppModel {
                 receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
             }
             return
+        }
+        let profile = LimitWatch.effective(chosen, in: library, now: Date())
+        if profile.id != chosen.id {
+            Log.app.info("Link handed to a stand-in while the chosen account rests")
         }
         var justOpened = false
         if !isRunning(profile) {
@@ -1681,7 +1727,10 @@ final class AppModel {
             _ = await InstanceLauncher.activate(pid: pid)
             Log.app.info("Link routed to an account")
             Notifier.post(.linkRouted, body: String(localized: "\(kind): \(profile.name)"))
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) hesabına iletildi."), target: profile.id), at: 0)
+            let outcome = profile.id == chosen.id
+                ? String(localized: "\(profile.name) hesabına iletildi.")
+                : String(localized: "\(profile.name) hesabına iletildi (\(chosen.name) dinleniyor).")
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: outcome, target: profile.id), at: 0)
         } catch {
             Log.app.error("Link routing failed: \(error.localizedDescription)")
             notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))

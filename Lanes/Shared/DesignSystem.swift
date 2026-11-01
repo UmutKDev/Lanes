@@ -842,6 +842,7 @@ struct DSAccountLabel: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 ClaudeCodePulseIcon(pulse: pulse, project: pulseProject)
+                RestingIcon(profile: profile)
             }
             .animation(DS.Motion.standard, value: pulse)
         } icon: {
