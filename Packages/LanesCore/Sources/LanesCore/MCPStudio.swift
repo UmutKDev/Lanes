@@ -46,6 +46,7 @@ public struct MCPAccountSettings: Codable, Equatable, Sendable {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try encoder.encode(self).write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 }
 
@@ -96,11 +97,14 @@ extension Toolbox {
     /// shared file; with some off, a copy holding only the others,
     /// readable only by the user; with none on, nothing.
     public func mcpArguments(for id: ProfileID) -> [String] {
+        let file = accountMCPFile(for: id)
         guard let data = try? Data(contentsOf: mcpConfigFile),
-              let servers = try? MCPConfig.servers(in: data), !servers.isEmpty else { return [] }
+              let servers = try? MCPConfig.servers(in: data), !servers.isEmpty else {
+            try? FileManager.default.removeItem(at: file)
+            return []
+        }
         let settings = MCPAccountSettings.load(from: mcpAccountsFile)
         let enabled = servers.filter { settings.isEnabled($0.key, for: id) }
-        let file = accountMCPFile(for: id)
         if enabled.count == servers.count {
             try? FileManager.default.removeItem(at: file)
             return ["--mcp-config", mcpConfigFile.path]

@@ -19,6 +19,8 @@ struct ToolboxPage: View {
 
     private var toolbox: Toolbox { Toolbox(paths: model.paths) }
 
+    private static let unsavedImportWarning = String(localized: "MCP sunucularında kaydedilmemiş değişiklik var. Önce kaydet, sonra ekip paketini içe aktar.")
+
     var body: some View {
         Form {
             Section {
@@ -287,7 +289,7 @@ struct ToolboxPage: View {
     private func importPack() {
         let saved = (try? String(contentsOf: toolbox.mcpConfigFile, encoding: .utf8)) ?? MCPConfig.template
         guard mcpText == saved else {
-            model.notice = AppModel.Notice(kind: .warning, message: String(localized: "MCP sunucularında kaydedilmemiş değişiklik var. Önce kaydet, sonra ekip paketini içe aktar."))
+            model.notice = AppModel.Notice(kind: .warning, message: Self.unsavedImportWarning)
             return
         }
         let panel = NSOpenPanel()
@@ -336,6 +338,9 @@ struct ToolboxPage: View {
             try data.write(to: toolbox.mcpConfigFile, options: [.atomic])
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: toolbox.mcpConfigFile.path)
             reloadServers()
+            if model.notice?.message == Self.unsavedImportWarning {
+                model.notice = nil
+            }
             mcpSaved = true
             mcpStatus = names.isEmpty
                 ? String(localized: "Kaydedildi. Liste boş.")

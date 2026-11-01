@@ -63,6 +63,16 @@ final class MCPStudioTests: XCTestCase {
         try settings.save(to: toolbox.mcpAccountsFile)
         XCTAssertEqual(toolbox.mcpArguments(for: first), [], "none on: nothing")
         XCTAssertFalse(FileManager.default.fileExists(atPath: file.path), "the old copy goes")
+
+        settings.set("a", enabled: true, for: first)
+        try settings.save(to: toolbox.mcpAccountsFile)
+        _ = toolbox.mcpArguments(for: first)
+        settings.set("b", enabled: false, for: first)
+        try settings.save(to: toolbox.mcpAccountsFile)
+        XCTAssertEqual(toolbox.mcpArguments(for: first), ["--mcp-config", file.path])
+        try writeServers(#"{"mcpServers":{}}"#)
+        XCTAssertEqual(toolbox.mcpArguments(for: first), [])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path), "an emptied list leaves no copy")
     }
 
     func testRemote() {
