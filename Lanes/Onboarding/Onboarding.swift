@@ -203,14 +203,14 @@ struct OnboardingView: View {
     private func bottomBar(_ accounts: [StageAccount]) -> some View {
         HStack(spacing: DS.Space.xl) {
             ProgressLanes(current: step, colors: accounts.map(\.color)) { move(to: $0) }
+            Button("Geri") { move(to: OnboardingStep(rawValue: step.rawValue - 1)) }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .focusEffectDisabled()
+                .keyboardShortcut(.leftArrow, modifiers: [])
+                .opacity(step == .welcome ? 0 : 1)
+                .disabled(step == .welcome)
             Spacer()
-            if step != .welcome {
-                Button("Geri") { move(to: OnboardingStep(rawValue: step.rawValue - 1)) }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .focusEffectDisabled()
-                    .keyboardShortcut(.leftArrow, modifiers: [])
-            }
             Button {
                 if step == .done {
                     leave()
@@ -281,11 +281,7 @@ struct OnboardingView: View {
             WelcomeScene(accounts: accounts)
         case .dock:
             StepPage(step: step) {
-                FactList(facts: [
-                    "Asıl Claude uygulaması olduğu gibi kalır.",
-                    "Bir hesaptan çıkmak ötekileri etkilemez.",
-                    "İstersen bir kopyayı Dock'tan gizleyebilirsin.",
-                ], colors: accounts.map(\.color))
+                EmptyView()
             } stage: {
                 DockStage(accounts: accounts, claudeIcon: claudeIcon)
             }
@@ -379,12 +375,9 @@ struct StageAccount: Identifiable {
             StageAccount(id: "example-client", name: String(localized: "Müşteri A"), monogram: "MA", color: ProfileColor.orange.swatch, detail: example, isExample: true),
             StageAccount(id: "example-personal", name: String(localized: "Kişisel"), monogram: "K", color: ProfileColor.green.swatch, detail: example, isExample: true),
         ]
-        for candidate in examples where result.count < 3 {
-            if !result.contains(where: { $0.name == candidate.name }) {
-                result.append(candidate)
-            }
-        }
-        return result
+        // The user's own accounts alone once there is one; examples, marked
+        // as such, only while there are none.
+        return result.isEmpty ? examples : result
     }
 }
 
