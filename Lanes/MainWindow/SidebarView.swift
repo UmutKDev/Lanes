@@ -11,90 +11,97 @@ struct SidebarView: View {
     var body: some View {
         let active = matching(model.library.activeProfiles)
         let archived = matching(model.library.archivedProfiles)
-        List(selection: selection) {
-            // While searching only the accounts are listed, so the result is
-            // not lost among the page rows.
-            if !isSearching {
-                Section {
-                    rows([.overview, .sessions, .usage])
+        ScrollViewReader { proxy in
+            List(selection: selection) {
+                // While searching only the accounts are listed, so the result is
+                // not lost among the page rows.
+                if !isSearching {
+                    Section {
+                        rows([.overview, .sessions, .usage])
+                    }
                 }
-            }
 
-            // While searching, an empty "Hesaplar" header is hidden too.
-            if !isSearching || !active.isEmpty {
-                Section("Hesaplar") {
-                    ForEach(active) { profile in
-                        DSAccountLabel(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
-                            .badge(shortcutBadge(for: profile))
-                            // An explicit tag: inside a movable ForEach the row
-                            // would otherwise be tagged with the profile's id,
-                            // which the Destination selection never matches.
-                            .tag(Destination.account(profile.id))
-                            .contextMenu {
-                                Button(model.isRunning(profile) ? "Öne Getir" : "Aç") {
-                                    model.open(profile)
+                // While searching, an empty "Hesaplar" header is hidden too.
+                if !isSearching || !active.isEmpty {
+                    Section("Hesaplar") {
+                        ForEach(active) { profile in
+                            DSAccountLabel(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
+                                .badge(shortcutBadge(for: profile))
+                                // An explicit tag: inside a movable ForEach the row
+                                // would otherwise be tagged with the profile's id,
+                                // which the Destination selection never matches.
+                                .tag(Destination.account(profile.id))
+                                .contextMenu {
+                                    Button(model.isRunning(profile) ? "Öne Getir" : "Aç") {
+                                        model.open(profile)
+                                    }
+                                    Button("Claude Code'u Terminalde Aç") {
+                                        model.openClaudeCode(profile)
+                                    }
+                                    Button("Hesabı Çoğalt") {
+                                        if let copy = model.duplicateProfile(profile) {
+                                            navigation.navigate(to: .account(copy.id))
+                                        }
+                                    }
+                                    if !profile.isDefault {
+                                        Button("Arşivle") {
+                                            model.setArchived(profile, true)
+                                        }
+                                    }
+                                    Divider()
+                                    Button("Hesabı Kaldır…", role: .destructive) {
+                                        profilePendingRemoval = profile
+                                    }
+                                    .disabled(profile.isDefault)
                                 }
-                                Button("Claude Code'u Terminalde Aç") {
-                                    model.openClaudeCode(profile)
-                                }
-                                Button("Hesabı Çoğalt") {
-                                    if let copy = model.duplicateProfile(profile) {
-                                        navigation.navigate(to: .account(copy.id))
+                        }
+                        // Rows can only be dragged in the full list, not a filtered one.
+                        .onMove(perform: query.isEmpty ? moveRows : nil)
+                    }
+                }
+
+                if !archived.isEmpty {
+                    Section("Arşiv") {
+                        ForEach(archived) { profile in
+                            ArchivedAccountLabel(profile: profile, isRunning: model.isRunning(profile))
+                                .badge(shortcutBadge(for: profile))
+                                .tag(Destination.account(profile.id))
+                                .contextMenu {
+                                    Button("Arşivden Çıkar") {
+                                        model.setArchived(profile, false)
+                                    }
+                                    Divider()
+                                    Button("Hesabı Kaldır…", role: .destructive) {
+                                        profilePendingRemoval = profile
                                     }
                                 }
-                                if !profile.isDefault {
-                                    Button("Arşivle") {
-                                        model.setArchived(profile, true)
-                                    }
-                                }
-                                Divider()
-                                Button("Hesabı Kaldır…", role: .destructive) {
-                                    profilePendingRemoval = profile
-                                }
-                                .disabled(profile.isDefault)
-                            }
+                        }
                     }
-                    // Rows can only be dragged in the full list, not a filtered one.
-                    .onMove(perform: query.isEmpty ? moveRows : nil)
                 }
-            }
 
-            if !archived.isEmpty {
-                Section("Arşiv") {
-                    ForEach(archived) { profile in
-                        ArchivedAccountLabel(profile: profile, isRunning: model.isRunning(profile))
-                            .badge(shortcutBadge(for: profile))
-                            .tag(Destination.account(profile.id))
-                            .contextMenu {
-                                Button("Arşivden Çıkar") {
-                                    model.setArchived(profile, false)
-                                }
-                                Divider()
-                                Button("Hesabı Kaldır…", role: .destructive) {
-                                    profilePendingRemoval = profile
-                                }
-                            }
+                if !isSearching {
+                    if showsDeveloperPages {
+                        Section("Yönlendirme") {
+                            rows([.accountMap, .links])
+                        }
+
+                        Section("Kitaplık") {
+                            rows([.toolbox, .scenes])
+                        }
+                    }
+
+                    Section("Sistem") {
+                        rows([.health, .maintenance, .privacy, .integrations, .validation, .settings])
                     }
                 }
             }
-
-            if !isSearching {
-                if showsDeveloperPages {
-                    Section("Yönlendirme") {
-                        rows([.accountMap, .links])
-                    }
-
-                    Section("Kitaplık") {
-                        rows([.toolbox, .scenes])
-                    }
-                }
-
-                Section("Sistem") {
-                    rows([.health, .maintenance, .privacy, .integrations, .validation, .settings])
-                }
+            .listStyle(.sidebar)
+            // A page opened from a menu, a shortcut or Back may sit outside the
+            // visible rows: scroll just enough to show it, below the search field.
+            .onChange(of: navigation.selection) { _, destination in
+                scrollIntoView(destination, with: proxy)
             }
         }
-        .listStyle(.sidebar)
         // The empty search result sits on the list itself, never over the
         // search field.
         .overlay {
@@ -154,8 +161,13 @@ struct SidebarView: View {
     }
 
     private func removalMessage(for profile: Profile) -> String {
-        let folder = (model.paths.profileDirectory(for: profile.id).path as NSString).abbreviatingWithTildeInPath
-        var message = String(localized: "Hesabın klasörü silinmez: \(folder). Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
+        let directory = model.paths.profileDirectory(for: profile.id)
+        let folder = (directory.path as NSString).abbreviatingWithTildeInPath
+        // Only the clone goes to the Trash; the account's own folder, with
+        // its sign-in and chats, stays where it is.
+        var message = FileManager.default.fileExists(atPath: directory.path)
+            ? String(localized: "Hesabın klasörü silinmez, yerinde kalır: \(folder). Claude kopyası Çöp Sepeti'ne taşınır. Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
+            : String(localized: "Bu hesap hiç açılmadığı için klasörü yok. Claude kopyası Çöp Sepeti'ne taşınır.")
         if model.isRunning(profile) {
             message += "\n\n" + String(localized: "Bu hesabın Claude'u şu an açık. Kaldırmadan önce onu kapatman iyi olur.")
         }
@@ -167,6 +179,19 @@ struct SidebarView: View {
             get: { navigation.selection.displayed(showingDeveloperPages: showsDeveloperPages) },
             set: { if let destination = $0 { navigation.navigate(to: destination) } }
         )
+    }
+
+    private func scrollIntoView(_ destination: Destination, with proxy: ScrollViewProxy) {
+        let shown = destination.displayed(showingDeveloperPages: showsDeveloperPages)
+        // A nil anchor scrolls the least amount, so a row already in view
+        // never moves under the pointer.
+        withAnimation(DS.Motion.standard) {
+            if case let .account(id) = shown {
+                proxy.scrollTo(id, anchor: nil)
+            } else {
+                proxy.scrollTo(shown, anchor: nil)
+            }
+        }
     }
 
     private func moveRows(_ source: IndexSet, _ destination: Int) {

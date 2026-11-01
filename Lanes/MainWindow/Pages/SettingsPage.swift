@@ -64,8 +64,6 @@ struct SettingsPage: View {
             AdvancedSettings()
         case .tabs:
             TabSettings()
-        case .windowBadges:
-            WindowBadgeSettings()
         case .shortcuts:
             ShortcutsSettings()
         case .notifications:
@@ -104,7 +102,6 @@ private extension SettingsPane {
         case .general: return .gray
         case .menuBarAndDock: return .blue
         case .tabs: return .indigo
-        case .windowBadges: return .cyan
         case .shortcuts: return .purple
         case .notifications: return .red
         case .updates: return .green
@@ -230,15 +227,17 @@ private struct GeneralSettings: View {
 private struct MenuBarAndDockSettings: View {
     @AppStorage(Preferences.Key.showsDockIconWithWindow) private var showsDockIcon = true
     @AppStorage(Preferences.Key.showsRunningCountInMenuBar) private var showsRunningCount = true
+    @AppStorage(Preferences.Key.showsFrontAccountInMenuBar) private var showsFrontAccount = true
 
     var body: some View {
         Form {
             Section {
+                Toggle("Simge öndeki Claude'un hesabını göstersin", isOn: $showsFrontAccount)
                 Toggle("Simgenin yanında açık hesap sayısını göster", isOn: $showsRunningCount)
             } header: {
                 Text("Menü çubuğu")
             } footer: {
-                Text("Sayı yalnız birden fazla hesap açıkken görünür.")
+                Text("Öndeki pencere Lanes'in açtığı bir hesaba aitse simge o hesabın rengini ve harfini alır; başka uygulamaya geçince eski hâline döner. Sayı yalnız birden fazla hesap açıkken görünür.")
             }
             Section {
                 Toggle("Ana pencere açıkken Dock'ta ve Cmd-Tab'da göster", isOn: $showsDockIcon)
@@ -327,7 +326,8 @@ private struct AdvancedSettings: View {
                 Text("Denemeleri yeniden yapmak için.")
             }
             Section {
-                folderRow("Profiller", url: model.paths.root)
+                folderRow("Lanes", url: model.paths.root)
+                folderRow("Hesap klasörleri", url: model.paths.root.appendingPathComponent("Profiles", isDirectory: true))
                 folderRow("Klonlar", url: model.paths.clonesDirectory)
                 folderRow("Tanılama", url: model.paths.diagnosticsDirectory)
             } header: {
@@ -353,7 +353,7 @@ private struct AdvancedSettings: View {
             }
             Section {
                 DSStatusRow(.info, title: Text("Lanes'in dokunmadıkları")) {
-                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
+                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Claude Code'un hesap dosyasından yalnız e-posta, ad ve kuruluş adını okur. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
                 }
             }
         }

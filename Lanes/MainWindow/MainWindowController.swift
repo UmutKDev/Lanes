@@ -23,6 +23,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         window.title = "Lanes"
         window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false
+        // SwiftUI writes the page title and subtitle into the window title,
+        // which made the Dock menu list "İkinci Hesap (Açık · Kişisel · …)"
+        // above the account's own entry. The Dock menu has its own account
+        // and page items, so the window stays out of the window lists.
+        window.isExcludedFromWindowsMenu = true
         // The minimum size comes from the SwiftUI root's frame; this only
         // mirrors the same tokens so AppKit never sizes the window below it.
         window.contentMinSize = NSSize(width: DS.Metrics.windowMinWidth, height: DS.Metrics.windowMinHeight)

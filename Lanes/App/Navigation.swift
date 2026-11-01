@@ -106,7 +106,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case general
     case menuBarAndDock
     case tabs
-    case windowBadges
     case shortcuts
     case notifications
     case updates
@@ -119,7 +118,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .general: return String(localized: "Genel")
         case .menuBarAndDock: return String(localized: "Menü Çubuğu ve Dock")
         case .tabs: return String(localized: "Sekmeler")
-        case .windowBadges: return String(localized: "Pencere Göstergeleri")
         case .shortcuts: return String(localized: "Kısayollar")
         case .notifications: return String(localized: "Bildirimler")
         case .updates: return String(localized: "Güncellemeler")
@@ -132,7 +130,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .general: return "gearshape"
         case .menuBarAndDock: return "menubar.dock.rectangle"
         case .tabs: return "rectangle.topthird.inset.filled"
-        case .windowBadges: return "macwindow.badge.plus"
         case .shortcuts: return "command"
         case .notifications: return "bell.badge"
         case .updates: return "arrow.triangle.2.circlepath"
@@ -143,7 +140,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Panes that are not built yet only show with the developer pages setting.
     var isBuilt: Bool {
         switch self {
-        case .general, .menuBarAndDock, .tabs, .windowBadges, .shortcuts, .notifications, .updates, .advanced: return true
+        case .general, .menuBarAndDock, .tabs, .shortcuts, .notifications, .updates, .advanced: return true
         }
     }
 
@@ -200,7 +197,8 @@ final class NavigationModel {
 
     init() {
         let stored = UserDefaults.standard.string(forKey: Preferences.Key.lastSettingsPane)
-        settingsPane = stored.flatMap(SettingsPane.init(rawValue:)) ?? .general
+        // "windowBadges" was merged into Menü Çubuğu ve Dock.
+        settingsPane = stored == "windowBadges" ? .menuBarAndDock : stored.flatMap(SettingsPane.init(rawValue:)) ?? .general
     }
 
     var canGoBack: Bool { !backStack.isEmpty }

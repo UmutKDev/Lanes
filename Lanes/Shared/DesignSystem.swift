@@ -789,7 +789,8 @@ struct DSPathText: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .truncationMode(.middle)
-            .textSelection(.enabled)
+            // No text selection here: selectable text takes the hover, and
+            // the help with the whole path then never shows.
             .help(fullPath)
     }
 

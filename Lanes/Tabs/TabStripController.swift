@@ -123,6 +123,11 @@ final class TabStripController: NSObject, NSWindowDelegate {
         panel?.orderOut(nil)
         panel = nil
         activeProfileID = nil
+        // Tab mode hid the other accounts; without the strip there would be
+        // no way back to them, so they all come back.
+        for instance in model.instances where instance.profileID != nil {
+            NSRunningApplication(processIdentifier: instance.pid)?.unhide()
+        }
         Log.app.info("Tab mode off")
     }
 
