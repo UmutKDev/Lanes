@@ -49,6 +49,14 @@ final class ProfilePathsTests: XCTestCase {
         XCTAssertEqual(paths.claudeCodeConfigDirectory(for: profile)?.path, "/Users/umut/Library/Application Support/Lanes/Profiles/abc/ClaudeCode")
     }
 
+    func testSharedClaudeCodeProfileUsesClaudesOwnClaudeCodeFolder() {
+        let profile = Profile(id: ProfileID(rawValue: "abc"), name: "Eski", color: .orange, usesSharedClaudeCode: true)
+        XCTAssertNil(paths.claudeCodeConfigDirectory(for: profile))
+        XCTAssertEqual(paths.effectiveClaudeCodeConfigDirectory(for: profile).path, "/Users/umut/.claude")
+        XCTAssertEqual(paths.claudeCodeAccountFile(for: profile).path, "/Users/umut/.claude.json")
+        XCTAssertEqual(paths.desktopDataDirectory(for: profile)?.path, "/Users/umut/Library/Application Support/Lanes/Profiles/abc/Claude")
+    }
+
     func testCloneBundleNameIsSafe() {
         let profile = Profile(id: ProfileID(rawValue: "abc"), name: "Müşteri/A: B", color: .pink)
         XCTAssertEqual(paths.cloneBundle(for: profile).lastPathComponent, "Claude – Müşteri-A- B.app")

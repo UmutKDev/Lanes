@@ -541,16 +541,40 @@ private struct AccountClaudeCodeTab: View {
     @Environment(AppModel.self) private var model
     let profile: Profile
 
+    /// Whether Claude Code uses `~/.claude`. Claude gets its environment at
+    /// launch, so it changes only while the account is closed. Nothing is
+    /// moved either way.
+    private var sharedToggle: some View {
+        let isRunning = model.isRunning(profile)
+        return Toggle("~/.claude ile ortak", isOn: Binding(
+            get: { profile.usesSharedClaudeCode },
+            set: { on in
+                var changed = profile
+                changed.usesSharedClaudeCode = on
+                model.updateProfile(changed)
+            }
+        ))
+        .disabled(isRunning)
+        .help(isRunning ? String(localized: "Önce bu hesabın Claude'unu kapat.") : "")
+    }
+
     var body: some View {
         let command = model.claudeCodeCommand(for: profile)
         let recent = model.recentClaudeCodeFolders(for: profile)
         Form {
             Section {
                 PathRow(url: model.paths.effectiveClaudeCodeConfigDirectory(for: profile))
+                if !profile.isDefault {
+                    sharedToggle
+                }
             } header: {
                 Text("Yerel Claude Code")
             } footer: {
-                if !profile.isDefault {
+                if profile.isDefault {
+                    EmptyView()
+                } else if profile.usesSharedClaudeCode {
+                    Text("Claude uygulamasıyla ortak klasör.")
+                } else {
                     Text("Bu hesabın Claude Code oturumları ve ayarları burada durur.")
                 }
             }

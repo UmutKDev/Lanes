@@ -199,6 +199,40 @@ final class ProfileCompatibilityTests: XCTestCase {
         XCTAssertEqual(savedProfile["mode"] as? String, "sandbox")
         XCTAssertEqual(try store.load().profiles.first?.color, .teal)
     }
+
+    func testSharedClaudeCodeFlagRoundTrips() throws {
+        let store = try store(with: #"{"version": 1, "profiles": [{"id": "s", "name": "S", "usesSharedClaudeCode": true}]}"#)
+        let library = try store.load()
+        XCTAssertTrue(try XCTUnwrap(library.profiles.first).usesSharedClaudeCode)
+        XCTAssertNil(try store.save(library))
+        let saved = try jsonObject(Data(contentsOf: store.fileURL))
+        let profile = try XCTUnwrap((saved["profiles"] as? [NSDictionary])?.first)
+        XCTAssertEqual(profile["usesSharedClaudeCode"] as? Bool, true)
+    }
+
+    func testSharedClaudeCodeFlagIsFalseAndUnwrittenWhenAbsent() throws {
+        let library = try store(with: Self.versionOneFile).load()
+        XCTAssertFalse(library.profiles.contains(where: \.usesSharedClaudeCode))
+        let written = try String(decoding: ProfileStore.encoder.encode(library), as: UTF8.self)
+        XCTAssertFalse(written.contains("usesSharedClaudeCode"))
+    }
+
+    func testSharedClaudeCodeFlagOfAnotherTypeIsKeptNextToUnknownFields() throws {
+        let newer = #"{"version": 1, "profiles": [{"id": "s", "name": "S", "usesSharedClaudeCode": "yes", "future": {"a": 1}}]}"#
+        let store = try store(with: newer)
+        let library = try store.load()
+        XCTAssertFalse(try XCTUnwrap(library.profiles.first).usesSharedClaudeCode)
+        XCTAssertNil(try store.save(library))
+        let saved = try jsonObject(Data(contentsOf: store.fileURL))
+        let profile = try XCTUnwrap((saved["profiles"] as? [NSDictionary])?.first)
+        XCTAssertEqual(profile["usesSharedClaudeCode"] as? String, "yes")
+        XCTAssertEqual(profile["future"] as? NSDictionary, ["a": 1])
+
+        var changed = try XCTUnwrap(library.profiles.first)
+        changed.usesSharedClaudeCode = true
+        let rewritten = try jsonObject(ProfileStore.encoder.encode(changed))
+        XCTAssertEqual(rewritten["usesSharedClaudeCode"] as? Bool, true)
+    }
 }
 
 final class ProfileStartupTests: XCTestCase {

@@ -115,6 +115,14 @@ public struct SessionHandoff: Equatable, Sendable {
         destinationFolder = to.appendingPathComponent(sessionID, isDirectory: true)
     }
 
+    /// Whether two accounts' `projects/` folders are the same folder, as for
+    /// two accounts sharing `~/.claude`. The session is then already there:
+    /// Lanes resumes it without copying anything. Case is ignored, as APFS
+    /// does.
+    public static func isSameFolder(_ a: URL, _ b: URL) -> Bool {
+        InstanceMatcher.normalize(a.path).lowercased() == InstanceMatcher.normalize(b.path).lowercased()
+    }
+
     /// The arguments that continue the copy as a new session, so the copy
     /// itself stays an exact copy and can be replaced by a newer one later.
     public static func resumeArguments(sessionID: String) -> [String] {

@@ -76,11 +76,13 @@ public enum LaunchPlanner {
         }
 
         let dataDirectory = paths.effectiveDesktopDataDirectory(for: profile)
-        let configDirectory = paths.effectiveClaudeCodeConfigDirectory(for: profile)
+        // nil for an account sharing `~/.claude`: no variable, and Lanes
+        // never creates or touches that folder.
+        let configDirectory = paths.claudeCodeConfigDirectory(for: profile)
         var plan = LaunchPlan(
             applicationURL: application,
             arguments: ["\(userDataDirectoryFlag)=\(dataDirectory.path)"],
-            environment: [claudeConfigDirectoryVariable: configDirectory.path],
+            environment: configDirectory.map { [claudeConfigDirectoryVariable: $0.path] } ?? [:],
             createsNewInstance: true,
             dataDirectory: dataDirectory,
             claudeCodeConfigDirectory: configDirectory

@@ -37,4 +37,10 @@ final class LanesCLITests: XCTestCase {
         XCTAssertFalse(script.contains("\\#("))
         XCTAssertTrue(script.contains("cli-accounts.tsv"))
     }
+
+    func testSharedClaudeCodeAccountMapsToClaudesOwnFolder() {
+        let shared = Profile(id: ProfileID(rawValue: "s"), name: "Eski", color: .blue, usesSharedClaudeCode: true)
+        let lines = LanesCLI.map(library: ProfileLibrary(profiles: [shared]), paths: paths).split(separator: "\n").map(String.init)
+        XCTAssertEqual(lines[1], "A\ts\t1\tEski\t-")
+    }
 }

@@ -49,9 +49,10 @@ public struct ProfilePaths: Sendable, Equatable {
     }
 
     /// The folder passed to Claude Code as `CLAUDE_CONFIG_DIR`.
-    /// `nil` for the default profile, which uses `~/.claude`.
+    /// `nil` for the default profile and for accounts that share Claude
+    /// Code with it (`usesSharedClaudeCode`): both use `~/.claude`.
     public func claudeCodeConfigDirectory(for profile: Profile) -> URL? {
-        guard !profile.isDefault else { return nil }
+        guard !profile.isDefault, !profile.usesSharedClaudeCode else { return nil }
         return profileDirectory(for: profile.id).appendingPathComponent("ClaudeCode", isDirectory: true)
     }
 

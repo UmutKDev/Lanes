@@ -24,4 +24,11 @@ final class SessionHandoffTests: XCTestCase {
     func testRefusesTheSameAccountFolder() {
         XCTAssertNil(SessionHandoff(sessionID: "x", projectFolderName: "-Users-a", fromProjects: from, toProjects: from))
     }
+
+    func testSharedFoldersAreTheSameFolder() {
+        let shared = URL(fileURLWithPath: "/Users/u/.claude/projects", isDirectory: true)
+        XCTAssertTrue(SessionHandoff.isSameFolder(shared, URL(fileURLWithPath: "/Users/u/.claude/projects/")))
+        XCTAssertTrue(SessionHandoff.isSameFolder(shared, URL(fileURLWithPath: "/Users/U/.Claude/projects")))
+        XCTAssertFalse(SessionHandoff.isSameFolder(from, to))
+    }
 }
