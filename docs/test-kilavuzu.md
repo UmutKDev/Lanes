@@ -22,7 +22,7 @@ Giriş tamamen Claude'un kendi penceresinde olur. Lanes giriş bilgilerini görm
 
 ## Güncellemeler
 
-Lanes güncellemeleri kendisi denetler. Elle denetlemek için menü çubuğu panelinde "Güncellemeleri Denetle…" ya da Ayarlar > Güncellemeler. Lanes'in yaptığı tek ağ isteği bu denetim.
+Lanes güncellemeleri kendisi denetler. Elle denetlemek için menü çubuğu panelinde "Güncellemeleri Denetle…" ya da Ayarlar > Güncellemeler. Kurulum sayfasında "Kur" düğmesiyle kendin başlattığın Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği bu denetim.
 
 ## Sorun bildirmek
 

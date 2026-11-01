@@ -12,6 +12,7 @@ enum Destination: Hashable {
     case links
     case toolbox
     case scenes
+    case setup
     case health
     case maintenance
     case privacy
@@ -29,6 +30,7 @@ enum Destination: Hashable {
         case .links: return String(localized: "Bağlantılar")
         case .toolbox: return String(localized: "Araç Kutusu")
         case .scenes: return String(localized: "Sahneler")
+        case .setup: return String(localized: "Kurulum")
         case .health: return String(localized: "Sağlık")
         case .maintenance: return String(localized: "Bakım")
         case .privacy: return String(localized: "Gizlilik")
@@ -48,11 +50,13 @@ enum Destination: Hashable {
         case .links: return "link"
         case .toolbox: return "wrench.and.screwdriver"
         case .scenes: return "rectangle.3.group"
+        case .setup: return "checklist"
         case .health: return "stethoscope"
         case .maintenance: return "externaldrive"
         case .privacy: return "hand.raised"
         case .integrations: return "puzzlepiece.extension"
-        case .validation: return "checklist"
+        // Not "checklist": Kurulum uses it in the same sidebar section.
+        case .validation: return "testtube.2"
         case .settings: return "gearshape"
         }
     }
@@ -67,6 +71,7 @@ enum Destination: Hashable {
         case "links": self = .links
         case "toolbox": self = .toolbox
         case "scenes": self = .scenes
+        case "setup": self = .setup
         case "health": self = .health
         case "maintenance": self = .maintenance
         case "privacy": self = .privacy

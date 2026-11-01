@@ -6,6 +6,7 @@ import SwiftUI
 /// nothing about sign-ins: knowing that would mean looking at login data.
 struct HealthPage: View {
     @Environment(AppModel.self) private var model
+    @Environment(NavigationModel.self) private var navigation
     @State private var permission: AppleEvents.Permission?
     @State private var claudeCommand: String?
     @State private var lookedForClaudeCommand = false
@@ -93,7 +94,9 @@ struct HealthPage: View {
                     }
                 } else {
                     HealthRow(state: .warning, title: String(localized: "claude komutu bulunamadı")) {
-                        Text("\"Claude Code'u Terminalde Aç\" için Claude Code'un komut satırı sürümü gerekiyor.")
+                        Text("\"Claude Code'u Terminalde Aç\" için Claude Code'un komut satırı sürümü gerekiyor. Kurulum sayfasından kurabilirsin.")
+                    } accessory: {
+                        setupButton
                     }
                 }
             }
@@ -155,7 +158,7 @@ struct HealthPage: View {
             orphans = model.orphanProfileFolders()
             model.refreshCloneStatuses()
             permission = await AppleEvents.reopenPermission(bundleIdentifier: ClaudeInstallation.bundleIdentifier)
-            claudeCommand = await Self.findClaudeCommand()
+            claudeCommand = await ClaudeCommandLocator.find()
             lookedForClaudeCommand = true
         }
     }
@@ -372,7 +375,9 @@ struct HealthPage: View {
             }
         case .notAskedYet?:
             HealthRow(state: .info, title: String(localized: "Otomasyon izni henüz sorulmadı")) {
-                Text("macOS bunu Lanes bir pencereyi ilk kez öne getirirken sorabilir.")
+                Text("macOS bunu Lanes bir pencereyi ilk kez öne getirirken sorabilir. Kurulum sayfasından şimdi de isteyebilirsin.")
+            } accessory: {
+                setupButton
             }
         case .claudeNotRunning?:
             HealthRow(state: .info, title: String(localized: "Otomasyon izni denetlenemedi")) {
@@ -383,6 +388,15 @@ struct HealthPage: View {
                 EmptyView()
             }
         }
+    }
+
+    /// Leads from a check to the page that can fix it.
+    private var setupButton: some View {
+        Button("Kurulum'a Git") {
+            navigation.navigate(to: .setup)
+        }
+        .controlSize(.small)
+        .fixedSize()
     }
 
     /// The folder appears with "~" and its ID cut short, so a narrow window
@@ -418,20 +432,6 @@ struct HealthPage: View {
                 }
             }
         }
-    }
-
-    /// Looks in the folders Claude Code's installers use, then asks an
-    /// interactive login shell: the official installer adds its folder to
-    /// PATH only in `~/.zshrc`, which a plain login shell does not read.
-    private static func findClaudeCommand() async -> String? {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        if let path = ClaudeCodeCommand.candidatePaths(home: home).first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
-            return path
-        }
-        let output = await ShellRunner.run("/bin/zsh", ["-lic", "command -v claude"])
-        guard output.status == 0 else { return nil }
-        // An interactive shell may print its own lines first.
-        return output.text.split(separator: "\n").map(String.init).last { $0.hasPrefix("/") }
     }
 }
 

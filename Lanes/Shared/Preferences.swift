@@ -21,6 +21,9 @@ enum Preferences {
         static let panelSortsByRecent = "panelSortsByRecent"
         static let lastUsedAccounts = "lastUsedAccounts"
         static let memoryAlertGigabytes = "memoryAlertGigabytes"
+        /// Set once the Kurulum page has been shown, so the first launch
+        /// opens it at most once.
+        static let setupShown = "setupShown"
     }
 
     /// Accounts as tabs under one strip. Off until the user turns it on,
