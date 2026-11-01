@@ -1850,6 +1850,7 @@ final class AppModel {
         case .panel: return String(localized: "Menü çubuğu paneli")
         case .nextAccount: return String(localized: "Sonraki açık hesap")
         case .previousAccount: return String(localized: "Önceki açık hesap")
+        case .palette: return String(localized: "Komut Paleti")
         case let .profile(id): return profile(withID: id)?.name ?? String(localized: "Silinmiş hesap")
         case let .scene(id): return library.scene(withID: id)?.name ?? String(localized: "Silinmiş sahne")
         }

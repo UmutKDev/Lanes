@@ -20,5 +20,6 @@ final class AccountCycleTests: XCTestCase {
     func testNewTargetsSurviveSavingAndPruning() {
         XCTAssertEqual(ShortcutTarget(key: ShortcutTarget.nextAccount.description), .nextAccount)
         XCTAssertEqual(ShortcutTarget(key: ShortcutTarget.previousAccount.description), .previousAccount)
+        XCTAssertEqual(ShortcutTarget(key: ShortcutTarget.palette.description), .palette)
     }
 }

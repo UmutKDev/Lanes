@@ -11,6 +11,7 @@ final class WindowRouter {
     @ObservationIgnored let navigation = NavigationModel()
     @ObservationIgnored weak var statusItemController: StatusItemController?
     @ObservationIgnored private var mainWindowController: MainWindowController?
+    @ObservationIgnored private var paletteController: PaletteController?
 
     init(model: AppModel) {
         self.model = model
@@ -59,6 +60,14 @@ final class WindowRouter {
 
     func togglePanel() {
         statusItemController?.togglePanel()
+    }
+
+    /// Opens or closes the Komut Paleti.
+    func togglePalette() {
+        statusItemController?.closePanel()
+        let controller = paletteController ?? PaletteController(model: model, router: self)
+        paletteController = controller
+        controller.toggle()
     }
 
     /// Faz 0 check 9: closes the main window, hands focus to Finder, opens the
