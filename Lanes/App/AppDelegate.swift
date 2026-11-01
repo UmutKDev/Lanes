@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.reopenLastAccountsIfWanted()
         Task { [model] in
             if await LegacyWebData.removeOnce() > 0 {
-                model.notice = Notice(kind: .info, message: String(localized: "Lanes içinde açılan hesaplar artık Claude uygulamasında, kendi simgeleriyle açılıyor. Bu hesaplara Claude'un penceresinde bir kez yeniden giriş yapman gerekir."))
+                model.notice = AppModel.Notice(kind: .info, message: String(localized: "Lanes içinde açılan hesaplar artık Claude uygulamasında, kendi simgeleriyle açılıyor. Bu hesaplara Claude'un penceresinde bir kez yeniden giriş yapman gerekir."))
             }
         }
     }
