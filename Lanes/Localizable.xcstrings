@@ -4314,7 +4314,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Usually left over from removed accounts and may contain sign-in data. Lanes doesn't delete them."
+            "value": "Such folders are usually left over from removed accounts and may contain sign-in data. Lanes doesn't delete them."
           }
         }
       }
