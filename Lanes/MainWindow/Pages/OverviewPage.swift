@@ -275,6 +275,13 @@ private struct AccountTile: View {
     /// The note, or the account's email when there is no note.
     private var note: String? {
         if let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty { return note }
+        // The Claude app's account and accounts sharing ~/.claude get their
+        // email from the shared Claude Code sign-in, which may be another
+        // account than the one signed in to the app: say whose it is.
+        if profile.isDefault || profile.usesSharedClaudeCode, profile.email == nil,
+           let email = model.email(for: profile) {
+            return String(localized: "Claude Code: \(email)")
+        }
         return model.email(for: profile)
     }
 }
@@ -282,7 +289,7 @@ private struct AccountTile: View {
 extension AccountTile {
     /// The account's kind, with today's time in front once there is any.
     var kindLine: String {
-        let kind = profile.isDefault ? String(localized: "Claude uygulaması") : profile.accountClass.displayName
+        let kind = profile.isDefault ? String(localized: "Ana hesap") : profile.accountClass.displayName
         let today = model.frontSeconds(for: profile.id, days: 1)
         guard today >= 60 else { return kind }
         return String(localized: "\(kind) · bugün \(FrontTimeLog.describe(seconds: today))")
