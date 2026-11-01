@@ -1213,17 +1213,19 @@ final class AppModel {
 
     /// Opens Claude Code in Terminal, in `folder`, else in the account's
     /// default project folder, else in the home folder.
-    func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) {
+    /// Returns whether Terminal opened.
+    @discardableResult
+    func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) -> Bool {
         let folder = chosen ?? defaultProjectFolder(for: profile)
         if let folder {
             guard FileManager.default.fileExists(atPath: folder.path) else {
                 forgetRecentFolder(folder.path, for: profile)
                 notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) klasörü artık yok, listeden çıkarıldı."))
-                return
+                return false
             }
             guard profile.allowsFolder(folder.path) else {
                 notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
-                return
+                return false
             }
         }
         do {
@@ -1234,8 +1236,30 @@ final class AppModel {
                 recentFolders[profile.id] = recent
                 saveRecentFolders()
             }
+            return true
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
+            return false
+        }
+    }
+
+    /// "Worktree Fırlatıcı": makes a worktree of `repository` on `branch`
+    /// and starts Claude Code there with `profile`. Returns an error text
+    /// for the sheet, or nil when Terminal opened.
+    func launchWorktree(repository: URL, branch: String, with profile: Profile) async -> String? {
+        let folder = WorktreePlan.folder(forRepository: repository, branch: branch)
+        guard profile.allowsFolder(folder.path) else {
+            return String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(WorktreePlan.worktreesFolder(forRepository: repository).path) bunlardan biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin.")
+        }
+        do {
+            let made = try await GitWorktree.add(repository: repository, branch: branch)
+            Log.app.info("Made a git worktree for Claude Code")
+            guard openClaudeCode(profile, in: made) else {
+                return String(localized: "Worktree \(made.path) klasöründe oluşturuldu ama Terminal açılamadı. Projeler'den o klasörde açabilirsin.")
+            }
+            return nil
+        } catch {
+            return error.localizedDescription
         }
     }
 

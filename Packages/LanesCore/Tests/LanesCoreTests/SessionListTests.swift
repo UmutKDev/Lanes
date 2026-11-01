@@ -53,4 +53,17 @@ final class SessionListTests: XCTestCase {
         let activity = list.activity(days: 3, now: now, calendar: calendar)
         XCTAssertEqual(activity.map(\.sessions), [0, 1, 2])
     }
+
+    func testProjectPathReadsDots() {
+        let existing: Set<String> = [
+            "/Users", "/Users/admin", "/Users/admin/wt2", "/Users/admin/wt2.worktrees",
+            "/Users/admin/wt2.worktrees/lanes-ana-hesap-1101-1319", "/Users/admin/.config", "/Users/admin/.config/app",
+        ]
+        XCTAssertEqual(
+            ClaudeCodeSessionList.projectPath(forFolderName: "-Users-admin-wt2-worktrees-lanes-ana-hesap-1101-1319", exists: existing.contains),
+            "/Users/admin/wt2.worktrees/lanes-ana-hesap-1101-1319"
+        )
+        XCTAssertEqual(ClaudeCodeSessionList.projectPath(forFolderName: "-Users-admin-wt2", exists: existing.contains), "/Users/admin/wt2")
+        XCTAssertEqual(ClaudeCodeSessionList.projectPath(forFolderName: "-Users-admin--config-app", exists: existing.contains), "/Users/admin/.config/app")
+    }
 }
