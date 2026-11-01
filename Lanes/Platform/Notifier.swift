@@ -105,7 +105,7 @@ enum Notifier {
     static func setUp() {
         let center = UNUserNotificationCenter.current()
         center.delegate = NotificationResponder.shared
-        let show = UNNotificationAction(identifier: showTerminalAction, title: String(localized: "Terminale Git"), options: [.foreground])
+        let show = UNNotificationAction(identifier: showTerminalAction, title: String(localized: "Terminale Git"), options: [])
         let category = UNNotificationCategory(identifier: claudeCodeCategory, actions: [show], intentIdentifiers: [])
         center.setNotificationCategories([category])
     }
@@ -123,7 +123,8 @@ enum Notifier {
         if let tty { info["tty"] = tty }
         if let terminalProgram { info["terminalProgram"] = terminalProgram }
         content.userInfo = info
-        let identifier = "claudeCode-" + (tty ?? threadID)
+        // One notification per terminal; without one, each stands alone.
+        let identifier = "claudeCode-" + (tty ?? UUID().uuidString)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request) { error in
             if let error {
@@ -149,7 +150,10 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
            action == Notifier.showTerminalAction || action == UNNotificationDefaultActionIdentifier {
             let tty = content.userInfo["tty"] as? String
             let program = content.userInfo["terminalProgram"] as? String
+            // A click on the notification itself brings Lanes forward
+            // first; the terminal comes after it, so it ends up in front.
             Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 300_000_000)
                 TerminalFocus.show(tty: tty, terminalProgram: program)
             }
         }

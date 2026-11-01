@@ -42,8 +42,9 @@ public enum ClaudeCodeHooks {
     /// The hook. POSIX sh, run as `/bin/sh lanes-hook ID KIND`.
     ///
     /// The file is written under a temporary name and renamed, so Lanes
-    /// never reads half of one. `ps -o tty= -p $$` names the session's
-    /// terminal, which the hook inherits even though its input is a pipe.
+    /// never reads half of one. Claude Code starts hooks without a
+    /// controlling terminal, so the hook walks up to the first ancestor
+    /// that has one, which is the session's.
     public static var script: String {
         #"""
         #!/bin/sh
@@ -54,7 +55,18 @@ public enum ClaudeCodeHooks {
         case "$2" in done|waiting) ;; *) exit 0 ;; esac
         dir="$(dirname "$0")/Events"
         [ -d "$dir" ] || exit 0
-        tty=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
+        # Claude Code runs hooks without a terminal of their own, so the
+        # first ancestor that has one (Claude Code itself) names it.
+        pid=$$
+        tty=""
+        for _ in 1 2 3 4 5; do
+            t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
+            case "$t" in
+                ""|"?"|"??") pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+                    case "$pid" in ""|0|1) break ;; esac ;;
+                *) tty=$t; break ;;
+            esac
+        done
         tmp="$dir/.$$.tmp"
         printf '%s\n%s\n%s\n%s\n%s\n%s\n' "lanes-event 1" "$1" "$2" "$tty" "${TERM_PROGRAM:-}" "${CLAUDE_PROJECT_DIR:-$PWD}" > "$tmp" 2>/dev/null || exit 0
         mv -f "$tmp" "$dir/$(date +%s)-$$.event" 2>/dev/null
