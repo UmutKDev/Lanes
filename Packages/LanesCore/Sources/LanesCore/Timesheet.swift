@@ -130,9 +130,14 @@ public struct Timesheet: Equatable, Sendable {
                     byFolder[folder, default: Array(repeating: 0, count: 7)][index] += seconds
                 }
             }
-            let rows = byFolder
-                .map { Project(folderName: $0.key, name: projectName($0.key), seconds: $0.value) }
-                .sorted { $0.total == $1.total ? $0.name < $1.name : $0.total > $1.total }
+            var rows: [Project] = []
+            for (folder, seconds) in byFolder {
+                rows.append(Project(folderName: folder, name: projectName(folder), seconds: seconds))
+            }
+            rows.sort { (a: Project, b: Project) -> Bool in
+                if a.total != b.total { return a.total > b.total }
+                return a.name < b.name
+            }
             return Account(id: account.id, name: account.name, front: frontSeconds, projects: rows)
         }
     }
@@ -185,7 +190,11 @@ public struct Timesheet: Equatable, Sendable {
     /// "İş: 12 sa 30 dk, Claude Code 3 sa · Müşteri A: 4 sa", the busiest first, for the
     /// Monday summary. Nil when nothing was used.
     public var summary: String? {
-        let used = usedAccounts.sorted { ($0.frontTotal + $0.codeTotal) > ($1.frontTotal + $1.codeTotal) }
+        let used = usedAccounts.sorted { (a: Account, b: Account) -> Bool in
+            let left: Double = a.frontTotal + a.codeTotal
+            let right: Double = b.frontTotal + b.codeTotal
+            return left > right
+        }
         guard !used.isEmpty else { return nil }
         return used.map { account in
             let code = account.codeTotal >= 60 ? ", Claude Code \(Self.duration(account.codeTotal))" : ""
