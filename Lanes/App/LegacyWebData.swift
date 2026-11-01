@@ -9,22 +9,26 @@ import WebKit
 enum LegacyWebData {
     private static let doneKey = "legacyWebDataRemoved"
 
+    /// Returns how many stores it removed, so the user can be told once.
     @MainActor
-    static func removeOnce() async {
+    @discardableResult
+    static func removeOnce() async -> Int {
         let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: doneKey) else { return }
+        guard !defaults.bool(forKey: doneKey) else { return 0 }
         // Touching the default store sets WebKit up on the main thread
         // first; asking for identifiers before that can crash WebKit.
         _ = WKWebsiteDataStore.default()
-        for identifier in await WKWebsiteDataStore.allDataStoreIdentifiers {
+        let identifiers = await WKWebsiteDataStore.allDataStoreIdentifiers
+        for identifier in identifiers {
             do {
                 try await WKWebsiteDataStore.remove(forIdentifier: identifier)
             } catch {
                 Log.app.error("Could not remove an old account's website data: \(error.localizedDescription, privacy: .public)")
-                return
+                return 0
             }
         }
         defaults.removeObject(forKey: "openWebAccounts")
         defaults.set(true, forKey: doneKey)
+        return identifiers.count
     }
 }
