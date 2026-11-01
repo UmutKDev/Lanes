@@ -82,7 +82,7 @@ final class AppModel {
     private(set) var linkRules: LinkRules
     /// The account whose Claude was last in front, for links that follow
     /// the front account. Lanes itself coming forward doesn't change it.
-    @ObservationIgnored private var lastFrontProfileID: ProfileID?
+    @ObservationIgnored private(set) var lastFrontProfileID: ProfileID?
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var knownPIDs: Set<pid_t> = []
     /// Whether each clone matches Claude and its profile. Lanes renews a

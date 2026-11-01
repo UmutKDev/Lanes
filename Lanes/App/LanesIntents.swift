@@ -1,4 +1,6 @@
 import AppIntents
+import Foundation
+import UniformTypeIdentifiers
 import LanesCore
 
 /// Lets Shortcuts, Spotlight and Siri reach the running Lanes.
@@ -13,6 +15,15 @@ struct LanesIntentError: Error, CustomLocalizedStringResourceConvertible {
     static let notRunning = LanesIntentError(localizedStringResource: "Lanes henüz hazır değil. Biraz sonra yeniden dene.")
     static let accountGone = LanesIntentError(localizedStringResource: "Bu hesap artık Lanes'te yok.")
     static let sceneGone = LanesIntentError(localizedStringResource: "Bu sahne artık Lanes'te yok.")
+    static let claudeAppAccount = LanesIntentError(localizedStringResource: "Claude uygulamasının kendi hesabı Lanes'ten yönetilmez.")
+    static let notAFolder = LanesIntentError(localizedStringResource: "Seçilen öğe bir klasör değil.")
+
+    @MainActor
+    static func profile(for account: AccountEntity) throws -> (AppModel, Profile) {
+        guard let model = IntentBridge.model else { throw notRunning }
+        guard let profile = model.profile(withID: ProfileID(rawValue: account.id)) else { throw accountGone }
+        return (model, profile)
+    }
 }
 
 struct AccountEntity: AppEntity {
@@ -107,6 +118,107 @@ struct OpenSceneIntent: AppIntent {
     }
 }
 
+struct QuitAccountIntent: AppIntent {
+    static let title: LocalizedStringResource = "Claude Hesabını Kapat"
+    static let description = IntentDescription("Bir hesabın Claude'unu ⌘Q gibi kapatır. Kapalıysa bir şey yapmaz.")
+
+    @Parameter(title: "Hesap")
+    var account: AccountEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let (model, profile) = try LanesIntentError.profile(for: account)
+        guard !profile.isDefault else { throw LanesIntentError.claudeAppAccount }
+        model.quit(profile)
+        return .result()
+    }
+}
+
+struct StartClaudeCodeIntent: AppIntent {
+    static let title: LocalizedStringResource = "Claude Code'u Başlat"
+    static let description = IntentDescription("Terminalde bir hesabın Claude Code'unu açar: seçilen klasörde, yoksa hesabın varsayılan klasöründe.")
+
+    @Parameter(title: "Hesap")
+    var account: AccountEntity
+
+    @Parameter(title: "Klasör", supportedContentTypes: [.folder])
+    var folder: IntentFile?
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let (model, profile) = try LanesIntentError.profile(for: account)
+        if let folder {
+            guard let url = folder.fileURL, url.hasDirectoryPath || (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else {
+                throw LanesIntentError.notAFolder
+            }
+            model.openClaudeCode(profile, in: url)
+        } else {
+            model.openClaudeCode(profile)
+        }
+        return .result()
+    }
+}
+
+struct MarkLimitedIntent: AppIntent {
+    static let title: LocalizedStringResource = "Hesabı Dinlenmeye Al"
+    static let description = IntentDescription("Limite takılan bir hesabı belirtilen saat kadar dinlenmeye alır; bağlantılar bu sürede aynı türdeki başka bir hesaba gider. 0 saat dinlenmeyi bitirir.")
+
+    @Parameter(title: "Hesap")
+    var account: AccountEntity
+
+    @Parameter(title: "Saat", default: 5, inclusiveRange: (0, 48))
+    var hours: Int
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let (model, profile) = try LanesIntentError.profile(for: account)
+        guard !profile.isDefault else { throw LanesIntentError.claudeAppAccount }
+        model.setLimited(profile, until: hours > 0 ? LimitWatch.until(hours: hours, from: Date()) : nil)
+        return .result()
+    }
+}
+
+struct GetFrontAccountIntent: AppIntent {
+    static let title: LocalizedStringResource = "Öndeki Claude Hesabı"
+    static let description = IntentDescription("En son önde olan Lanes hesabının adını verir.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        guard let model = IntentBridge.model else { throw LanesIntentError.notRunning }
+        let name = model.lastFrontProfileID.flatMap { model.profile(withID: $0)?.name } ?? ""
+        return .result(value: name)
+    }
+}
+
+struct GetFrontTimeIntent: AppIntent {
+    static let title: LocalizedStringResource = "Bugünkü Claude Süresi"
+    static let description = IntentDescription("Bir hesabın bugün önde kaldığı süreyi dakika olarak verir (tahmini; boşta geçen süre sayılmaz).")
+
+    @Parameter(title: "Hesap")
+    var account: AccountEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<Int> {
+        let (model, profile) = try LanesIntentError.profile(for: account)
+        let minutes = Int(model.frontSeconds(for: profile.id, days: 1) / 60)
+        return .result(value: minutes)
+    }
+}
+
+struct WorkingClaudeCodeIntent: AppIntent {
+    static let title: LocalizedStringResource = "Claude Code Çalışan Hesaplar"
+    static let description = IntentDescription("Claude Code'un şu an çalıştığı hesapların adlarını verir. Oturum dosyalarının değişme zamanından tahmin edilir.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<[String]> {
+        guard let model = IntentBridge.model else { throw LanesIntentError.notRunning }
+        let names = model.library.profiles
+            .filter { model.claudeCodePulse[$0.id] == .working }
+            .map(\.name)
+        return .result(value: names)
+    }
+}
+
 struct LanesShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
@@ -120,6 +232,24 @@ struct LanesShortcuts: AppShortcutsProvider {
             phrases: ["\(.applicationName) sahnesini aç"],
             shortTitle: "Sahneyi Aç",
             systemImageName: "rectangle.3.group"
+        )
+        AppShortcut(
+            intent: StartClaudeCodeIntent(),
+            phrases: ["\(.applicationName) ile Claude Code başlat"],
+            shortTitle: "Claude Code",
+            systemImageName: "terminal"
+        )
+        AppShortcut(
+            intent: MarkLimitedIntent(),
+            phrases: ["\(.applicationName) hesabı dinlenmeye al"],
+            shortTitle: "Dinlenmeye Al",
+            systemImageName: "moon.zzz"
+        )
+        AppShortcut(
+            intent: WorkingClaudeCodeIntent(),
+            phrases: ["\(.applicationName) Claude Code kimde çalışıyor"],
+            shortTitle: "Claude Code Durumu",
+            systemImageName: "waveform"
         )
     }
 }
