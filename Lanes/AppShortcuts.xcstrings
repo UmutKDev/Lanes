@@ -1,0 +1,56 @@
+{
+  "sourceLanguage": "tr",
+  "strings": {
+    "${applicationName} Claude Code kimde çalışıyor": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who is running Claude Code in ${applicationName}"
+          }
+        }
+      }
+    },
+    "${applicationName} hesabı dinlenmeye al": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rest an account in ${applicationName}"
+          }
+        }
+      }
+    },
+    "${applicationName} ile Claude Code başlat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Claude Code with ${applicationName}"
+          }
+        }
+      }
+    },
+    "${applicationName} ile Claude hesabı aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open a Claude account with ${applicationName}"
+          }
+        }
+      }
+    },
+    "${applicationName} sahnesini aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open a ${applicationName} scene"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -1,0 +1,46 @@
+{
+  "sourceLanguage": "tr",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes"
+          }
+        }
+      }
+    },
+    "CFBundleName": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes"
+          }
+        }
+      }
+    },
+    "NSAppleEventsUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes sends Claude a \"reopen\" command to bring the chosen account's Claude window to the front. When link routing is on, it also forwards claude:// links to the chosen account's Claude, and the \"Open Claude Settings\" button sends the settings link. It never forwards sign-in links. When you click \"Go to Terminal\" in a Done Alert notification, it selects that session's tab in Terminal or iTerm2."
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "© 2026 Umut Kızıloğlu. Licensed under the MIT License."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

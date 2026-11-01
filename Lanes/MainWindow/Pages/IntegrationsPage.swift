@@ -117,15 +117,18 @@ struct IntegrationsPage: View {
     }
 
     private var cliExample: String {
-        "open \"\(LanesCommand.openAccount(model.library.profiles.first?.name ?? "İş").url.absoluteString)\""
+        "open \"\(LanesCommand.openAccount(model.library.profiles.first?.name ?? String(localized: "İş")).url.absoluteString)\""
     }
 
-    private static let toolExamples: [(String, String)] = [
+    private static var toolExamples: [(String, String)] {
+        let work = String(localized: "İş")
+        return [
         ("lanes claude", String(localized: "Bu klasörün hesabıyla Claude Code")),
-        ("lanes -a İş claude", String(localized: "Belirli bir hesapla")),
-        ("lanes use İş", String(localized: "Bu klasörü İş hesabına bağla")),
+        ("lanes -a \(work) claude", String(localized: "Belirli bir hesapla")),
+        ("lanes use \(work)", String(localized: "Bu klasörü İş hesabına bağla")),
         ("lanes which", String(localized: "Bu klasör hangi hesapta")),
-    ]
+        ]
+    }
 
     private var toolStateText: String {
         switch toolState {

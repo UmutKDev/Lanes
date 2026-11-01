@@ -43,64 +43,67 @@ public struct DiagnosticsReport: Sendable {
 
     public func markdown() -> String {
         var lines: [String] = []
-        lines.append("# Lanes tanılama")
+        lines.append(L("# Lanes tanılama", "# Lanes Diagnostics"))
         lines.append("")
-        lines.append("- Tarih: \(ValidationReport.dateString(generatedAt))")
+        lines.append(L("- Tarih: ", "- Date: ") + ValidationReport.dateString(generatedAt))
         lines.append("- Lanes: \(environment.lanesVersion), commit \(environment.commitDescription)")
-        lines.append("- İmza: \(environment.signing ?? "bilinmiyor")")
-        lines.append("- Uygulama: \(environment.appPath ?? "bilinmiyor")\(isTranslocated ? " (geçici kopya)" : "")")
-        lines.append("- Güncelleme denetimi: \(updatesEnabled ? "açık" : "bu derlemede yok")")
+        lines.append(L("- İmza: ", "- Signature: ") + (environment.signing ?? unknown))
+        lines.append(L("- Uygulama: ", "- App: ") + (environment.appPath ?? unknown) + (isTranslocated ? L(" (geçici kopya)", " (translocated copy)") : ""))
+        lines.append(L("- Güncelleme denetimi: ", "- Update checks: ") + (updatesEnabled ? L("açık", "on") : L("bu derlemede yok", "not in this build")))
         lines.append("- macOS: \(environment.macOSVersion) (\(environment.architecture))")
-        lines.append("- Claude: \(environment.claudeVersion ?? "bulunamadı")\(claudePath.map { ", \($0)" } ?? "")")
-        lines.append("- claude:// bağlantılarını açan: \(linkHandlerPath ?? "yok")")
+        lines.append("- Claude: " + (environment.claudeVersion ?? L("bulunamadı", "not found")) + (claudePath.map { ", \($0)" } ?? ""))
+        lines.append(L("- claude:// bağlantılarını açan: ", "- Opens claude:// links: ") + (linkHandlerPath ?? L("yok", "none")))
 
         lines.append("")
-        lines.append("## Hesaplar")
+        lines.append(L("## Hesaplar", "## Accounts"))
         lines.append("")
-        lines.append("| Hesap | Açılış | Tür | Kendi klasörü | Durum |")
-        lines.append("| ----- | ------ | --- | ------------- | ----- |")
+        lines.append(L("| Hesap | Açılış | Tür | Kendi klasörü | Durum |", "| Account | Launch Mode | Kind | Own Folder | Status |"))
+        lines.append(L("| ----- | ------ | --- | ------------- | ----- |", "| ------- | ----------- | ---- | ---------- | ------ |"))
         for (index, profile) in profiles.enumerated() {
             let folder: String
             if profile.isDefault {
-                folder = "Claude'un kendi klasörü"
+                folder = claudeOwnFolder
             } else {
-                folder = folderExists[profile.id] == true ? "var" : "henüz yok"
+                folder = folderExists[profile.id] == true ? L("var", "exists") : L("henüz yok", "not yet created")
             }
             let running = instances.filter { $0.profileID == profile.id }.map { "PID \($0.pid)" }
-            let state = running.isEmpty ? "kapalı" : "açık, " + running.joined(separator: ", ")
+            let state = running.isEmpty ? L("kapalı", "closed") : L("açık, ", "open, ") + running.joined(separator: ", ")
             lines.append("| \(label(index: index, profile: profile)) | \(profile.mode.rawValue) | \(profile.accountClass.rawValue) | \(folder) | \(state) |")
         }
 
         lines.append("")
-        lines.append("## Çalışan Claude'lar")
+        lines.append(L("## Çalışan Claude'lar", "## Running Claude Instances"))
         lines.append("")
         if instances.isEmpty {
-            lines.append("Açık Claude yok.")
+            lines.append(L("Açık Claude yok.", "No Claude instances are open."))
         } else {
-            lines.append("| PID | Hesap | Uygulama | Klasör |")
-            lines.append("| --- | ----- | -------- | ------ |")
+            lines.append(L("| PID | Hesap | Uygulama | Klasör |", "| PID | Account | App | Folder |"))
+            lines.append(L("| --- | ----- | -------- | ------ |", "| --- | ------- | --- | ------ |"))
             for instance in instances {
-                lines.append("| \(instance.pid) | \(owner(of: instance)) | \(application(of: instance)) | \(instance.userDataDirectory ?? "Claude'un kendi klasörü") |")
+                lines.append("| \(instance.pid) | \(owner(of: instance)) | \(application(of: instance)) | \(instance.userDataDirectory ?? claudeOwnFolder) |")
             }
         }
         let text = lines.joined(separator: "\n") + "\n"
         return ValidationReport.abbreviatingHome(homeDirectory, in: text)
     }
 
+    private var unknown: String { L("bilinmiyor", "unknown") }
+    private var claudeOwnFolder: String { L("Claude'un kendi klasörü", "Claude’s own folder") }
+
     private func label(index: Int, profile: Profile) -> String {
-        "Hesap \(index + 1)\(profile.isDefault ? " (ana)" : "")"
+        L("Hesap \(index + 1)", "Account \(index + 1)") + (profile.isDefault ? L(" (ana)", " (main)") : "")
     }
 
     private func owner(of instance: RunningInstance) -> String {
         guard let id = instance.profileID, let index = profiles.firstIndex(where: { $0.id == id }) else {
-            return "Lanes dışında açılmış"
+            return L("Lanes dışında açılmış", "Opened outside Lanes")
         }
         return label(index: index, profile: profiles[index])
     }
 
-    /// Clones are named after the account, so only "klon" is written.
+    /// Clones are named after the account, so only "klon" ("clone") is written.
     private func application(of instance: RunningInstance) -> String {
-        guard let claudePath else { return "klon" }
-        return instance.applicationBundlePath == claudePath ? "Claude" : "klon"
+        guard let claudePath else { return L("klon", "clone") }
+        return instance.applicationBundlePath == claudePath ? "Claude" : L("klon", "clone")
     }
 }

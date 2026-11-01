@@ -37,6 +37,8 @@ targets:
       path: Lanes/Info.plist
       properties:
         CFBundleDisplayName: Lanes
+        # Listed in Dil ve Bölge > Uygulamalar too.
+        CFBundleLocalizations: [tr, en]
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity

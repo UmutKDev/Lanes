@@ -55,6 +55,6 @@ public enum WorktreePlan {
                 result.append(character)
             }
         let trimmed = slug.hasSuffix("-") ? String(slug.dropLast()) : slug
-        return "lanes/\(trimmed.isEmpty ? "is" : String(trimmed.prefix(20)))-\(formatter.string(from: date))"
+        return "lanes/\(trimmed.isEmpty ? L("is", "work") : String(trimmed.prefix(20)))-\(formatter.string(from: date))"
     }
 }

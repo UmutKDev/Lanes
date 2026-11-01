@@ -74,7 +74,7 @@ public struct ProfileScene: Identifiable, Hashable, Codable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(SceneID.self, forKey: .id)
-        name = (try? container.decode(String.self, forKey: .name)) ?? "Adsız sahne"
+        name = (try? container.decode(String.self, forKey: .name)) ?? L("Adsız sahne", "Untitled Scene")
         profileIDs = (try? container.decode([ProfileID].self, forKey: .profileIDs)) ?? []
         opensWhenLanesStarts = (try? container.decode(Bool.self, forKey: .opensWhenLanesStarts)) ?? false
         windowFrames = (try? container.decode([String: SceneWindowFrame].self, forKey: .windowFrames)) ?? [:]

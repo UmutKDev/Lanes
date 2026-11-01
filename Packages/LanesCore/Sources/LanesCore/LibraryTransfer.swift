@@ -91,7 +91,7 @@ public enum LibraryTransferError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .notAnExport: return "Bu dosya bir Lanes hesap listesi değil."
+        case .notAnExport: return L("Bu dosya bir Lanes hesap listesi değil.", "This file isn’t a Lanes account list.")
         }
     }
 }

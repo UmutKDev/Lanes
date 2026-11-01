@@ -9,7 +9,7 @@ final class LanesCLITests: XCTestCase {
         let work = Profile(id: ProfileID(rawValue: "w"), name: "İş", color: .blue)
         let map = LanesCLI.map(library: ProfileLibrary(profiles: [work]), paths: paths, hookSettings: [work.id: "/x/settings-w.json"])
         XCTAssertTrue(map.contains("\nH\tw\t/x/settings-w.json\n"))
-        XCTAssertTrue(LanesCLI.script.contains("--settings \"$HOOKS\""))
+        XCTAssertTrue(LanesCLI.script().contains("--settings \"$HOOKS\""))
     }
 
     func testMapListsActiveAccountsWithTheirFolders() {
@@ -29,7 +29,7 @@ final class LanesCLITests: XCTestCase {
     }
 
     func testScriptIsRecognisedAndVersioned() {
-        let script = LanesCLI.script
+        let script = LanesCLI.script()
         XCTAssertTrue(script.hasPrefix("#!/bin/sh\n"))
         XCTAssertTrue(LanesCLI.isOurs(script))
         XCTAssertTrue(LanesCLI.isCurrent(script))
