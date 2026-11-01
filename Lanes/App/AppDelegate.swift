@@ -68,6 +68,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return (shortcut, { model.cycleOpenAccounts(forward: true) })
             case .previousAccount:
                 return (shortcut, { model.cycleOpenAccounts(forward: false) })
+            case .palette:
+                return (shortcut, { router.togglePalette() })
             case let .profile(id):
                 guard model.profile(withID: id) != nil else { return nil }
                 return (shortcut, {

@@ -311,6 +311,9 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let open = NSMenuItem(title: String(localized: "Lanes'i Aç"), action: #selector(openMainWindow), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
+        let palette = NSMenuItem(title: String(localized: "Komut Paleti…"), action: #selector(openPalette), keyEquivalent: "")
+        palette.target = self
+        menu.addItem(palette)
         let settings = NSMenuItem(title: String(localized: "Ayarlar…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -334,6 +337,10 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     @objc private func openMainWindow() {
         router.showMainWindow()
+    }
+
+    @objc private func openPalette() {
+        router.togglePalette()
     }
 
     @objc private func openSettings() {

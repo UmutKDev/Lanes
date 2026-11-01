@@ -76,6 +76,8 @@ public enum ShortcutTarget: Hashable, Sendable, CustomStringConvertible {
     case nextAccount
     /// Brings the previous open account forward.
     case previousAccount
+    /// Opens or closes the command palette.
+    case palette
 
     /// The key it is saved under.
     public var description: String {
@@ -85,6 +87,7 @@ public enum ShortcutTarget: Hashable, Sendable, CustomStringConvertible {
         case let .scene(id): return "scene:\(id.rawValue)"
         case .nextAccount: return "nextAccount"
         case .previousAccount: return "previousAccount"
+        case .palette: return "palette"
         }
     }
 
@@ -95,6 +98,8 @@ public enum ShortcutTarget: Hashable, Sendable, CustomStringConvertible {
             self = .nextAccount
         } else if key == "previousAccount" {
             self = .previousAccount
+        } else if key == "palette" {
+            self = .palette
         } else if key.hasPrefix("profile:") {
             self = .profile(ProfileID(rawValue: String(key.dropFirst("profile:".count))))
         } else if key.hasPrefix("scene:") {
@@ -171,7 +176,7 @@ public struct ShortcutBindings: Codable, Equatable, Sendable {
         let before = byTarget.count
         byTarget = byTarget.filter { key, _ in
             switch ShortcutTarget(key: key) {
-            case .panel, .nextAccount, .previousAccount: return true
+            case .panel, .nextAccount, .previousAccount, .palette: return true
             case let .profile(id): return profiles.contains(id)
             case let .scene(id): return scenes.contains(id)
             case nil: return false

@@ -363,7 +363,7 @@ struct CommandPanelView: View {
 
 /// The panel's surface. Regular Liquid Glass, with a light tint in light mode
 /// so a colourful desktop behind it does not make it look two-toned.
-private struct PanelSurface: ViewModifier {
+struct PanelSurface: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {

@@ -208,6 +208,10 @@ struct ShortcutsSettings: View {
                     Text("Önceki açık hesap")
                         .lineLimit(1)
                 }
+                ShortcutRow(target: .palette) {
+                    Text("Komut Paleti")
+                        .lineLimit(1)
+                }
             } header: {
                 Text("Kısayollar")
             } footer: {
