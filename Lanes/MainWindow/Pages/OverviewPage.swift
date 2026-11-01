@@ -159,6 +159,10 @@ private struct AccountTile: View {
                 HStack(spacing: DS.Space.s) {
                     // The one running indicator of the tile.
                     DSStatusBadge(isRunning: isRunning)
+                    ClaudeCodePulseIcon(
+                        pulse: model.claudeCodePulse[profile.id],
+                        project: model.claudeCodeActiveProject(for: profile)
+                    )
                     // Always laid out, so the row never reflows on launch or quit.
                     Text(verbatim: usage?.memory ?? " ")
                         .font(DS.Typography.caption)

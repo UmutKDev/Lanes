@@ -11,6 +11,12 @@ public struct ClaudeCodeSessionList: Equatable, Sendable {
         /// with `/` turned into `-`.
         public var projectFolderName: String
         public var modifiedAt: Date
+
+        public init(id: String, projectFolderName: String, modifiedAt: Date) {
+            self.id = id
+            self.projectFolderName = projectFolderName
+            self.modifiedAt = modifiedAt
+        }
     }
 
     /// Newest first.

@@ -99,6 +99,12 @@ final class AppModel {
     /// accounts left unused.
     @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
     @ObservationIgnored private let sampler = ResourceSampler()
+    @ObservationIgnored private let activityWatcher = ClaudeCodeActivityWatcher()
+    /// When each account's Claude Code last wrote a session file, and in
+    /// which project. Dates and folder names only.
+    @ObservationIgnored private var claudeCodeWrites: [ProfileID: ClaudeCodeActivityWatcher.Write] = [:]
+    /// Each account's estimated Claude Code state; idle accounts are left out.
+    private(set) var claudeCodePulse: [ProfileID: ClaudeCodePulse] = [:]
     @ObservationIgnored private var resourceTimer: Timer?
     /// The day each account's daily limit reminder last showed.
     @ObservationIgnored private var limitRemindedOn: [ProfileID: String] = [:]
@@ -252,6 +258,89 @@ final class AppModel {
             }
         }
         sampleResources()
+        activityWatcher.onWrite = { [weak self] id, write in
+            self?.claudeCodeWrites[id] = write
+            self?.updateClaudeCodePulse()
+        }
+        watchClaudeCodeActivity()
+        seedClaudeCodeActivity()
+    }
+
+    // MARK: Claude Code activity
+
+    private func claudeCodeProjectFolders() -> [ProfileID: URL] {
+        var folders: [ProfileID: URL] = [:]
+        for profile in library.profiles {
+            folders[profile.id] = paths.effectiveClaudeCodeConfigDirectory(for: profile)
+                .appendingPathComponent("projects", isDirectory: true)
+        }
+        return folders
+    }
+
+    /// Points the watcher at the current accounts. Cheap when nothing
+    /// changed, so the resource timer calls it to pick up new accounts and
+    /// project folders Claude Code created since.
+    private func watchClaudeCodeActivity() {
+        activityWatcher.watch(claudeCodeProjectFolders())
+    }
+
+    /// Starts from each account's newest session date, read off the main
+    /// thread, so an account used minutes ago shows as recent at launch.
+    private func seedClaudeCodeActivity() {
+        let folders = claudeCodeProjectFolders()
+        Task {
+            let newest = await Task.detached(priority: .utility) { () -> [ProfileID: ClaudeCodeActivityWatcher.Write] in
+                var found: [ProfileID: ClaudeCodeActivityWatcher.Write] = [:]
+                for (id, folder) in folders {
+                    if let session = ClaudeCodeSessionList.read(folder).sessions.first {
+                        found[id] = ClaudeCodeActivityWatcher.Write(date: session.modifiedAt, projectFolderName: session.projectFolderName)
+                    }
+                }
+                return found
+            }.value
+            for (id, write) in newest where (claudeCodeWrites[id]?.date ?? .distantPast) < write.date {
+                claudeCodeWrites[id] = write
+            }
+            updateClaudeCodePulse()
+        }
+    }
+
+    private func updateClaudeCodePulse(now: Date = Date()) {
+        let known = Set(library.profiles.map(\.id))
+        claudeCodeWrites = claudeCodeWrites.filter { known.contains($0.key) }
+        var pulse: [ProfileID: ClaudeCodePulse] = [:]
+        for (id, write) in claudeCodeWrites {
+            let state = ClaudeCodePulse.pulse(lastWrite: write.date, now: now)
+            if state != .idle {
+                pulse[id] = state
+            }
+        }
+        if pulse != claudeCodePulse {
+            claudeCodePulse = pulse
+        }
+    }
+
+    /// The encoded project folder an account's Claude Code is writing in
+    /// right now, while its pulse is working.
+    func claudeCodeWorkingFolder(for id: ProfileID) -> String? {
+        guard claudeCodePulse[id] == .working else { return nil }
+        return claudeCodeWrites[id]?.projectFolderName
+    }
+
+    /// Readable project names by encoded folder name, so views showing the
+    /// pulse do not look on disk each time they draw.
+    @ObservationIgnored private var projectNameCache: [String: String] = [:]
+
+    /// The project an account's Claude Code last wrote in, by name, while
+    /// it is working or was used minutes ago.
+    func claudeCodeActiveProject(for profile: Profile) -> String? {
+        guard claudeCodePulse[profile.id] != nil, let folder = claudeCodeWrites[profile.id]?.projectFolderName else { return nil }
+        if let cached = projectNameCache[folder] {
+            return cached
+        }
+        let name = ClaudeCodeProjectName.name(forFolderName: folder)
+        projectNameCache[folder] = name
+        return name
     }
 
     // MARK: Resources and idle accounts
@@ -260,6 +349,8 @@ final class AppModel {
     /// asked to be quit after sitting unused.
     private func sampleResources() {
         pauseFrontTimeWhileIdle()
+        watchClaudeCodeActivity()
+        updateClaudeCodePulse()
         let owned = instances.compactMap { instance in
             instance.profileID.map { (id: $0, pid: instance.pid) }
         }
