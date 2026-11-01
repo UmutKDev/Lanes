@@ -8,6 +8,9 @@ enum SystemActions {
     static func copy(_ string: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(string, forType: .string)
+        // Lanes' own copy, from a panel that leaves Claude in front, is no
+        // account's copy for the clipboard guard.
+        ClipboardGuard.lanesChangeCount = NSPasteboard.general.changeCount
     }
 
     static func reveal(_ url: URL) {

@@ -231,7 +231,7 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Hesapları karıştırma")
             } footer: {
-                Text("Çerçeve, öndeki pencerenin hangi hesaba ait olduğunu bir bakışta gösterir; tıklamaları engellemez ve ekran görüntülerinde görünmez. Pano uyarısı, bir hesabın Claude'unda kopyalayıp on dakika içinde başka bir hesabınkine geçince bir kez bildirim gösterir. Lanes panoda ne olduğunu okumaz, yalnız değişip değişmediğine bakar.")
+                Text("Çerçeve, öndeki pencerenin hangi hesaba ait olduğunu bir bakışta gösterir; tıklamaları engellemez. Pano uyarısı, bir hesabın Claude'unda kopyalayıp on dakika içinde başka bir hesabınkine geçince bir kez bildirim gösterir. Lanes panoda ne olduğunu okumaz, yalnız değişip değişmediğine bakar.")
             }
             .onChange(of: accountFrame) { model.updateAccountGuards() }
             .onChange(of: clipboardGuard) { model.updateAccountGuards() }

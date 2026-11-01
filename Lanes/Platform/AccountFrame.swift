@@ -79,7 +79,7 @@ final class AccountFrame {
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         panel.level = .floating
-        // Not in screenshots or screen sharing: it is a cue for the user only.
+        // A cue for the user only. macOS 15 and later may still capture it.
         panel.sharingType = .none
         panel.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenNone]
         let view = NSView()
@@ -101,11 +101,16 @@ final class AccountFrame {
             return nil
         }
         for info in list {
-            guard (info[kCGWindowOwnerPID as String] as? Int).map(pid_t.init) == pid,
-                  (info[kCGWindowLayer as String] as? Int) == 0,
+            // Invisible and tiny helper windows don't count as covering Claude.
+            guard (info[kCGWindowLayer as String] as? Int) == 0,
+                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let owner = (info[kCGWindowOwnerPID as String] as? Int).map(pid_t.init),
                   let dictionary = info[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: dictionary as CFDictionary),
                   bounds.width >= 200, bounds.height >= 150 else { continue }
+            // Another window (another app's, or a Lanes window) above
+            // Claude's: no border drawn over it.
+            guard owner == pid else { return nil }
             return bounds
         }
         return nil
@@ -139,6 +144,8 @@ final class ClipboardGuard {
     /// The account in front when the pasteboard last changed, if any.
     private var copy: (owner: ProfileID, changeCount: Int, at: Date)?
     private var warnedChangeCount: Int?
+    /// The change count after Lanes itself last copied something.
+    static var lanesChangeCount: Int?
 
     /// A copy older than this is not warned about.
     static let window: TimeInterval = 10 * 60
@@ -180,7 +187,11 @@ final class ClipboardGuard {
         let count = NSPasteboard.general.changeCount
         guard count != lastChangeCount else { return }
         lastChangeCount = count
-        // Copied in another app (or in Lanes): not an account's copy.
+        // Copied in another app, or by Lanes itself: not an account's copy.
+        guard count != Self.lanesChangeCount else {
+            copy = nil
+            return
+        }
         copy = front.map { (owner: $0, changeCount: count, at: Date()) }
     }
 }
