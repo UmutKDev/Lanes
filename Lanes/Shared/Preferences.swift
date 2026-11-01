@@ -24,6 +24,9 @@ enum Preferences {
         /// Set once the Kurulum page has been shown, so the first launch
         /// opens it at most once.
         static let setupShown = "setupShown"
+        static let doneNoticesEnabled = "doneNoticesEnabled"
+        static let doneNoticeKinds = "doneNoticeKinds"
+        static let doneNoticesWhileTerminalInFront = "doneNoticesWhileTerminalInFront"
     }
 
     /// Accounts as tabs under one strip. Off until the user turns it on,

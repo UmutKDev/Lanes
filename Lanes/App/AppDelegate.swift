@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         CodeSignature.readInBackground()
+        Notifier.setUp()
         model.start()
         IntentBridge.model = model
         LanesFocusFilter.restore(into: model)

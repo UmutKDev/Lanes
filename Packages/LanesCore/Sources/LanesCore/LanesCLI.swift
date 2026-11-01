@@ -9,13 +9,14 @@ public enum LanesCLI {
     /// The file a project folder names its account in.
     public static let folderFileName = ".lanes"
     /// Bumped whenever the script changes, so Lanes rewrites an older copy.
-    public static let version = 2
+    public static let version = 3
 
     /// One line per fact, tab separated:
     /// `A id number name configDir` (configDir "-" for Claude's own),
-    /// `L id folder` for a linked folder, `P id folder` for an allowed one.
-    /// Archived accounts are left out.
-    public static func map(library: ProfileLibrary, paths: ProfilePaths) -> String {
+    /// `L id folder` for a linked folder, `P id folder` for an allowed one,
+    /// `H id file` for the "Bitti Haberi" settings file Claude Code gets
+    /// with `--settings`. Archived accounts are left out.
+    public static func map(library: ProfileLibrary, paths: ProfilePaths, hookSettings: [ProfileID: String] = [:]) -> String {
         var lines = ["# Lanes hesap haritası. Lanes yazar, elle değiştirme."]
         for (index, profile) in library.activeProfiles.enumerated() {
             let config = paths.claudeCodeConfigDirectory(for: profile)?.path ?? "-"
@@ -25,6 +26,9 @@ public enum LanesCLI {
             }
             for folder in profile.allowedFolders {
                 lines.append(["P", profile.id.rawValue, clean(trimmed(folder))].joined(separator: "\t"))
+            }
+            if let file = hookSettings[profile.id] {
+                lines.append(["H", profile.id.rawValue, clean(file)].joined(separator: "\t"))
             }
         }
         return lines.joined(separator: "\n") + "\n"
@@ -214,6 +218,10 @@ public enum LanesCLI {
                 fi
                 command -v claude >/dev/null 2>&1 || die "Claude Code bulunamadı. Lanes'in Kurulum sayfasından kurabilirsin."
                 printf 'lanes: %s hesabıyla (%s)\n' "$(plain "$NAME")" "$(plain "$REASON")" >&2
+                HOOKS=$(awk -F "$TAB" -v id="$ID" '$1 == "H" && $2 == id { print $3; exit }' "$MAP")
+                if [ -n "$HOOKS" ] && [ -f "$HOOKS" ]; then
+                    exec claude --settings "$HOOKS" "$@"
+                fi
                 exec claude "$@"
                 ;;
             which)

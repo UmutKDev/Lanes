@@ -5,6 +5,13 @@ import XCTest
 final class LanesCLITests: XCTestCase {
     private let paths = ProfilePaths.standard(home: URL(fileURLWithPath: "/Users/umut", isDirectory: true))
 
+    func testMapNamesTheHookSettingsFile() {
+        let work = Profile(id: ProfileID(rawValue: "w"), name: "İş", color: .blue)
+        let map = LanesCLI.map(library: ProfileLibrary(profiles: [work]), paths: paths, hookSettings: [work.id: "/x/settings-w.json"])
+        XCTAssertTrue(map.contains("\nH\tw\t/x/settings-w.json\n"))
+        XCTAssertTrue(LanesCLI.script.contains("--settings \"$HOOKS\""))
+    }
+
     func testMapListsActiveAccountsWithTheirFolders() {
         var work = Profile(id: ProfileID(rawValue: "w"), name: "İş\tHesabı", color: .blue)
         work.linkedFolders = ["/Users/umut/İş/"]
