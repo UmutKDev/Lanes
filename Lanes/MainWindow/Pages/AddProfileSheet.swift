@@ -17,8 +17,14 @@ struct AddProfileSheet: View {
     var body: some View {
         Form {
             Section {
-                TextField("Ad", text: $name, prompt: Text("Örneğin İş ya da Müşteri A"))
-                    .multilineTextAlignment(.leading)
+                // Label above a full-width field: a labelled field in a
+                // grouped Form aligns its text and placeholder to the right.
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Ad")
+                    TextField("Ad", text: $name, prompt: Text("Örneğin İş ya da Müşteri A"))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                }
                 // Label above the swatches, as on the account page, so the
                 // wrapping grid gets the full row width and stays aligned.
                 VStack(alignment: .leading, spacing: DS.Space.s) {
@@ -88,7 +94,10 @@ struct AddProfileSheet: View {
                 .disabled(!canAdd)
             }
         }
-        .presentationSizing(.form)
+        // Tall enough to show every option without scrolling on a normal
+        // screen; the sheet still scrolls on a short one.
+        .frame(minWidth: 480, idealWidth: 520, minHeight: 460, idealHeight: 660)
+        .presentationSizing(.fitted)
         .onAppear {
             color = nextFreeColor()
         }

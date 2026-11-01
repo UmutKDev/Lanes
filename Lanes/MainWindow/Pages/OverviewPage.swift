@@ -14,7 +14,7 @@ struct OverviewPage: View {
     private let columns = [GridItem(.adaptive(minimum: DS.Metrics.tileMinWidth), spacing: DS.Space.grid)]
 
     var body: some View {
-        DSPage(maxWidth: DS.Metrics.wideWidth) {
+        DSPage(maxWidth: pageWidth) {
             if model.isFirstLaunch {
                 WelcomeBanner()
             }
@@ -80,6 +80,15 @@ struct OverviewPage: View {
         .onChange(of: usedClasses) { _, classes in
             if let classFilter, !classes.contains(classFilter) { self.classFilter = nil }
         }
+    }
+
+    /// The page grows with the number of tiles, up to the wide width, so a
+    /// few accounts fill a centred column instead of sitting in the top-left
+    /// corner of a wide window.
+    private var pageWidth: CGFloat {
+        let count = CGFloat(max(filteredProfiles.count, 1))
+        let tiles = count * DS.Metrics.tileIdealWidth + (count - 1) * DS.Space.grid
+        return min(DS.Metrics.wideWidth, max(DS.Metrics.readableWidth, tiles))
     }
 
     /// The live memory sentence, shown as the window subtitle. Empty while

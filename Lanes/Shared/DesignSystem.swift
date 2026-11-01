@@ -88,7 +88,12 @@ enum DS {
 
     /// Layout metrics shared across windows.
     enum Metrics {
-        static let windowMinWidth: CGFloat = 900
+        /// A page and the inspector side by side (the sidebar steps aside
+        /// when all three do not fit). At 920 pt the account forms clipped.
+        static let windowMinWidth: CGFloat = 1000
+        /// Detail width the window keeps for a page while the sidebar and the
+        /// inspector are both open; below it the sidebar steps aside.
+        static let threeColumnDetailWidth: CGFloat = 680
         static let windowMinHeight: CGFloat = 580
         static let sidebarMin: CGFloat = 200
         static let sidebarIdeal: CGFloat = 230
@@ -105,6 +110,8 @@ enum DS {
         /// Bottom scroll margin so the floating notice never covers content.
         static let noticeClearance: CGFloat = 80
         static let tileMinWidth: CGFloat = 260
+        /// Width the overview budgets per tile when it sizes its column.
+        static let tileIdealWidth: CGFloat = 340
         static let tileMinHeight: CGFloat = 128
         static let iconButton: CGFloat = 28
         static let statusIcon: CGFloat = 18

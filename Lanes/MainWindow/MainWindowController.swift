@@ -52,13 +52,22 @@ struct MainWindowView: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
     @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    /// Whether the window is wide enough for sidebar, page and inspector.
+    @State private var fitsThreeColumns = true
+    /// True while the sidebar is hidden only to make room for the inspector,
+    /// so Lanes brings it back itself and never undoes the user's own choice.
+    /// Not cleared from columnVisibility changes: the split view writes its
+    /// own visibility values while it animates, which used to clear it and
+    /// left the sidebar hidden after the window grew.
+    @State private var sidebarHiddenForInspector = false
 
     var body: some View {
         @Bindable var navigation = navigation
         // One value for the detail, the title and the inspector, so a hidden
         // page left in the history never shows one page under another's title.
         let shown = navigation.selection.displayed(showingDeveloperPages: showsDeveloperPages)
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(
                     min: DS.Metrics.sidebarMin,
@@ -85,6 +94,36 @@ struct MainWindowView: View {
             AddProfileSheet()
         }
         .frame(minWidth: DS.Metrics.windowMinWidth, minHeight: DS.Metrics.windowMinHeight)
+        // Acts only when the fit changes, so a sidebar the user reopens by
+        // hand is not hidden again on every pixel of a resize.
+        .onGeometryChange(for: Bool.self) { $0.size.width >= threeColumnWidth } action: { fits in
+            fitsThreeColumns = fits
+            fitColumns(inspectorShown: shown.allowsInspector && navigation.showsInspector)
+        }
+        .onChange(of: shown.allowsInspector && navigation.showsInspector) { _, isShown in
+            fitColumns(inspectorShown: isShown)
+        }
+    }
+
+    /// Below this width the sidebar, a page and the inspector do not fit
+    /// side by side: the split view squeezes the sidebar to a sliver and
+    /// pushes the inspector past the window edge.
+    private var threeColumnWidth: CGFloat {
+        DS.Metrics.sidebarIdeal + DS.Metrics.threeColumnDetailWidth + DS.Metrics.inspectorIdeal
+    }
+
+    /// Hides the sidebar while the inspector needs its room and brings it
+    /// back when the inspector closes or the window grows wide enough.
+    private func fitColumns(inspectorShown: Bool) {
+        if inspectorShown && !fitsThreeColumns {
+            if columnVisibility != .detailOnly {
+                withAnimation(DS.Motion.standard) { columnVisibility = .detailOnly }
+                sidebarHiddenForInspector = true
+            }
+        } else if sidebarHiddenForInspector {
+            withAnimation(DS.Motion.standard) { columnVisibility = .all }
+            sidebarHiddenForInspector = false
+        }
     }
 
     private func title(for destination: Destination) -> String {
