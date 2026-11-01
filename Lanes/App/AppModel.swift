@@ -99,6 +99,8 @@ final class AppModel {
     private(set) var frontTime: FrontTimeLog = AppModel.loadFrontTime()
     /// The account in front now and since when, not yet in frontTime.
     @ObservationIgnored private var currentFront: (id: ProfileID, since: Date)?
+    /// True while time in front is paused because nobody touched the Mac.
+    @ObservationIgnored private var frontPausedForIdle = false
     @ObservationIgnored private var sleepObservers: [NSObjectProtocol] = []
     /// When each account was last in front, kept across launches, for the
     /// panel's "most recent first" order.
@@ -232,6 +234,7 @@ final class AppModel {
     /// Reads each open account's memory and CPU, then quits accounts that
     /// asked to be quit after sitting unused.
     private func sampleResources() {
+        pauseFrontTimeWhileIdle()
         let owned = instances.compactMap { instance in
             instance.profileID.map { (id: $0, pid: instance.pid) }
         }
@@ -401,6 +404,31 @@ final class AppModel {
         }
         currentFront = id.map { (id: $0, since: now) }
     }
+
+    /// Time in front stops after five minutes with no keyboard, mouse or
+    /// trackpad input, counted up to the last input. A Claude window left in
+    /// front overnight (with the screen never locked) filled hours before.
+    private func pauseFrontTimeWhileIdle() {
+        let anyInput = CGEventType(rawValue: ~0)!
+        let idle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
+        if idle >= Self.frontIdleThreshold {
+            guard !frontPausedForIdle, let current = currentFront else { return }
+            frontPausedForIdle = true
+            let lastInput = Date().addingTimeInterval(-idle)
+            if lastInput > current.since {
+                frontTime.record(current.id, from: current.since, to: lastInput)
+                if let data = try? JSONEncoder().encode(frontTime) {
+                    UserDefaults.standard.set(data, forKey: "frontTime")
+                }
+            }
+            currentFront = nil
+        } else if frontPausedForIdle {
+            frontPausedForIdle = false
+            frontChangedToCurrentApp()
+        }
+    }
+
+    private static let frontIdleThreshold: TimeInterval = 5 * 60
 
     /// Writes the running front interval, before Lanes quits or the Mac
     /// powers off.
