@@ -199,7 +199,7 @@ private struct GeneralSettings: View {
                     set: { picked in
                         language = picked
                         picked.apply()
-                        languageChanged = true
+                        languageChanged = picked != AppLanguage.atLaunch
                     }
                 )) {
                     ForEach(AppLanguage.allCases) { option in

@@ -87,7 +87,7 @@ struct ShortcutRecorder: View {
 
     private var label: String {
         if isRecording { return String(localized: "Tuşlara bas…") }
-        return current?.description ?? String(localized: "Kaydet")
+        return current?.description ?? String(localized: "Kısayol kaydet")
     }
 
     private func start() {

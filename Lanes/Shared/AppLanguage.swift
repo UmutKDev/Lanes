@@ -30,6 +30,10 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         return .system
     }
 
+    /// The choice Lanes was launched with, so Settings can tell whether a
+    /// relaunch would change anything.
+    static let atLaunch = current
+
     func apply() {
         if self == .system {
             UserDefaults.standard.removeObject(forKey: "AppleLanguages")

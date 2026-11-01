@@ -844,9 +844,21 @@
     "%lld hesabın pencere yeri kayıtlı.": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Window positions saved for %lld accounts."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Window position saved for %lld account."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Window positions saved for %lld accounts."
+                }
+              }
+            }
           }
         }
       }
@@ -854,9 +866,21 @@
     "%lld hesap açık": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld accounts open"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld account open"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld accounts open"
+                }
+              }
+            }
           }
         }
       }
@@ -884,9 +908,21 @@
     "%lld klasör hiçbir hesaba ait değil": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld folders don't belong to any account"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld folder doesn't belong to any account"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld folders don't belong to any account"
+                }
+              }
+            }
           }
         }
       }
@@ -894,9 +930,21 @@
     "%lld oturum": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld sessions"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld session"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld sessions"
+                }
+              }
+            }
           }
         }
       }
@@ -906,7 +954,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld sessions · %2$@ · %3$@"
+            "value": "%#@sessions@ · %2$@ · %3$@"
+          },
+          "substitutions": {
+            "sessions": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg session"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg sessions"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -914,9 +984,21 @@
     "%lld saat": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld hours"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hour"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hours"
+                }
+              }
+            }
           }
         }
       }
@@ -924,9 +1006,21 @@
     "%lld sorun": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld issues"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld issue"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld issues"
+                }
+              }
+            }
           }
         }
       }
@@ -1254,9 +1348,21 @@
     "Açık %lld hesap kapatılsın mı?": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quit %lld open accounts?"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Quit %lld open account?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Quit %lld open accounts?"
+                }
+              }
+            }
           }
         }
       }
@@ -1956,7 +2062,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide Other Accounts When One Comes Forward"
+            "value": "Hide other accounts when one comes forward"
           }
         }
       }
@@ -2256,7 +2362,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Link This Folder to the Work Account"
+            "value": "Link this folder to the Work account"
           }
         }
       }
@@ -2266,7 +2372,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude Code with This Folder’s Account"
+            "value": "Claude Code with this folder's account"
           }
         }
       }
@@ -3006,7 +3112,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Required to move and resize the Claude window. You can revoke it after turning off Tabbed mode."
+            "value": "Required to move and resize the Claude window. You can revoke it after turning off tabbed mode."
           }
         }
       }
@@ -4084,9 +4190,21 @@
     "Faz 0'dan kalan %lld deneme klonu": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld test clones left over from Phase 0"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld test clone left over from Phase 0"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld test clones left over from Phase 0"
+                }
+              }
+            }
           }
         }
       }
@@ -4426,7 +4544,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hidden accounts don't quit. This setting doesn't apply in Tabbed mode."
+            "value": "Hidden accounts don't quit. This setting doesn't apply in tabbed mode."
           }
         }
       }
@@ -6501,6 +6619,16 @@
         }
       }
     },
+    "Kısayol kaydet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record Shortcut"
+          }
+        }
+      }
+    },
     "Kısayollar": {
       "localizations": {
         "en": {
@@ -7014,9 +7142,21 @@
     "Lanes'in tanımadığı %lld Claude açık": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Claude apps open that Lanes doesn't recognize"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Claude app open that Lanes doesn't recognize"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Claude apps open that Lanes doesn't recognize"
+                }
+              }
+            }
           }
         }
       }
@@ -7324,9 +7464,21 @@
     "Odak filtresi %lld hesabı gizliyor.": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The Focus filter is hiding %lld accounts."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "The Focus filter is hiding %lld account."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "The Focus filter is hiding %lld accounts."
+                }
+              }
+            }
           }
         }
       }
@@ -8146,7 +8298,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Position and size of the active Claude window in Tabbed mode"
+            "value": "Position and size of the active Claude window in tabbed mode"
           }
         }
       }

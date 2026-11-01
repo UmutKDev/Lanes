@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // `lanes` script) follows the language the app runs in. Set before
         // AppModel reads anything from LanesCore.
         CoreLanguage.current = CoreLanguage.from(localization: Bundle.main.preferredLocalizations.first)
+        _ = AppLanguage.atLaunch
         let model = AppModel()
         self.model = model
         self.router = WindowRouter(model: model)
