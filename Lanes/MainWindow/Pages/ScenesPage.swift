@@ -370,7 +370,7 @@ private struct SceneEditor: View {
 }
 
 /// Seven day buttons, Monday first. None selected means every day.
-private struct WeekdayPicker: View {
+struct WeekdayPicker: View {
     @Binding var selection: Set<Int>
 
     var body: some View {

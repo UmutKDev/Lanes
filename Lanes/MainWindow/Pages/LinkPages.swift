@@ -31,6 +31,7 @@ struct AccountMapPage: View {
             } footer: {
                 footerText("Açıkken başka uygulamalardan gelen claude:// bağlantıları, aşağıdaki kurallara göre seçilen hesabın Claude'unda açılır. Hesap kapalıysa önce açılır. Giriş, OAuth ve Lanes'in tanımadığı bağlantılar hiçbir zaman yönlendirilmez: Lanes onları bırakır ve varsayılanı birkaç dakikalığına Claude'a geri verir, sen girişi bitirebilesin diye.")
             }
+            SmartLinkRulesSection(isRouting: isRouting)
             Section {
                 // Each picker is disabled on its own, so the label and the
                 // value both dim while routing is off and none can be opened.
@@ -48,7 +49,7 @@ struct AccountMapPage: View {
                     .disabled(!isRouting)
                 }
             } header: {
-                Text("Kurallar")
+                Text("Tür kuralları")
             } footer: {
                 footerText("\"Öndeki hesap\", en son öne gelen hesabın Claude'udur. Hiçbiri öne gelmediyse bağlantı Claude uygulamasına gider.")
             }
@@ -106,20 +107,23 @@ extension LinkRules.LinkKind {
     }
 }
 
-/// Links: what reached Lanes in this session and where it went. Only the
-/// kind of link is kept, never the link itself.
+/// Links: what reached Lanes in the last 30 days, where it went and why.
+/// Only the kind of link is kept, never the link itself.
 struct LinksPage: View {
     @Environment(AppModel.self) private var model
+    @State private var isConfirmingClear = false
 
     var body: some View {
         // The table always exists; the empty state lies over it.
         Table(model.receivedLinks) {
-            TableColumn("Saat") { link in
-                Text(link.receivedAt.formatted(date: .omitted, time: .standard))
+            TableColumn("Zaman") { link in
+                Text(Calendar.current.isDateInToday(link.receivedAt)
+                     ? link.receivedAt.formatted(date: .omitted, time: .shortened)
+                     : link.receivedAt.formatted(date: .abbreviated, time: .shortened))
                     .monospacedDigit()
                     .lineLimit(1)
             }
-            .width(min: 70, ideal: 90)
+            .width(min: 70, ideal: 120)
             TableColumn("Tür") { link in
                 Text(link.kind)
                     .lineLimit(1)
@@ -134,12 +138,25 @@ struct LinksPage: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            TableColumn("Kaynak") { link in
+                Text(link.source ?? "—")
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .width(min: 60, ideal: 90)
             TableColumn("Sonuç") { link in
                 Text(link.outcome)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .help(link.outcome)
+            }
+            TableColumn("Neden") { link in
+                Text(link.reason ?? "—")
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .help(link.reason ?? "")
             }
         }
         .tableStyle(.inset)
@@ -150,9 +167,25 @@ struct LinksPage: View {
                 "Henüz bağlantı gelmedi",
                 systemImage: Destination.links.symbol,
                 description: Text(model.isLinkRoutingOn
-                     ? "Başka bir uygulamadan bir claude:// bağlantısı açıldığında burada türünü ve hangi hesaba gittiğini görürsün."
+                     ? "Başka bir uygulamadan bir claude:// bağlantısı açıldığında burada türünü, hangi hesaba gittiğini ve nedenini görürsün. Kayıtlar 30 gün tutulur."
                      : "Bağlantı yönlendirme kapalı. Hesap Haritası'ndan açabilirsin.")
             )
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isConfirmingClear = true
+                } label: {
+                    Label("Günlüğü Temizle", systemImage: "trash")
+                }
+                .help("Günlüğü Temizle")
+                .disabled(model.receivedLinks.isEmpty)
+            }
+        }
+        .confirmationDialog("Bağlantı günlüğü temizlensin mi?", isPresented: $isConfirmingClear) {
+            Button("Temizle", role: .destructive) { model.clearLinkLog() }
+        } message: {
+            Text("Son 30 günün kayıtları silinir. Bağlantıların kendisi zaten hiç saklanmaz.")
         }
     }
 }

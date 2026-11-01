@@ -27,16 +27,8 @@ final class AppModel {
         }
     }
 
-    struct ReceivedLink: Identifiable {
-        let id = UUID()
-        /// What kind of link arrived. The link itself is never kept, because
-        /// a sign-in link can carry a one-time code.
-        var kind: String
-        var receivedAt: Date
-        var outcome: String
-        /// The account it went to, when Lanes routed it.
-        var target: ProfileID? = nil
-    }
+    /// A link that reached Lanes: its kind, never the link itself.
+    typealias ReceivedLink = LinkLogEntry
 
     let paths: ProfilePaths
     @ObservationIgnored private let store: ProfileStore
@@ -45,7 +37,10 @@ final class AppModel {
     private(set) var library: ProfileLibrary
     private(set) var instances: [RunningInstance] = []
     private(set) var claude: ClaudeInstallation?
+    /// The last 30 days of links, newest first. Kept on disk, so "why did
+    /// this go there" still has an answer tomorrow.
     private(set) var receivedLinks: [ReceivedLink] = []
+    @ObservationIgnored private var linkLog = LinkLog()
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
     var notice: Notice? {
@@ -187,6 +182,8 @@ final class AppModel {
         self.shortcuts = AppModel.loadShortcuts()
         self.recentFolders = AppModel.loadRecentFolders()
         self.linkRules = AppModel.loadLinkRules()
+        self.linkLog = LinkLog.load(from: paths.root.appendingPathComponent("LinkLog.json", isDirectory: false), now: Date())
+        self.receivedLinks = linkLog.entries
         validation.currentClaude = { [weak self] in self?.claude }
 
         if startup.restoredFromBackup {
@@ -2027,6 +2024,7 @@ final class AppModel {
         if claude == nil {
             claude = ClaudeInstallation.find(paths: paths)
         }
+        let source = linkSourceApp()
         let link = ClaudeLink(url: url)
         let outcome: String
         switch ClaudeLink.handling(for: url) {
@@ -2054,7 +2052,7 @@ final class AppModel {
             }
         case .openWithClaude where Preferences.linkRoutingEnabled:
             if let link, case let .routable(route) = link.kind {
-                Task { await deliver(link, route: route) }
+                Task { await deliver(link, route: route, source: source) }
                 return
             }
             outcome = String(localized: "İletilmedi.")
@@ -2067,30 +2065,42 @@ final class AppModel {
                 outcome = String(localized: "Claude bulunamadı, iletilmedi.")
             }
         }
-        receivedLinks.insert(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome), at: 0)
+        logLink(ReceivedLink(kind: Self.kindName(link), receivedAt: Date(), outcome: outcome, source: source?.name))
     }
 
     /// Sends a routable link to the account the rules pick, opening it first
     /// when it is closed. An account resting after its limit hands the link
     /// to its stand-in.
-    private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
+    private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route, source: LinkSourceApp?) async {
         let kind = Self.kindName(link)
         let focusTarget = focusSettings?.linkProfileID
             .flatMap { library.profile(withID: $0) }
             .flatMap { $0.isArchived ? nil : $0 }
-        guard let chosen = focusTarget ?? linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+        let decision: (profile: Profile?, reason: LinkReason)
+        if let focusTarget {
+            decision = (focusTarget, .focus)
+        } else {
+            decision = linkRules.decide(route: route, sourceApp: source?.bundleIdentifier, now: Date(), frontmost: lastFrontProfileID, library: library)
+        }
+        var reason = Self.describe(decision.reason, source: source)
+        func log(_ outcome: String, target: ProfileID? = nil) {
+            logLink(ReceivedLink(kind: kind, receivedAt: Date(), outcome: outcome, target: target, reason: reason, source: source?.name))
+        }
+        guard let chosen = decision.profile else {
             // No Lanes account has been in front: the link goes to Claude.app.
+            reason = String(localized: "Hiçbir Lanes hesabı öne gelmedi ve varsayılan hesap yok.")
             if let claude {
                 NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
-                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Claude uygulamasına iletildi.")), at: 0)
+                log(String(localized: "Claude uygulamasına iletildi."))
             } else {
-                receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
+                log(String(localized: "Hedef hesap yok, iletilmedi."))
             }
             return
         }
         let profile = LimitWatch.effective(chosen, in: library, now: Date())
         if profile.id != chosen.id {
             Log.app.info("Link handed to a stand-in while the chosen account rests")
+            reason += " " + String(localized: "\(chosen.name) limit sonrası dinlendiği için yerine \(profile.name) seçildi.")
         }
         var justOpened = false
         if !isRunning(profile) {
@@ -2102,7 +2112,7 @@ final class AppModel {
             }
         }
         guard let pid = instance(for: profile)?.pid else {
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: openWithClaudeInstead(link, missed: profile) ?? String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id), at: 0)
+            log(openWithClaudeInstead(link, missed: profile) ?? String(localized: "\(profile.name) açılamadı, iletilmedi."), target: profile.id)
             return
         }
         if justOpened {
@@ -2117,11 +2127,11 @@ final class AppModel {
             let outcome = profile.id == chosen.id
                 ? String(localized: "\(profile.name) hesabına iletildi.")
                 : String(localized: "\(profile.name) hesabına iletildi (\(chosen.name) dinleniyor).")
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: outcome, target: profile.id), at: 0)
+            log(outcome, target: profile.id)
         } catch {
             Log.app.error("Link routing failed: \(error.localizedDescription)")
             notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: openWithClaudeInstead(link, missed: profile) ?? String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id), at: 0)
+            log(openWithClaudeInstead(link, missed: profile) ?? String(localized: "İletilemedi: \(error.localizedDescription)"), target: profile.id)
         }
     }
 
@@ -2132,6 +2142,60 @@ final class AppModel {
         guard let claude else { return nil }
         NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
         return String(localized: "Claude uygulamasına iletildi (\(profile.name) hesabına iletilemedi).")
+    }
+
+    /// Adds a link to the 30-day log and saves it.
+    private func logLink(_ entry: ReceivedLink) {
+        linkLog.add(entry, now: Date())
+        receivedLinks = linkLog.entries
+        saveLinkLog()
+    }
+
+    func clearLinkLog() {
+        linkLog.removeAll()
+        receivedLinks = []
+        saveLinkLog()
+    }
+
+    private func saveLinkLog() {
+        do {
+            try linkLog.save(to: paths.root.appendingPathComponent("LinkLog.json", isDirectory: false))
+        } catch {
+            Log.app.error("Saving the link log failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// The app the link was clicked in: the app in front when it arrived,
+    /// unless that is Lanes or a Claude window, which do not count as a
+    /// source. Only its identifier and name are kept.
+    private func linkSourceApp() -> LinkSourceApp? {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              !instances.contains(where: { $0.pid == app.processIdentifier }),
+              let bundleID = app.bundleIdentifier,
+              bundleID != ClaudeInstallation.bundleIdentifier else { return nil }
+        return LinkSourceApp(bundleIdentifier: bundleID, name: app.localizedName ?? bundleID)
+    }
+
+    /// Why a link went where it went, in a sentence for the Bağlantılar log.
+    static func describe(_ reason: LinkReason, source: LinkSourceApp?) -> String {
+        switch reason {
+        case .focus:
+            return String(localized: "Açık odak filtresi bu hesabı seçiyor.")
+        case let .rule(name):
+            if let source {
+                return String(localized: "\"\(name)\" kuralı uydu (\(source.name) uygulamasından geldi).")
+            }
+            return String(localized: "\"\(name)\" kuralı uydu.")
+        case let .kind(kind):
+            return String(localized: "\(kind.title) bağlantıları için Hesap Haritası kuralı.")
+        case .fallback:
+            return String(localized: "Hiçbir kural uymadı; \"Kural yoksa\" ayarı bu hesabı seçiyor.")
+        case .frontmost:
+            return String(localized: "Hiçbir kural uymadı; en son öne gelen hesap seçildi.")
+        case .defaultAccount:
+            return String(localized: "Hiçbir kural uymadı ve hiçbir hesap öne gelmedi; varsayılan hesap seçildi.")
+        }
     }
 
     /// Names a link's kind without any part of the link.

@@ -155,7 +155,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "arrowshape.turn.up.right",
                     title: "Yönlendirilen claude:// bağlantıları",
-                    detail: "Hesap Haritası'nda yönlendirme açıkken, başka bir uygulamadan gelen bağlantı kurala göre seçilen hesabın Claude'una gönderilir. Hesabın Kimlik sekmesindeki \"Claude Ayarlarını Aç\" düğmesi de o hesabın Claude'una ayarlar bağlantısını gönderir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz, Bağlantılar sayfasında yalnız türü ve gittiği hesap görünür."
+                    detail: "Hesap Haritası'nda yönlendirme açıkken, başka bir uygulamadan gelen bağlantı kurala göre seçilen hesabın Claude'una gönderilir. Hesabın Kimlik sekmesindeki \"Claude Ayarlarını Aç\" düğmesi de o hesabın Claude'una ayarlar bağlantısını gönderir. Giriş ve OAuth bağlantıları hiçbir zaman gönderilmez. Bağlantıların kendisi saklanmaz. Bağlantılar sayfası son 30 günü LinkLog.json dosyasında tutar: yalnız türü, zamanı, tıklandığı uygulamanın adı, gittiği hesap ve neden oraya gittiği. Akıllı kurallar için bağlantı geldiğinde öndeki uygulamanın kimliğine bakılır; o uygulamanın içinden bir şey okunmaz."
                 )
                 PrivacyItem(
                     systemImage: "bell",
