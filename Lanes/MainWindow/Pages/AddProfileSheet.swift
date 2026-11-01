@@ -12,8 +12,19 @@ struct AddProfileSheet: View {
     @State private var color: ProfileColor = .blue
     @State private var accountClass: AccountClass = .personal
     @State private var opensAfterAdding = true
+    /// "Mevcut Claude klasörünü içe aktar" replaces the sheet's content,
+    /// without animation; its sign-in is already in the folder.
+    @State private var isImporting = false
 
     var body: some View {
+        if isImporting {
+            ImportClaudeFolderSheet()
+        } else {
+            addForm
+        }
+    }
+
+    private var addForm: some View {
         Form {
             Section {
                 // Label above a full-width field: a labelled field in a
@@ -55,6 +66,12 @@ struct AddProfileSheet: View {
                 SignInStep(number: 3, text: "Doğrulama kodunu yeni pencereye yaz.")
             }
             .help("Giriş Claude'un penceresinde yapılır, Lanes giriş bilgilerini görmez.")
+            Section {
+                Button("Mevcut Claude klasörünü içe aktar…") {
+                    isImporting = true
+                }
+                .buttonStyle(.link)
+            }
         }
         .formStyle(.grouped)
         .toolbar {

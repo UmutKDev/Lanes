@@ -104,6 +104,11 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// account's Claude Code should be signed in with, such as
     /// `musteri.com`. Empty means no check.
     public var expectedEmailDomains: [String] { didSet { keptFields[Field.expectedEmailDomains.rawValue] = nil } }
+    /// Whether the account's Claude Code uses `~/.claude`, like the Claude
+    /// app's own account, instead of a folder of its own. Set for imported
+    /// folders whose old launcher never set `CLAUDE_CONFIG_DIR`, so their
+    /// old sessions stay visible. Only the next launch follows a change.
+    public var usesSharedClaudeCode: Bool { didSet { keptFields[Field.usesSharedClaudeCode.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -128,7 +133,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         defaultProjectFolder: String? = nil,
         limitedUntil: Date? = nil,
         linkedFolders: [String] = [],
-        expectedEmailDomains: [String] = []
+        expectedEmailDomains: [String] = [],
+        usesSharedClaudeCode: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -149,6 +155,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.limitedUntil = limitedUntil
         self.linkedFolders = linkedFolders
         self.expectedEmailDomains = expectedEmailDomains
+        self.usesSharedClaudeCode = usesSharedClaudeCode
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -174,7 +181,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil, linkedFolders, expectedEmailDomains
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil, linkedFolders, expectedEmailDomains, usesSharedClaudeCode
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -216,6 +223,7 @@ extension Profile {
         limitedUntil = try read(Date.self, .limitedUntil)
         linkedFolders = try read([String].self, .linkedFolders) ?? []
         expectedEmailDomains = try read([String].self, .expectedEmailDomains) ?? []
+        usesSharedClaudeCode = try read(Bool.self, .usesSharedClaudeCode) ?? false
         keptFields = kept
     }
 
@@ -248,6 +256,7 @@ extension Profile {
         if let limitedUntil { try write(limitedUntil, .limitedUntil) }
         if !linkedFolders.isEmpty { try write(linkedFolders, .linkedFolders) }
         if !expectedEmailDomains.isEmpty { try write(expectedEmailDomains, .expectedEmailDomains) }
+        if usesSharedClaudeCode { try write(usesSharedClaudeCode, .usesSharedClaudeCode) }
     }
 
     /// Whether `email` is one the account expects. True when no domain is

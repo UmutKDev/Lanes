@@ -100,4 +100,15 @@ final class LaunchPlanTests: XCTestCase {
         XCTAssertNil(LaunchEnvironment.merged(base: base, additions: [:])["CLAUDE_CONFIG_DIR"],
                      "the default profile must not inherit a config folder from Lanes's own environment")
     }
+
+    func testSharedClaudeCodeProfileKeepsItsDataFolderButNoConfigFolder() {
+        let profile = Profile(id: ProfileID(rawValue: "p1"), name: "İş", color: .orange, mode: .signedClone, usesSharedClaudeCode: true)
+        let plan = LaunchPlanner.plan(for: profile, claudeApp: claudeApp, cloneApp: cloneApp, paths: paths)
+        let data = "/Users/umut/Library/Application Support/Lanes/Profiles/p1/Claude"
+        XCTAssertEqual(plan.arguments, ["--user-data-dir=\(data)"])
+        XCTAssertEqual(plan.environment, [:], "no CLAUDE_CONFIG_DIR, so Claude Code uses ~/.claude")
+        XCTAssertNil(plan.claudeCodeConfigDirectory)
+        XCTAssertEqual(plan.directoriesToCreate.map(\.path), [data], "~/.claude is never created or touched")
+        XCTAssertEqual(ClaudeCodeCommand.command(for: profile, paths: paths), "claude")
+    }
 }

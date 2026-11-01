@@ -1454,6 +1454,18 @@ final class AppModel {
         }
         let sourceProjects = paths.effectiveClaudeCodeConfigDirectory(for: source).appendingPathComponent("projects", isDirectory: true)
         let targetProjects = paths.effectiveClaudeCodeConfigDirectory(for: target).appendingPathComponent("projects", isDirectory: true)
+        // Two accounts sharing `~/.claude`: the session is already there,
+        // so nothing is copied (and nothing written into `~/.claude`).
+        if SessionHandoff.isSameFolder(sourceProjects, targetProjects) {
+            resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
+            return
+        }
+        // A target without its own folder uses `~/.claude`, which Lanes
+        // never writes into.
+        guard paths.claudeCodeConfigDirectory(for: target) != nil else {
+            notice = Notice(kind: .warning, message: String(localized: "\(target.name) ~/.claude kullanıyor, oturum oraya kopyalanmaz."))
+            return
+        }
         guard let handoff = SessionHandoff(sessionID: session.id, projectFolderName: session.projectFolderName, fromProjects: sourceProjects, toProjects: targetProjects) else {
             notice = Notice(kind: .error, message: String(localized: "Bu oturum başka bir hesaba aktarılamıyor."))
             return
@@ -1692,6 +1704,129 @@ final class AppModel {
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
             return nil
+        }
+    }
+
+    /// Why an import did not happen, shown in the import sheet itself.
+    struct ImportFailure: Error, Equatable {
+        var message: String
+    }
+
+    /// Takes a Claude data folder another launcher made into Lanes as a new
+    /// account. The folder is renamed into `Profiles/<id>/Claude` on the same
+    /// volume, so nothing is copied or deleted, and it is moved back if the
+    /// account list cannot be saved. Nothing inside it is read. While any
+    /// app uses the folder, Lanes refuses and asks the user to quit it; it
+    /// never quits anything itself.
+    func importClaudeFolder(_ source: URL, name: String, color: ProfileColor, accountClass: AccountClass, sharesClaudeCode: Bool) -> Result<Profile, ImportFailure> {
+        let manager = FileManager.default
+        func refuse(_ refusal: ClaudeFolderImport.Refusal) -> Result<Profile, ImportFailure> {
+            .failure(ImportFailure(message: refusal.message))
+        }
+        func fail(_ message: String) -> Result<Profile, ImportFailure> {
+            .failure(ImportFailure(message: message))
+        }
+        func usedDirectories() -> [String] {
+            refreshInstances()
+            return RunningInstanceScanner.userDataDirectories() + instances.compactMap(\.userDataDirectory)
+        }
+
+        let source = source.standardizedFileURL
+        let values = try? source.resourceValues(forKeys: [.isSymbolicLinkKey, .isDirectoryKey])
+        if values?.isSymbolicLink == true { return refuse(.symbolicLink) }
+        guard values?.isDirectory == true else { return refuse(.notAFolder) }
+        if let refusal = ClaudeFolderImport.refusal(for: source.path, paths: paths, library: library, userDataDirectories: usedDirectories()) {
+            return refuse(refusal)
+        }
+        do {
+            try manager.createDirectory(at: paths.root, withIntermediateDirectories: true)
+        } catch {
+            return fail(error.localizedDescription)
+        }
+        // `moveItem` across volumes copies and then deletes; Lanes only renames.
+        guard ClaudeFolderScanner.isSameVolume(source, paths.root) else { return refuse(.otherVolume) }
+
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let profile = Profile(
+            name: trimmed.isEmpty ? source.lastPathComponent : trimmed,
+            color: color,
+            mode: .signedClone,
+            accountClass: accountClass,
+            hidesFromDock: false,
+            usesSharedClaudeCode: sharesClaudeCode
+        )
+        guard let destination = paths.desktopDataDirectory(for: profile), !manager.fileExists(atPath: destination.path) else {
+            return fail(String(localized: "Klasör içe aktarılamadı."))
+        }
+        let profileFolder = paths.profileDirectory(for: profile.id)
+        do {
+            try manager.createDirectory(at: profileFolder, withIntermediateDirectories: true)
+            // Again right before the move: Claude may have started meanwhile.
+            if ClaudeFolderImport.isInUse(path: source.path, userDataDirectories: usedDirectories()) {
+                removeIfEmpty(profileFolder)
+                return refuse(.inUse)
+            }
+            try manager.moveItem(at: source, to: destination)
+        } catch {
+            removeIfEmpty(profileFolder)
+            Log.app.error("Import move failed: \(error.localizedDescription, privacy: .public)")
+            return fail(String(localized: "Klasör içe aktarılamadı: \(error.localizedDescription)"))
+        }
+        // The folder goes back where it was unless the account is on disk;
+        // otherwise it would sit in a folder no saved account points to.
+        func moveBack(_ message: String) -> Result<Profile, ImportFailure> {
+            do {
+                try manager.moveItem(at: destination, to: source)
+                removeIfEmpty(profileFolder)
+            } catch {
+                Log.app.error("Import could not move the folder back: \(error.localizedDescription, privacy: .public)")
+            }
+            return fail(message)
+        }
+        do {
+            try library.add(profile)
+        } catch {
+            return moveBack(error.localizedDescription)
+        }
+        guard save() else {
+            try? library.remove(profile.id)
+            return moveBack(String(localized: "Hesap listesi kaydedilemedi."))
+        }
+        Task { await prepareClone(for: profile) }
+        Log.app.info("Imported a Claude folder as a new account")
+        notice = Notice(kind: .info, message: String(localized: "\(profile.name) içe aktarıldı."))
+        return .success(profile)
+    }
+
+    /// Removes a folder Lanes just made, only while it is still empty.
+    private func removeIfEmpty(_ folder: URL) {
+        let manager = FileManager.default
+        guard let contents = try? manager.contentsOfDirectory(atPath: folder.path), contents.isEmpty else { return }
+        try? manager.removeItem(at: folder)
+    }
+
+    /// Whether an old launcher applet is open right now.
+    func isLauncherRunning(_ url: URL) -> Bool {
+        let target = InstanceMatcher.normalize(url.path)
+        return NSWorkspace.shared.runningApplications.contains { app in
+            app.bundleURL.map { InstanceMatcher.normalize($0.path) == target } ?? false
+        }
+    }
+
+    /// Moves an old launcher applet to the Trash, after the user agreed.
+    /// Never while it runs, and never deleted outright.
+    func trashLauncher(_ url: URL) -> Bool {
+        guard !isLauncherRunning(url) else {
+            notice = Notice(kind: .warning, message: String(localized: "Önce \(url.deletingPathExtension().lastPathComponent) uygulamasını kapat."))
+            return false
+        }
+        do {
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            Log.app.info("Moved an old launcher to the Trash")
+            return true
+        } catch {
+            notice = Notice(kind: .error, message: error.localizedDescription)
+            return false
         }
     }
 
@@ -2119,7 +2254,9 @@ final class AppModel {
         library.shortcutNumber(for: profile.id)
     }
 
-    private func save() {
+    /// Writes the account list; false when it could not be written.
+    @discardableResult
+    private func save() -> Bool {
         do {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
@@ -2129,9 +2266,11 @@ final class AppModel {
             if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan hesap listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }
+            return true
         } catch {
             Log.app.error("Save failed: \(error.localizedDescription)")
             notice = Notice(kind: .error, message: String(localized: "Hesap listesi kaydedilemedi: \(error.localizedDescription)"))
+            return false
         }
     }
 

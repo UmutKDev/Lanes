@@ -9802,6 +9802,226 @@
           }
         }
       }
+    },
+    "Mevcut Claude klasörünü içe aktar…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import Existing Claude Folder…"
+          }
+        }
+      }
+    },
+    "Başka klasör seç…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Another Folder…"
+          }
+        }
+      }
+    },
+    "Claude klasörü bulunamadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Claude folder found."
+          }
+        }
+      }
+    },
+    "Son kullanım: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last used: %@"
+          }
+        }
+      }
+    },
+    "%@ açıyordu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opened by %@"
+          }
+        }
+      }
+    },
+    "İçe Aktar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
+          }
+        }
+      }
+    },
+    "~/.claude ile ortak": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared with ~/.claude"
+          }
+        }
+      }
+    },
+    "Eski oturumlar görünür kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Old sessions stay visible."
+          }
+        }
+      }
+    },
+    "Claude uygulamasıyla ortak klasör.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared with the Claude app."
+          }
+        }
+      }
+    },
+    "Önce bu klasörü kullanan Claude'u kapat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit the Claude using this folder first."
+          }
+        }
+      }
+    },
+    "Claude klasörüne benzemiyor. Yine de aktarılsın mı?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doesn't look like a Claude folder. Import anyway?"
+          }
+        }
+      }
+    },
+    "%@ artık gerekmiyor. Çöp Sepeti'ne taşınsın mı?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is no longer needed. Move it to the Trash?"
+          }
+        }
+      }
+    },
+    "Kalsın": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep"
+          }
+        }
+      }
+    },
+    "%@ içe aktarıldı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ imported."
+          }
+        }
+      }
+    },
+    "Klasör içe aktarılamadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't import the folder."
+          }
+        }
+      }
+    },
+    "Klasör içe aktarılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't import the folder: %@"
+          }
+        }
+      }
+    },
+    "Önce %@ uygulamasını kapat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit %@ first."
+          }
+        }
+      }
+    },
+    "Hesap listesi kaydedilemedi.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the account list."
+          }
+        }
+      }
+    },
+    "%@ ~/.claude kullanıyor, oturum oraya kopyalanmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ uses ~/.claude; the session isn't copied there."
+          }
+        }
+      }
+    },
+    "Önce kapat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit it first"
+          }
+        }
+      }
+    },
+    "Tekrar Dene": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Again"
+          }
+        }
+      }
+    },
+    "%@ hâlâ açık.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is still open."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

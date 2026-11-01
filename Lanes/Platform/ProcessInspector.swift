@@ -43,6 +43,21 @@ enum RunningInstanceScanner {
         }
         .sorted { $0.pid < $1.pid }
     }
+
+    /// The `--user-data-dir` of every running app's main process, Claude
+    /// or not, so a copy of Claude Lanes doesn't know still counts. Only
+    /// the command line is read, never the environment. A leading `~/` is
+    /// expanded, in case a launcher passed it unexpanded.
+    static func userDataDirectories() -> [String] {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return NSWorkspace.shared.runningApplications.compactMap { app -> String? in
+            guard let arguments = ProcessInspector.arguments(of: app.processIdentifier),
+                  !arguments.isHelperProcess,
+                  let directory = arguments.userDataDirectory else { return nil }
+            let expanded = directory.hasPrefix("~/") ? home + "/" + directory.dropFirst(2) : directory
+            return InstanceMatcher.normalize(expanded)
+        }
+    }
 }
 
 /// Calls back whenever an app starts or quits, so the instance list stays

@@ -143,7 +143,15 @@ struct ToolboxPage: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.mini)
+            // A shared account's folder is the Claude app's own: its row
+            // shows that state and changes only there.
+            .disabled(sharesClaudeAppFolder(profile))
+            .help(sharesClaudeAppFolder(profile) ? String(localized: "Claude uygulamasıyla ortak klasör.") : "")
         }
+    }
+
+    private func sharesClaudeAppFolder(_ profile: Profile) -> Bool {
+        !profile.isDefault && profile.usesSharedClaudeCode
     }
 
     private func key(_ profile: Profile, _ item: Toolbox.Item) -> String {
