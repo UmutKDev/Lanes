@@ -45,6 +45,7 @@ struct SidebarView: View {
                                         model.openClaudeCode(profile)
                                     }
                                     LimitMenu(profile: profile)
+                                    Divider()
                                     Button("Hesabı Çoğalt") {
                                         if let copy = model.duplicateProfile(profile) {
                                             navigation.navigate(to: .account(copy.id))

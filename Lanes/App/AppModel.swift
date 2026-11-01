@@ -14,6 +14,19 @@ final class AppModel {
         var message: String
     }
 
+    /// An info notice closes by itself after a few seconds. Warnings and
+    /// errors stay until they are dismissed, because they ask for action.
+    private func scheduleInfoNoticeDismissal() {
+        noticeDismissTask?.cancel()
+        guard let notice, notice.kind == .info else { return }
+        let id = notice.id
+        noticeDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard !Task.isCancelled, let self, self.notice?.id == id else { return }
+            self.notice = nil
+        }
+    }
+
     struct ReceivedLink: Identifiable {
         let id = UUID()
         /// What kind of link arrived. The link itself is never kept, because
@@ -35,7 +48,10 @@ final class AppModel {
     private(set) var receivedLinks: [ReceivedLink] = []
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
-    var notice: Notice?
+    var notice: Notice? {
+        didSet { scheduleInfoNoticeDismissal() }
+    }
+    @ObservationIgnored private var noticeDismissTask: Task<Void, Never>?
     /// The overview's "Claude was not found" warning, closed until Lanes
     /// quits. It comes back on the next launch if Claude is still missing.
     var isMissingClaudeNoticeDismissed = false
