@@ -32,6 +32,14 @@ struct SidebarView: View {
                                 pulse: model.claudeCodePulse[profile.id],
                                 pulseProject: model.claudeCodeActiveProject(for: profile)
                             )
+                                .overlay(alignment: .trailing) {
+                                    if let wrong = model.identityMismatch(for: profile) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundStyle(DS.Palette.danger)
+                                            .help("Kimlik Bekçisi: Claude Code \(wrong) ile giriş yapmış")
+                                            .accessibilityLabel(Text("Beklenmeyen hesap"))
+                                    }
+                                }
                                 .badge(shortcutBadge(for: profile))
                                 // An explicit tag: inside a movable ForEach the row
                                 // would otherwise be tagged with the profile's id,

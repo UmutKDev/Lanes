@@ -8,12 +8,14 @@ struct AccountIdentityTab: View {
     private enum Field: Hashable {
         case email
         case note
+        case domains
     }
 
     @Environment(AppModel.self) private var model
     let profile: Profile
     @State private var email = ""
     @State private var note = ""
+    @State private var domains = ""
     @FocusState private var focusedField: Field?
 
     var body: some View {
@@ -64,6 +66,28 @@ struct AccountIdentityTab: View {
                      : "Claude Code'un bu hesap için tuttuğu dosyadan alındı. Lanes yalnız e-posta, ad ve kuruluş alanlarını okur; giriş anahtarlarına ve Claude uygulamasının verilerine dokunmaz.")
             }
             Section {
+                let current = model.profile(withID: profile.id) ?? profile
+                if let wrong = model.identityMismatch(for: current) {
+                    DSStatusRow(.error, title: Text("Beklenmeyen hesap: \(wrong)")) {
+                        Text("Bu hesabın Claude Code'u beklenen alan adlarından biriyle giriş yapmamış. Başka bir müşterinin ya da kişisel hesabın verisi bu hesaba karışabilir. Claude Code'da /logout ile çıkıp doğru adresle yeniden giriş yap.")
+                    }
+                } else if !current.expectedEmailDomains.isEmpty, model.claudeCodeAccounts[profile.id] != nil {
+                    DSStatusRow(.ok, title: Text("Claude Code beklenen hesapla giriş yapmış"))
+                }
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Beklenen alan adları")
+                    TextField("Beklenen alan adları", text: $domains, prompt: Text("Örneğin musteri.com, ortak.io"))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .domains)
+                        .onSubmit(commit)
+                }
+            } header: {
+                Text("Kimlik Bekçisi")
+            } footer: {
+                Text("Virgülle ayır. Bir alan adı alt alan adlarını da kapsar; @ içeren bir giriş yalnız o adresle eşleşir. Lanes, Claude Code bu hesapla başka bir adresle giriş yapmışsa kırmızı uyarı ve bildirim gösterir. Claude uygulamasının kendi girişini okuyamaz, yalnız Claude Code'unkini.")
+            }
+            Section {
                 Button("Claude Ayarlarını Aç", action: openClaudeSettings)
                     .disabled(!model.isRunning(profile))
             } footer: {
@@ -102,6 +126,7 @@ struct AccountIdentityTab: View {
             model.refreshClaudeCodeAccounts()
             email = profile.email ?? ""
             note = profile.note ?? ""
+            domains = profile.expectedEmailDomains.joined(separator: ", ")
         }
         .onChange(of: focusedField) { oldValue, newValue in
             if oldValue != nil, oldValue != newValue {
@@ -133,10 +158,17 @@ struct AccountIdentityTab: View {
         guard var updated = model.profile(withID: profile.id) else { return }
         let newEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let newNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (updated.email ?? "") != newEmail || (updated.note ?? "") != newNote else { return }
+        let newDomains = domains.split(whereSeparator: { $0 == "," || $0 == " " || $0 == ";" })
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard (updated.email ?? "") != newEmail || (updated.note ?? "") != newNote || updated.expectedEmailDomains != newDomains else { return }
         updated.email = newEmail.isEmpty ? nil : newEmail
         updated.note = newNote.isEmpty ? nil : newNote
+        if updated.expectedEmailDomains != newDomains {
+            updated.expectedEmailDomains = newDomains
+        }
         model.updateProfile(updated)
+        model.refreshClaudeCodeAccounts()
     }
 }
 

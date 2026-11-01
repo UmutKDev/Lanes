@@ -938,6 +938,37 @@ final class AppModel {
         if found != claudeCodeAccounts {
             claudeCodeAccounts = found
         }
+        warnAboutIdentityMismatches()
+    }
+
+    // MARK: Kimlik Bekçisi
+
+    /// The address Claude Code is signed in with when it is not one the
+    /// account expects; nil when it matches, no domain is set, or Claude
+    /// Code has not been signed in.
+    func identityMismatch(for profile: Profile) -> String? {
+        guard !profile.expectedEmailDomains.isEmpty,
+              let email = claudeCodeAccounts[profile.id]?.email,
+              !profile.expectsEmail(email) else { return nil }
+        return email
+    }
+
+    /// The mismatches already told about, so each shows once.
+    @ObservationIgnored private var reportedMismatches: [ProfileID: String] = [:]
+
+    /// Posts a notification the first time an account's Claude Code is seen
+    /// signed in with an unexpected address. The user set the domain up,
+    /// so it shows whatever the notification settings say.
+    private func warnAboutIdentityMismatches() {
+        var current: [ProfileID: String] = [:]
+        for profile in library.profiles {
+            if let email = identityMismatch(for: profile) { current[profile.id] = email }
+        }
+        for (id, email) in current where reportedMismatches[id] != email {
+            guard let profile = profile(withID: id) else { continue }
+            Notifier.post(.identityMismatch, body: String(localized: "\(profile.name) hesabının Claude Code'u \(email) ile giriş yapmış. Bu hesap için beklenen: \(profile.expectedEmailDomains.joined(separator: ", "))."), force: true)
+        }
+        reportedMismatches = current
     }
 
     /// The account's email: what Claude Code reports, else what the user typed.
@@ -1296,6 +1327,9 @@ final class AppModel {
     /// Returns whether Terminal opened.
     @discardableResult
     func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) -> Bool {
+        if let email = identityMismatch(for: profile) {
+            notice = Notice(kind: .warning, message: String(localized: "Dikkat: \(profile.name) hesabının Claude Code'u beklenmeyen bir adresle (\(email)) giriş yapmış."))
+        }
         let folder = chosen ?? defaultProjectFolder(for: profile)
         if let folder {
             guard FileManager.default.fileExists(atPath: folder.path) else {
