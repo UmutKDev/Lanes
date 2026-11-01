@@ -15,6 +15,7 @@ enum Notifier {
         case dailyLimit
         case memoryHigh
         case launchFailed
+        case limitReset
 
         var id: String { rawValue }
 
@@ -30,6 +31,7 @@ enum Notifier {
             case .dailyLimit: return String(localized: "Bir hesap günlük süresini doldurdu")
             case .memoryHigh: return String(localized: "Açık hesaplar çok bellek kullanıyor")
             case .launchFailed: return String(localized: "Bir hesap açılamadı")
+            case .limitReset: return String(localized: "Bir hesabın dinlenmesi bitti")
             }
         }
 
@@ -37,7 +39,7 @@ enum Notifier {
         /// a memory limit) have no switch of their own, and neither does a
         /// failed open, which shows only when no Lanes window could show it.
         static var switchable: [Kind] {
-            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh && $0 != .launchFailed }
+            allCases.filter { $0 != .dailyLimit && $0 != .memoryHigh && $0 != .launchFailed && $0 != .limitReset }
         }
 
         var isEnabled: Bool {
@@ -69,5 +71,26 @@ enum Notifier {
                 Log.app.error("Notification failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    /// Shows a reminder the user set up at a later time, under an
+    /// identifier that `cancel` takes back. macOS shows it even while
+    /// Lanes is not running.
+    static func schedule(_ kind: Kind, identifier: String, body: String, at date: Date) {
+        let content = UNMutableNotificationContent()
+        content.title = kind.title
+        content.body = body
+        let interval = max(date.timeIntervalSinceNow, 1)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error {
+                Log.app.error("Scheduling a notification failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    static func cancel(identifier: String) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
     }
 }

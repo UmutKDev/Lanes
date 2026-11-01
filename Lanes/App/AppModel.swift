@@ -14,6 +14,19 @@ final class AppModel {
         var message: String
     }
 
+    /// An info notice closes by itself after a few seconds. Warnings and
+    /// errors stay until they are dismissed, because they ask for action.
+    private func scheduleInfoNoticeDismissal() {
+        noticeDismissTask?.cancel()
+        guard let notice, notice.kind == .info else { return }
+        let id = notice.id
+        noticeDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard !Task.isCancelled, let self, self.notice?.id == id else { return }
+            self.notice = nil
+        }
+    }
+
     struct ReceivedLink: Identifiable {
         let id = UUID()
         /// What kind of link arrived. The link itself is never kept, because
@@ -35,7 +48,10 @@ final class AppModel {
     private(set) var receivedLinks: [ReceivedLink] = []
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
-    var notice: Notice?
+    var notice: Notice? {
+        didSet { scheduleInfoNoticeDismissal() }
+    }
+    @ObservationIgnored private var noticeDismissTask: Task<Void, Never>?
     /// The overview's "Claude was not found" warning, closed until Lanes
     /// quits. It comes back on the next launch if Claude is still missing.
     var isMissingClaudeNoticeDismissed = false
@@ -171,6 +187,8 @@ final class AppModel {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
         SpotlightIndex.update(library.activeProfiles)
+        CommandLineTool.writeMap(library: library, paths: paths)
+        CommandLineTool.updateIfOutdated()
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
         }
@@ -374,6 +392,7 @@ final class AppModel {
         lastActiveAt = lastActiveAt.filter { byProfile[$0.key] != nil }
 
         let now = Date()
+        expireLimits(now: now)
         checkDailyLimits(now: now)
         checkMemory(now: now)
         let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -1243,6 +1262,7 @@ final class AppModel {
     /// again.
     func removeProfile(_ profile: Profile) {
         guard !profile.isDefault else { return }
+        Notifier.cancel(identifier: Self.restNotificationID(profile.id))
         do {
             try library.remove(profile.id)
             save()
@@ -1288,9 +1308,99 @@ final class AppModel {
         save()
     }
 
+    // MARK: Limit Nöbeti
+
+    /// Marks the account as having hit its Claude limit until `date`, or
+    /// ends its rest when `date` is nil. Links go to its stand-in
+    /// meanwhile, and a notification says when the rest is over.
+    func setLimited(_ profile: Profile, until date: Date?) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        updated.limitedUntil = date
+        updateProfile(updated)
+        let identifier = Self.restNotificationID(profile.id)
+        Notifier.cancel(identifier: identifier)
+        guard let date else {
+            notice = Notice(kind: .info, message: String(localized: "\(profile.name) yeniden kullanımda."))
+            return
+        }
+        let name = profile.name
+        Task {
+            // Asked here, like the other reminders, so the first rest
+            // reminder is not silently dropped.
+            if await Notifier.authorizationStatus() == .notDetermined {
+                _ = await Notifier.requestPermission()
+            }
+            Notifier.schedule(.limitReset, identifier: identifier, body: String(localized: "\(name) yeniden kullanılabilir."), at: date)
+        }
+        let time = date.formatted(date: Calendar.current.isDateInToday(date) ? .omitted : .abbreviated, time: .shortened)
+        if let standIn = LimitWatch.standIn(for: updated, in: library, now: Date()) {
+            notice = Notice(kind: .info, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor. Bağlantılar bu sürede \(standIn.name) hesabına gidecek."))
+        } else {
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor, ama aynı türde dinlenmeyen başka hesap yok. Bağlantılar yine bu hesaba gider."))
+        }
+    }
+
+    // MARK: Command line tool
+
+    func addLinkedFolder(_ folder: URL, to profile: Profile) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        let path = folder.standardizedFileURL.path
+        if let owner = library.profiles.first(where: { $0.id != profile.id && $0.linkedFolders.contains(path) }) {
+            notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) zaten \(owner.name) hesabına bağlı. Önce oradan çıkar."))
+            return
+        }
+        guard !updated.linkedFolders.contains(path) else { return }
+        updated.linkedFolders.append(path)
+        updateProfile(updated)
+    }
+
+    func removeLinkedFolder(_ path: String, from profile: Profile) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        updated.linkedFolders.removeAll { $0 == path }
+        updateProfile(updated)
+    }
+
+    /// The account that takes this one's links while it rests.
+    func limitStandIn(for profile: Profile) -> Profile? {
+        LimitWatch.standIn(for: profile, in: library, now: Date())
+    }
+
+    static func restNotificationID(_ id: ProfileID) -> String {
+        "limit-\(id.rawValue)"
+    }
+
+    /// Ends a rest without a notice, for an account leaving the lists.
+    private func cancelRest(of profile: Profile) {
+        Notifier.cancel(identifier: Self.restNotificationID(profile.id))
+        guard var updated = self.profile(withID: profile.id), updated.limitedUntil != nil else { return }
+        updated.limitedUntil = nil
+        try? library.update(updated)
+    }
+
+    /// Clears rests whose time has passed, so the lists stop showing them.
+    /// Only the date changes, so this skips updateProfile's clone checks.
+    private func expireLimits(now: Date) {
+        var changed = false
+        for profile in library.profiles {
+            if let until = profile.limitedUntil, until <= now {
+                var updated = profile
+                updated.limitedUntil = nil
+                if (try? library.update(updated)) != nil {
+                    changed = true
+                }
+            }
+        }
+        if changed {
+            save()
+        }
+    }
+
     /// Puts an account in the archive or takes it out. An archived account
     /// keeps its sign-in and data; it only leaves the lists and ⌘1-9.
     func setArchived(_ profile: Profile, _ archived: Bool) {
+        if archived {
+            cancelRest(of: profile)
+        }
         do {
             try library.setArchived(profile.id, archived)
             save()
@@ -1529,6 +1639,7 @@ final class AppModel {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
             SpotlightIndex.update(library.activeProfiles)
+            CommandLineTool.writeMap(library: library, paths: paths)
             if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan hesap listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }
@@ -1646,10 +1757,11 @@ final class AppModel {
     }
 
     /// Sends a routable link to the account the rules pick, opening it first
-    /// when it is closed.
+    /// when it is closed. An account resting after its limit hands the link
+    /// to its stand-in.
     private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
         let kind = Self.kindName(link)
-        guard let profile = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+        guard let chosen = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
             // No Lanes account has been in front: the link goes to Claude.app.
             if let claude {
                 NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
@@ -1658,6 +1770,10 @@ final class AppModel {
                 receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "Hedef hesap yok, iletilmedi.")), at: 0)
             }
             return
+        }
+        let profile = LimitWatch.effective(chosen, in: library, now: Date())
+        if profile.id != chosen.id {
+            Log.app.info("Link handed to a stand-in while the chosen account rests")
         }
         var justOpened = false
         if !isRunning(profile) {
@@ -1681,7 +1797,10 @@ final class AppModel {
             _ = await InstanceLauncher.activate(pid: pid)
             Log.app.info("Link routed to an account")
             Notifier.post(.linkRouted, body: String(localized: "\(kind): \(profile.name)"))
-            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: String(localized: "\(profile.name) hesabına iletildi."), target: profile.id), at: 0)
+            let outcome = profile.id == chosen.id
+                ? String(localized: "\(profile.name) hesabına iletildi.")
+                : String(localized: "\(profile.name) hesabına iletildi (\(chosen.name) dinleniyor).")
+            receivedLinks.insert(ReceivedLink(kind: kind, receivedAt: Date(), outcome: outcome, target: profile.id), at: 0)
         } catch {
             Log.app.error("Link routing failed: \(error.localizedDescription)")
             notice = Notice(kind: .warning, message: String(localized: "Bağlantı \(profile.name) hesabına iletilemedi: \(error.localizedDescription)"))

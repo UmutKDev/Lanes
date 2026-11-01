@@ -97,7 +97,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "folder",
                     title: "Hesap listesi ve hesap klasörleri",
-                    detail: "Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine Claude yazar. Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için hesabın Claude Code klasörüne bağlantı (symlink) ekler. Terminal klasöründe \"Claude Code'u Terminalde Aç\" ve Kurulum'daki \"Terminalde Kur\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur.",
+                    detail: "Hesap listesi profiles.json dosyasında, bir önceki sağlam hali profiles.backup.json dosyasında. Her hesabın klasörünü Lanes oluşturur, içine Claude yazar. Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için hesabın Claude Code klasörüne bağlantı (symlink) ekler. Terminal klasöründe \"Claude Code'u Terminalde Aç\" ve Kurulum'daki \"Terminalde Kur\" için küçük komut dosyaları, Tanılama klasöründe Faz 0 sonuçları durur. cli-accounts.tsv, lanes komut satırı aracı için yalnız hesap adlarını, kimliklerini ve klasör yollarını tutar; araç kurulursa ~/.local/bin/lanes dosyasına yazılır.",
                     path: model.paths.root
                 )
                 PrivacyItem(
