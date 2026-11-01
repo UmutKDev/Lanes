@@ -307,10 +307,22 @@ private struct ProjectRowView: View {
             ForEach(row.project.uses, id: \.profileID) { use in
                 if let profile = model.profile(withID: use.profileID) {
                     Button(profile.name) {
-                        model.resume(
-                            ClaudeCodeSessionList.Session(id: use.newestSessionID, projectFolderName: row.project.folderName, modifiedAt: use.lastUsed),
-                            of: profile
-                        )
+                        model.resume(newestSession(of: use), of: profile)
+                    }
+                }
+            }
+            if model.library.activeProfiles.count > 1 {
+                Menu("Başka Hesapla Sürdür") {
+                    ForEach(row.project.uses, id: \.profileID) { use in
+                        if let source = model.profile(withID: use.profileID) {
+                            if row.project.uses.count > 1 {
+                                Menu(source.name) {
+                                    handoffTargets(newestSession(of: use), from: source)
+                                }
+                            } else {
+                                handoffTargets(newestSession(of: use), from: source)
+                            }
+                        }
                     }
                 }
             }
@@ -319,6 +331,19 @@ private struct ProjectRowView: View {
             Divider()
             Button("Finder'da Göster") {
                 SystemActions.reveal(URL(fileURLWithPath: path, isDirectory: true))
+            }
+        }
+    }
+
+    private func newestSession(of use: ProjectMap.Use) -> ClaudeCodeSessionList.Session {
+        ClaudeCodeSessionList.Session(id: use.newestSessionID, projectFolderName: row.project.folderName, modifiedAt: use.lastUsed)
+    }
+
+    @ViewBuilder
+    private func handoffTargets(_ session: ClaudeCodeSessionList.Session, from source: Profile) -> some View {
+        ForEach(model.library.activeProfiles.filter { $0.id != source.id }) { target in
+            Button(target.name) {
+                model.continueSession(session, of: source, with: target)
             }
         }
     }
@@ -387,6 +412,16 @@ private struct SessionRow: View {
         .contextMenu {
             Button("Sürdür") {
                 model.resume(row.session, of: row.profile)
+            }
+            let others = model.library.activeProfiles.filter { $0.id != row.profile.id }
+            if !others.isEmpty {
+                Menu("Başka Hesapla Sürdür") {
+                    ForEach(others) { target in
+                        Button(target.name) {
+                            model.continueSession(row.session, of: row.profile, with: target)
+                        }
+                    }
+                }
             }
             Button("Kimliği Kopyala") {
                 SystemActions.copy(row.session.id)

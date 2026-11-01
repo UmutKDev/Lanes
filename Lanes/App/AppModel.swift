@@ -1263,6 +1263,103 @@ final class AppModel {
     /// Continues a Claude Code session in Terminal, with the account it
     /// belongs to and in its project folder when that still exists.
     func resume(_ session: ClaudeCodeSessionList.Session, of profile: Profile) {
+        resume(session, with: profile, arguments: ["--resume", session.id])
+    }
+
+    /// Continues another account's session with `target`: the session file
+    /// is copied into the target's Claude Code folder and resumed there as
+    /// a new session, so the original account's copy stays untouched. The
+    /// files are copied, never opened. Across account types, or between two
+    /// client accounts, Lanes asks first.
+    func continueSession(_ session: ClaudeCodeSessionList.Session, of source: Profile, with target: Profile) {
+        guard source.id != target.id else {
+            resume(session, of: source)
+            return
+        }
+        let sourceProjects = paths.effectiveClaudeCodeConfigDirectory(for: source).appendingPathComponent("projects", isDirectory: true)
+        let targetProjects = paths.effectiveClaudeCodeConfigDirectory(for: target).appendingPathComponent("projects", isDirectory: true)
+        guard let handoff = SessionHandoff(sessionID: session.id, projectFolderName: session.projectFolderName, fromProjects: sourceProjects, toProjects: targetProjects) else {
+            notice = Notice(kind: .error, message: String(localized: "Bu oturum başka bir hesaba aktarılamıyor."))
+            return
+        }
+        // The target's folder rules first, so nothing is copied into an
+        // account that may not open this project.
+        guard resumableFolder(for: session, with: target) != nil else { return }
+        // Two client accounts are usually two clients, so they ask too.
+        if source.accountClass != target.accountClass || source.accountClass == .client {
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "Oturum \(target.name) hesabına geçsin mi?")
+            alert.informativeText = String(localized: "\(source.name) (\(source.accountClass.displayName)) hesabındaki konuşmanın bir kopyası \(target.name) (\(target.accountClass.displayName)) hesabına geçecek. Konuşmada bir müşterinin ya da işverenin bilgileri varsa öteki hesabın Claude Code klasöründe de durur.")
+            alert.addButton(withTitle: String(localized: "Yine de Sürdür"))
+            alert.addButton(withTitle: String(localized: "Vazgeç"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        let manager = FileManager.default
+        do {
+            let attributes = try manager.attributesOfItem(atPath: handoff.sourceFile.path)
+            guard attributes[.type] as? FileAttributeType == .typeRegular else {
+                throw CocoaError(.fileReadUnknown)
+            }
+            try manager.createDirectory(at: handoff.destinationFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+            // Only a copy Lanes made itself, still as Lanes left it, is
+            // replaced by a newer one. Anything else at that place is the
+            // target's own session, which Lanes never overwrites.
+            if let existing = try? manager.attributesOfItem(atPath: handoff.destinationFile.path) {
+                guard isUntouchedHandoffCopy(handoff.destinationFile, attributes: existing) else {
+                    notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kendi bir kaydı var; Lanes onu değiştirmez. O hesapta Sürdür ile açabilirsin."))
+                    return
+                }
+                try manager.removeItem(at: handoff.destinationFile)
+                if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
+                    try manager.removeItem(at: handoff.destinationFolder)
+                }
+            } else if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
+                notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kendi bir kaydı var; Lanes onu değiştirmez. O hesapta Sürdür ile açabilirsin."))
+                return
+            }
+            try manager.copyItem(at: handoff.sourceFile, to: handoff.destinationFile)
+            var isDirectory: ObjCBool = false
+            if manager.fileExists(atPath: handoff.sourceFolder.path, isDirectory: &isDirectory), isDirectory.boolValue,
+               (try? manager.destinationOfSymbolicLink(atPath: handoff.sourceFolder.path)) == nil {
+                try manager.copyItem(at: handoff.sourceFolder, to: handoff.destinationFolder)
+            }
+            rememberHandoffCopy(handoff.destinationFile)
+        } catch {
+            notice = Notice(kind: .error, message: String(localized: "Oturum \(target.name) hesabına kopyalanamadı: \(error.localizedDescription)"))
+            return
+        }
+        Log.app.info("Copied a Claude Code session to another account")
+        resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
+    }
+
+    /// Copies Lanes made with "Başka Hesapla Sürdür", by path, with the
+    /// file's date right after copying.
+    private static let handoffCopiesKey = "sessionHandoffCopies"
+
+    private func rememberHandoffCopy(_ file: URL) {
+        var copies = UserDefaults.standard.dictionary(forKey: Self.handoffCopiesKey) as? [String: Double] ?? [:]
+        if let date = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date {
+            copies[file.path] = date.timeIntervalSinceReferenceDate
+        }
+        // Copies whose file is gone are forgotten.
+        copies = copies.filter { FileManager.default.fileExists(atPath: $0.key) }
+        UserDefaults.standard.set(copies, forKey: Self.handoffCopiesKey)
+    }
+
+    private func isUntouchedHandoffCopy(_ file: URL, attributes: [FileAttributeKey: Any]) -> Bool {
+        let copies = UserDefaults.standard.dictionary(forKey: Self.handoffCopiesKey) as? [String: Double] ?? [:]
+        guard let recorded = copies[file.path],
+              attributes[.type] as? FileAttributeType == .typeRegular,
+              let date = attributes[.modificationDate] as? Date else { return false }
+        return abs(date.timeIntervalSinceReferenceDate - recorded) < 1
+    }
+
+    /// The session's project folder when it still exists (nil otherwise,
+    /// then Terminal opens in the home folder), wrapped so "allowed" can be
+    /// told from "not found". Nil, with a notice, when the account may not
+    /// use that folder.
+    private func resumableFolder(for session: ClaudeCodeSessionList.Session, with profile: Profile) -> String?? {
         let folder = ClaudeCodeSessionList.projectPath(forFolderName: session.projectFolderName) { path in
             var isDirectory: ObjCBool = false
             return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
@@ -1270,14 +1367,20 @@ final class AppModel {
         if let folder, !profile.allowsFolder(folder) {
             let name = (folder as NSString).lastPathComponent
             notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(name) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
-            return
+            return nil
         }
+        return .some(folder)
+    }
+
+    private func resume(_ session: ClaudeCodeSessionList.Session, with profile: Profile, arguments resumeArguments: [String]) {
+        guard let resolved = resumableFolder(for: session, with: profile) else { return }
+        let folder = resolved
         do {
             try SystemActions.openClaudeCodeInTerminal(
                 for: profile,
                 paths: paths,
                 in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
-                arguments: ["--resume", session.id] + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
+                arguments: resumeArguments + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
             )
             Log.app.info("Resumed a Claude Code session")
         } catch {
