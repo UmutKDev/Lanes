@@ -57,6 +57,9 @@ struct MainWindowView: View {
     @State private var fitsThreeColumns = true
     /// True while the sidebar is hidden only to make room for the inspector,
     /// so Lanes brings it back itself and never undoes the user's own choice.
+    /// Not cleared from columnVisibility changes: the split view writes its
+    /// own visibility values while it animates, which used to clear it and
+    /// left the sidebar hidden after the window grew.
     @State private var sidebarHiddenForInspector = false
 
     var body: some View {
@@ -99,10 +102,6 @@ struct MainWindowView: View {
         }
         .onChange(of: shown.allowsInspector && navigation.showsInspector) { _, isShown in
             fitColumns(inspectorShown: isShown)
-        }
-        .onChange(of: columnVisibility) { _, visibility in
-            // The user brought the sidebar back: it is theirs again.
-            if visibility != .detailOnly { sidebarHiddenForInspector = false }
         }
     }
 
