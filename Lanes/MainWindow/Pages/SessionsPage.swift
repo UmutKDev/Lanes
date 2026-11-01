@@ -284,10 +284,21 @@ private struct ProjectRowView: View {
     @ViewBuilder
     private func menuItems(_ profiles: [Profile]) -> some View {
         if let path = row.path {
+            let folder = URL(fileURLWithPath: path, isDirectory: true)
+            let others = model.library.activeProfiles.filter { candidate in !profiles.contains { $0.id == candidate.id } }
             Section("Claude Code'u Aç") {
                 ForEach(profiles) { profile in
                     Button(profile.name) {
-                        model.openClaudeCode(profile, in: URL(fileURLWithPath: path, isDirectory: true))
+                        model.openClaudeCode(profile, in: folder)
+                    }
+                }
+                if !others.isEmpty {
+                    Menu("Başka Hesapla") {
+                        ForEach(others) { profile in
+                            Button(profile.name) {
+                                model.openClaudeCode(profile, in: folder)
+                            }
+                        }
                     }
                 }
             }
