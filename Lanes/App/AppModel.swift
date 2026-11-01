@@ -87,6 +87,9 @@ final class AppModel {
     @ObservationIgnored private var warnedStrayPIDs: Set<pid_t> = []
     /// Clones caught opening outside Lanes and being reopened right now.
     @ObservationIgnored private var redirectingStrayPIDs: Set<pid_t> = []
+    @ObservationIgnored private var unredirectablePIDs: Set<pid_t> = []
+    /// The stray clone warning on screen, cleared once no stray is left.
+    @ObservationIgnored private var strayNoticeID: Notice.ID?
     /// The account Claude Code is signed in to for each profile, read from
     /// its `.claude.json` (email, name and organization only).
     private(set) var claudeCodeAccounts: [ProfileID: ClaudeCodeAccount] = [:]
@@ -674,14 +677,31 @@ final class AppModel {
 
     private func warnAboutStrayClones() {
         let stray = strayClones
+        unredirectablePIDs.formIntersection(stray.map(\.pid))
+        if stray.isEmpty, let id = strayNoticeID {
+            if notice?.id == id {
+                notice = nil
+            }
+            strayNoticeID = nil
+        }
         warnedStrayPIDs.formIntersection(stray.map(\.pid))
-        guard let first = stray.first(where: { !warnedStrayPIDs.contains($0.pid) && !redirectingStrayPIDs.contains($0.pid) }) else { return }
+        // The scan can see a stray clone before its launch is reported (it
+        // comes forward first). It is reopened properly rather than warned
+        // about; only one that cannot be redirected gets the warning.
+        let unhandled = stray.filter { instance in
+            guard !redirectingStrayPIDs.contains(instance.pid), !warnedStrayPIDs.contains(instance.pid) else { return false }
+            guard let app = NSRunningApplication(processIdentifier: instance.pid) else { return true }
+            return !redirectStrayClone(app)
+        }
+        guard let first = unhandled.first else { return }
         warnedStrayPIDs.insert(first.pid)
         let name = paths.profileID(forCloneBundle: first.applicationBundlePath).flatMap { profile(withID: $0)?.name }
             ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
         Log.instances.info("A clone was opened without its folder")
         Notifier.post(.strayClone, body: String(localized: "\(name) klonu Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
-        notice = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
+        let warning = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
+        notice = warning
+        strayNoticeID = warning.id
     }
 
     /// A clone opened from Finder, Spotlight, Launchpad or the Dock starts
@@ -689,17 +709,21 @@ final class AppModel {
     /// Lanes asks it to quit, like ⌘Q, and opens the account properly, so
     /// a clone always ends up on its own account wherever it was opened.
     /// Only the process's command line is read, as for the account list.
-    private func redirectStrayClone(_ app: NSRunningApplication) {
+    /// Returns whether the clone is being reopened.
+    @discardableResult
+    private func redirectStrayClone(_ app: NSRunningApplication) -> Bool {
+        if redirectingStrayPIDs.contains(app.processIdentifier) { return true }
+        // One that refused to quit once is left to the warning.
+        if unredirectablePIDs.contains(app.processIdentifier) { return false }
         guard let bundle = app.bundleURL?.path, paths.isClonePath(bundle),
               let id = paths.profileID(forCloneBundle: bundle),
               let profile = profile(withID: id), !profile.isArchived,
-              !launchesInProgress.contains(id) else { return }
+              !launchesInProgress.contains(id) else { return false }
         let pid = app.processIdentifier
-        guard !redirectingStrayPIDs.contains(pid),
-              let arguments = ProcessInspector.arguments(of: pid),
-              !arguments.isHelperProcess, arguments.userDataDirectory == nil else { return }
+        guard let arguments = ProcessInspector.arguments(of: pid),
+              !arguments.isHelperProcess, arguments.userDataDirectory == nil else { return false }
         redirectingStrayPIDs.insert(pid)
-        Log.instances.info("A clone opened outside Lanes; reopening it on its own account")
+        Log.instances.notice("A clone opened outside Lanes; reopening it on its own account")
         app.terminate()
         Task {
             // Claude may still be saving; it gets a few seconds to close.
@@ -708,6 +732,7 @@ final class AppModel {
             }
             if !app.isTerminated {
                 Log.instances.error("A clone opened outside Lanes did not quit; leaving the warning to the user")
+                unredirectablePIDs.insert(pid)
                 redirectingStrayPIDs.remove(pid)
                 refreshInstances()
                 return
@@ -715,6 +740,7 @@ final class AppModel {
             redirectingStrayPIDs.remove(pid)
             await openAndWait(profile)
         }
+        return true
     }
 
     func instance(for profile: Profile) -> RunningInstance? {

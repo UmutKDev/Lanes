@@ -571,8 +571,14 @@ private struct AccountClaudeCodeTab: View {
             Section {
                 if let path = profile.defaultProjectFolder, !path.isEmpty {
                     AccountFolderRow(url: URL(fileURLWithPath: path, isDirectory: true)) {
+                        if model.defaultProjectFolder(for: profile) == nil {
+                            Label("Bulunamadı", systemImage: "exclamationmark.triangle.fill")
+                                .labelStyle(.iconOnly)
+                                .foregroundStyle(DS.Palette.warning)
+                                .help("Bu klasör artık yok ya da izin verilen klasörlerin dışında. \"Terminalde Aç\" şimdilik ana klasörde açılıyor.")
+                        }
                         Button("Değiştir…") {
-                            if let folder = ClaudeCodeFolderPicker.choose() {
+                            if let folder = ClaudeCodeFolderPicker.chooseDefault() {
                                 model.setDefaultProjectFolder(folder, for: profile)
                             }
                         }
@@ -583,7 +589,7 @@ private struct AccountClaudeCodeTab: View {
                     }
                 } else {
                     Button("Varsayılan Klasör Seç…") {
-                        if let folder = ClaudeCodeFolderPicker.choose() {
+                        if let folder = ClaudeCodeFolderPicker.chooseDefault() {
                             model.setDefaultProjectFolder(folder, for: profile)
                         }
                     }
@@ -730,6 +736,15 @@ enum ClaudeCodeFolderPicker {
         chooseFolders(
             prompt: String(localized: "Claude Code'u Burada Aç"),
             message: String(localized: "Claude Code'un başlayacağı klasörü seç."),
+            allowsMultipleSelection: false
+        ).first
+    }
+
+    /// For the account's default folder: nothing opens, it is only saved.
+    static func chooseDefault() -> URL? {
+        chooseFolders(
+            prompt: String(localized: "Varsayılan Yap"),
+            message: String(localized: "\"Terminalde Aç\" Claude Code'u bundan sonra bu klasörde başlatır."),
             allowsMultipleSelection: false
         ).first
     }
