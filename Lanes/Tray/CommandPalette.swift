@@ -32,6 +32,7 @@ final class PaletteController: NSObject, NSWindowDelegate {
         self.panel = panel
         model.refreshInstances()
         state.presentation += 1
+        loadSessionFolders()
         position(panel)
         panel.makeKeyAndOrderFront(nil)
     }
@@ -63,6 +64,32 @@ final class PaletteController: NSObject, NSWindowDelegate {
         panel.setFrame(NSRect(x: visible.midX - size.width / 2, y: 0, width: size.width, height: size.height), display: true)
     }
 
+    /// The project folders of each account's Claude Code sessions, as the
+    /// Projects view lists them, read off the main thread. Only folder and
+    /// file names are read; nothing is opened.
+    private func loadSessionFolders() {
+        let model = model
+        let folders = model.library.activeProfiles.map { profile in
+            (profile.id, model.paths.effectiveClaudeCodeConfigDirectory(for: profile).appendingPathComponent("projects", isDirectory: true))
+        }
+        let state = state
+        Task {
+            let found = await Task.detached(priority: .userInitiated) { () -> [ProfileID: [String]] in
+                var result: [ProfileID: [String]] = [:]
+                for (id, projects) in folders {
+                    var seen = Set<String>()
+                    for session in ClaudeCodeSessionList.read(projects).sessions where seen.insert(session.projectFolderName).inserted {
+                        if let path = ClaudeCodeProjectName.path(forFolderName: session.projectFolderName) {
+                            result[id, default: []].append(path)
+                        }
+                    }
+                }
+                return result
+            }.value
+            state.sessionFolders = found
+        }
+    }
+
     func windowDidResignKey(_ notification: Notification) {
         close()
     }
@@ -88,7 +115,7 @@ final class PaletteController: NSObject, NSWindowDelegate {
                 kind: .claudeCode(profile),
                 run: { model.openClaudeCode(profile) }
             ))
-            for folder in Self.folders(of: profile, model: model) {
+            for folder in Self.folders(of: profile, model: model, sessionFolders: state.sessionFolders[profile.id] ?? []) {
                 items.append(PaletteItem(
                     id: "project:\(profile.id.rawValue):\(folder.path)",
                     title: String(localized: "\(folder.lastPathComponent) · \(profile.name)"),
@@ -128,13 +155,13 @@ final class PaletteController: NSObject, NSWindowDelegate {
         return items
     }
 
-    /// The account's default, linked and recent Claude Code folders that
-    /// still exist, without repeats.
-    private static func folders(of profile: Profile, model: AppModel) -> [URL] {
+    /// The account's default, linked and recent Claude Code folders, and
+    /// those of its sessions, that still exist, without repeats.
+    private static func folders(of profile: Profile, model: AppModel, sessionFolders: [String]) -> [URL] {
         var seen = Set<String>()
         var folders: [URL] = []
         let candidates = [profile.defaultProjectFolder].compactMap { $0 } + profile.linkedFolders
-            + model.recentClaudeCodeFolders(for: profile).map(\.path)
+            + model.recentClaudeCodeFolders(for: profile).map(\.path) + sessionFolders
         for path in candidates where !seen.contains(path) {
             seen.insert(path)
             var isDirectory: ObjCBool = false
@@ -151,6 +178,9 @@ final class PaletteController: NSObject, NSWindowDelegate {
 final class PaletteState {
     /// Bumped on every showing, so the view starts fresh.
     var presentation = 0
+    /// Project folders of each account's Claude Code sessions, filled in
+    /// shortly after the palette opens.
+    var sessionFolders: [ProfileID: [String]] = [:]
 }
 
 struct PaletteItem: Identifiable {
@@ -211,10 +241,12 @@ struct PaletteView: View {
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 2) {
+                    // A plain stack: at most 40 rows, and every row is
+                    // rebuilt when the results change.
+                    VStack(spacing: 2) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, item in
                             PaletteRow(item: item, isSelected: index == selection)
-                                .id(index)
+                                .id(item.id)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selection = index
@@ -233,7 +265,10 @@ struct PaletteView: View {
                 }
                 .frame(height: 360)
                 .onChange(of: selection) {
-                    proxy.scrollTo(selection)
+                    let list = results
+                    if list.indices.contains(selection) {
+                        proxy.scrollTo(list[selection].id)
+                    }
                 }
             }
         }
@@ -241,6 +276,9 @@ struct PaletteView: View {
         .modifier(PanelSurface())
         .onAppear(perform: refresh)
         .onChange(of: state.presentation) { refresh() }
+        // Session folders arrive after the palette opened: add them
+        // without clearing what was typed.
+        .onChange(of: state.sessionFolders) { all = items() }
         .onChange(of: query) { selection = 0 }
     }
 
