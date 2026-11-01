@@ -65,6 +65,16 @@ struct PrivacyPage: View {
                     detail: "Menü çubuğu simgesinin öndeki Claude'un hesabını göstermesi ve Kullanım sayfasında her hesabın önde geçen süresini saymak için. Süreler yalnız bu Mac'te, son 30 gün için saklanır. Yalnız öndeki uygulamanın süreç numarası Lanes'in bildiği hesaplarla karşılaştırılır. Ayarlar > Menü Çubuğu ve Dock'taki ayar yalnız menü çubuğu simgesindeki gösterimi kapatır. Önde geçen süre her zaman, yalnız bu Mac'te sayılır."
                 )
                 PrivacyItem(
+                    systemImage: "rectangle.dashed",
+                    title: "Öndeki Claude penceresinin yeri",
+                    detail: "Yalnız Hesap Rengi Çerçevesi açıkken ve bir hesabın Claude'u öndeyken, çerçeveyi pencerenin çevresine çizmek için. macOS'un pencere listesinden yalnız pencerenin sahibi ve sınırları okunur; başlığı ve içi okunmaz, izin gerekmez. Hiçbir şey saklanmaz."
+                )
+                PrivacyItem(
+                    systemImage: "doc.on.clipboard",
+                    title: "Panonun değişip değişmediği",
+                    detail: "Yalnız Pano Bekçisi açıkken ve bir hesabın Claude'u öndeyken. Lanes panonun değişim sayacına bakar ve hangi hesap öndeyken değiştiğini bellekte tutar; panoda ne olduğunu hiç okumaz. Hiçbir şey diske yazılmaz."
+                )
+                PrivacyItem(
                     systemImage: "calendar.badge.clock",
                     title: "Projelerde geçen Claude Code süresi",
                     detail: "Zaman Çizelgesi için. Claude Code bir projenin oturum dosyasını en çok beş dakika arayla yazdıkça o süre hesaba ve projeye eklenir. Yalnız dosyaların değişme zamanına bakılır, içleri okunmaz. Saklanan yalnız hesap kimliği, Claude Code'un proje klasör adı ve günlük saniyedir; son 62 gün, yalnız bu Mac'te. Pazartesi özeti açıksa bu süreler bir bildirimle gösterilir."

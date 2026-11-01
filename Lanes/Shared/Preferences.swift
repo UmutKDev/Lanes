@@ -25,6 +25,8 @@ enum Preferences {
         /// opens it at most once.
         static let setupShown = "setupShown"
         static let doneNoticesEnabled = "doneNoticesEnabled"
+        static let accountFrameEnabled = "accountFrameEnabled"
+        static let clipboardGuardEnabled = "clipboardGuardEnabled"
         static let doneNoticeKinds = "doneNoticeKinds"
         static let doneNoticesWhileTerminalInFront = "doneNoticesWhileTerminalInFront"
     }
@@ -45,6 +47,17 @@ enum Preferences {
     /// windows are hidden (Cmd-H), so only one account is on screen.
     static var focusModeEnabled: Bool {
         UserDefaults.standard.bool(forKey: Key.focusModeEnabled)
+    }
+
+    /// A border in the account's colour around the Claude window in front.
+    static var accountFrameEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Key.accountFrameEnabled)
+    }
+
+    /// A warning when something copied in one account is about to be
+    /// pasted into another.
+    static var clipboardGuardEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Key.clipboardGuardEnabled)
     }
 
     /// Lanes reopens the accounts that were open when it last ran, for
