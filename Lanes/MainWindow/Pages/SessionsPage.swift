@@ -306,17 +306,21 @@ private struct ProjectRowView: View {
         Section("Son Oturumu Sürdür") {
             ForEach(row.project.uses, id: \.profileID) { use in
                 if let profile = model.profile(withID: use.profileID) {
-                    let session = ClaudeCodeSessionList.Session(id: use.newestSessionID, projectFolderName: row.project.folderName, modifiedAt: use.lastUsed)
                     Button(profile.name) {
-                        model.resume(session, of: profile)
+                        model.resume(newestSession(of: use), of: profile)
                     }
-                    let others = model.library.activeProfiles.filter { $0.id != profile.id }
-                    if !others.isEmpty {
-                        Menu("\(profile.name) oturumunu başka hesapla") {
-                            ForEach(others) { target in
-                                Button(target.name) {
-                                    model.continueSession(session, of: profile, with: target)
+                }
+            }
+            if model.library.activeProfiles.count > 1 {
+                Menu("Başka Hesapla Sürdür") {
+                    ForEach(row.project.uses, id: \.profileID) { use in
+                        if let source = model.profile(withID: use.profileID) {
+                            if row.project.uses.count > 1 {
+                                Menu(source.name) {
+                                    handoffTargets(newestSession(of: use), from: source)
                                 }
+                            } else {
+                                handoffTargets(newestSession(of: use), from: source)
                             }
                         }
                     }
@@ -327,6 +331,19 @@ private struct ProjectRowView: View {
             Divider()
             Button("Finder'da Göster") {
                 SystemActions.reveal(URL(fileURLWithPath: path, isDirectory: true))
+            }
+        }
+    }
+
+    private func newestSession(of use: ProjectMap.Use) -> ClaudeCodeSessionList.Session {
+        ClaudeCodeSessionList.Session(id: use.newestSessionID, projectFolderName: row.project.folderName, modifiedAt: use.lastUsed)
+    }
+
+    @ViewBuilder
+    private func handoffTargets(_ session: ClaudeCodeSessionList.Session, from source: Profile) -> some View {
+        ForEach(model.library.activeProfiles.filter { $0.id != source.id }) { target in
+            Button(target.name) {
+                model.continueSession(session, of: source, with: target)
             }
         }
     }
