@@ -17,6 +17,7 @@ enum Notifier {
         case launchFailed
         case limitReset
         case claudeCodeDone
+        case weeklySummary
 
         var id: String { rawValue }
 
@@ -34,6 +35,7 @@ enum Notifier {
             case .launchFailed: return String(localized: "Bir hesap açılamadı")
             case .limitReset: return String(localized: "Bir hesabın dinlenmesi bitti")
             case .claudeCodeDone: return String(localized: "Claude Code bitirdi ya da onay bekliyor")
+            case .weeklySummary: return String(localized: "Pazartesi özeti")
             }
         }
 

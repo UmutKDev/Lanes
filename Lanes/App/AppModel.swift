@@ -153,6 +153,9 @@ final class AppModel {
     @ObservationIgnored private var lastMemoryAlert: Date?
     /// How long each account was in front, per day.
     private(set) var frontTime: FrontTimeLog = AppModel.loadFrontTime()
+    /// Claude Code time per account, project and day, for Zaman Çizelgesi.
+    private(set) var projectTime: ProjectTimeLog = AppModel.loadProjectTime()
+    @ObservationIgnored private var projectTimeDirty = false
     /// The account in front now and since when, not yet in frontTime.
     @ObservationIgnored private var currentFront: (id: ProfileID, since: Date)?
     /// True while time in front is paused because nobody touched the Mac.
@@ -310,6 +313,10 @@ final class AppModel {
         sampleResources()
         activityWatcher.onWrite = { [weak self] id, write in
             guard let self else { return }
+            let previous = claudeCodeWrites[id].map { (date: $0.date, folderName: $0.projectFolderName) }
+            if projectTime.recordWrite(id, folderName: write.projectFolderName, at: write.date, previous: previous) {
+                projectTimeDirty = true
+            }
             claudeCodeWrites[id] = write
             claudeCodeWriteCount += 1
             updateClaudeCodePulse()
@@ -475,6 +482,8 @@ final class AppModel {
     /// asked to be quit after sitting unused.
     private func sampleResources() {
         pauseFrontTimeWhileIdle()
+        saveProjectTimeIfNeeded()
+        postWeeklySummaryIfDue()
         watchClaudeCodeActivity()
         updateClaudeCodePulse()
         let owned = instances.compactMap { instance in
@@ -699,6 +708,64 @@ final class AppModel {
             total += max(0, now.timeIntervalSince(max(current.since, windowStart)))
         }
         return total
+    }
+
+    // MARK: Zaman Çizelgesi
+
+    private static func loadProjectTime() -> ProjectTimeLog {
+        guard let data = UserDefaults.standard.data(forKey: "projectTime") else { return ProjectTimeLog() }
+        return (try? JSONDecoder().decode(ProjectTimeLog.self, from: data)) ?? ProjectTimeLog()
+    }
+
+    /// Saved at most every ten seconds, from the resource timer, because
+    /// Claude Code writes its session files many times a minute.
+    private func saveProjectTimeIfNeeded() {
+        guard projectTimeDirty else { return }
+        projectTimeDirty = false
+        projectTime.prune(now: Date(), keeping: Set(library.profiles.map(\.id)))
+        if let data = try? JSONEncoder().encode(projectTime) {
+            UserDefaults.standard.set(data, forKey: "projectTime")
+        }
+    }
+
+    /// The week holding `date`, with the time the front account has been in
+    /// front right now added to today.
+    func timesheet(forWeekContaining date: Date) -> Timesheet {
+        var extra: [ProfileID: Double] = [:]
+        if let current = currentFront {
+            let today = Calendar.current.startOfDay(for: Date())
+            extra[current.id] = max(0, Date().timeIntervalSince(max(current.since, today)))
+        }
+        return Timesheet(
+            weekStart: Timesheet.weekStart(containing: date),
+            accounts: library.profiles.map { (id: $0.id, name: $0.name) },
+            front: frontTime,
+            projects: projectTime,
+            extraFront: extra,
+            projectName: { [weak self] folder in self?.projectName(forFolderName: folder) ?? folder }
+        )
+    }
+
+    /// A readable project name, looked up on disk once per folder.
+    func projectName(forFolderName folder: String) -> String {
+        if let cached = projectNameCache[folder] { return cached }
+        let name = ClaudeCodeProjectName.name(forFolderName: folder)
+        projectNameCache[folder] = name
+        return name
+    }
+
+    /// On Monday from 09:00, once a week, last week's time per account,
+    /// when "Pazartesi özeti" is on.
+    private func postWeeklySummaryIfDue(now: Date = Date()) {
+        guard Notifier.Kind.weeklySummary.isEnabled else { return }
+        let calendar = Calendar.current
+        guard calendar.component(.weekday, from: now) == 2, calendar.component(.hour, from: now) >= 9 else { return }
+        let thisWeek = FrontTimeLog.dayKey(Timesheet.weekStart(containing: now))
+        guard UserDefaults.standard.string(forKey: "weeklySummarySentFor") != thisWeek,
+              let lastWeek = calendar.date(byAdding: .day, value: -7, to: now) else { return }
+        UserDefaults.standard.set(thisWeek, forKey: "weeklySummarySentFor")
+        guard let summary = timesheet(forWeekContaining: lastWeek).summary else { return }
+        Notifier.post(.weeklySummary, body: String(localized: "Geçen hafta: \(summary)"))
     }
 
     private static func loadFrontTime() -> FrontTimeLog {

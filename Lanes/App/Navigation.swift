@@ -7,6 +7,7 @@ enum Destination: Hashable {
     case overview
     case sessions
     case usage
+    case timesheet
     case account(ProfileID)
     case accountMap
     case links
@@ -25,6 +26,7 @@ enum Destination: Hashable {
         case .overview: return String(localized: "Genel Bakış")
         case .sessions: return String(localized: "Oturumlar")
         case .usage: return String(localized: "Kullanım")
+        case .timesheet: return String(localized: "Zaman Çizelgesi")
         case .account: return String(localized: "Hesap")
         case .accountMap: return String(localized: "Hesap Haritası")
         case .links: return String(localized: "Bağlantılar")
@@ -45,6 +47,7 @@ enum Destination: Hashable {
         case .overview: return "square.grid.2x2"
         case .sessions: return "bubble.left.and.text.bubble.right"
         case .usage: return "gauge.with.dots.needle.33percent"
+        case .timesheet: return "calendar.badge.clock"
         case .account: return "person.crop.circle"
         case .accountMap: return "point.3.connected.trianglepath.dotted"
         case .links: return "link"
@@ -67,6 +70,7 @@ enum Destination: Hashable {
         case "overview": self = .overview
         case "sessions": self = .sessions
         case "usage": self = .usage
+        case "timesheet": self = .timesheet
         case "accountmap", "map": self = .accountMap
         case "links": self = .links
         case "toolbox": self = .toolbox

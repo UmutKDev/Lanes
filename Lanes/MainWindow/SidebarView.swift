@@ -17,7 +17,7 @@ struct SidebarView: View {
                 // not lost among the page rows.
                 if !isSearching {
                     Section {
-                        rows([.overview, .sessions, .usage])
+                        rows([.overview, .sessions, .usage, .timesheet])
                     }
                 }
 
