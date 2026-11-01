@@ -50,7 +50,7 @@ targets:
         SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
         # Updates are checked by default instead of asking on the second launch.
         SUEnableAutomaticChecks: true
-        NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Bağlantı yönlendirme açıksa claude:// bağlantılarını da seçilen hesabın Claude'una iletir, \"Claude Ayarlarını Aç\" düğmesi de ayarlar bağlantısını gönderir. Giriş bağlantılarını hiçbir zaman iletmez."
+        NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Bağlantı yönlendirme açıksa claude:// bağlantılarını da seçilen hesabın Claude'una iletir, \"Claude Ayarlarını Aç\" düğmesi de ayarlar bağlantısını gönderir. Giriş bağlantılarını hiçbir zaman iletmez. Bitti Haberi bildiriminde \"Terminale Git\"e basınca da Terminal ya da iTerm2'de o oturumun sekmesini seçer."
         # Declared so Faz 0 can test taking over claude:// links. Lanes hands
         # the default back to Claude on launch unless link routing is on.
         CFBundleURLTypes:

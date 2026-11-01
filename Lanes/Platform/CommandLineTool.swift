@@ -51,9 +51,9 @@ enum CommandLineTool {
     }
 
     /// Writes the account map the script reads: names, IDs and folders.
-    static func writeMap(library: ProfileLibrary, paths: ProfilePaths) {
+    static func writeMap(library: ProfileLibrary, paths: ProfilePaths, hookSettings: [ProfileID: String] = [:]) {
         let url = paths.root.appendingPathComponent(LanesCLI.mapFileName, isDirectory: false)
-        let contents = LanesCLI.map(library: library, paths: paths)
+        let contents = LanesCLI.map(library: library, paths: paths, hookSettings: hookSettings)
         if (try? String(contentsOf: url, encoding: .utf8)) == contents { return }
         do {
             try FileManager.default.createDirectory(at: paths.root, withIntermediateDirectories: true)

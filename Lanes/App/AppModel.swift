@@ -116,6 +116,17 @@ final class AppModel {
     @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
     @ObservationIgnored private let sampler = ResourceSampler()
     @ObservationIgnored private let activityWatcher = ClaudeCodeActivityWatcher()
+    @ObservationIgnored private let doneNotices: ClaudeCodeDoneNotices
+    /// "Bitti Haberi" is on: Claude Code sessions Lanes starts tell Lanes
+    /// when they finish or wait for an approval.
+    private(set) var doneNoticesEnabled = UserDefaults.standard.bool(forKey: Preferences.Key.doneNoticesEnabled)
+    /// Which events notify. Both by default.
+    private(set) var doneNoticeKinds: Set<ClaudeCodeHooks.Kind> = AppModel.loadDoneNoticeKinds()
+    /// Notify while a terminal app is in front too. Off by default, since
+    /// the user is likely watching the session then.
+    var doneNoticesWhileTerminalInFront = UserDefaults.standard.bool(forKey: Preferences.Key.doneNoticesWhileTerminalInFront) {
+        didSet { UserDefaults.standard.set(doneNoticesWhileTerminalInFront, forKey: Preferences.Key.doneNoticesWhileTerminalInFront) }
+    }
     @ObservationIgnored private let displayWatcher = DisplayWatcher()
     /// What the Lanes Focus filter of the active Focus asks for. nil while
     /// no Focus with a Lanes filter is on.
@@ -170,6 +181,7 @@ final class AppModel {
         )
         self.paths = paths
         self.store = store
+        self.doneNotices = ClaudeCodeDoneNotices(paths: paths)
         self.validation = ValidationModel(paths: paths)
         self.library = startup.library
         self.shortcuts = AppModel.loadShortcuts()
@@ -196,7 +208,7 @@ final class AppModel {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
         SpotlightIndex.update(library.activeProfiles)
-        CommandLineTool.writeMap(library: library, paths: paths)
+        CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
         CommandLineTool.updateIfOutdated()
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
@@ -298,6 +310,10 @@ final class AppModel {
         }
         watchClaudeCodeActivity()
         seedClaudeCodeActivity()
+        doneNotices.onEvent = { [weak self] event in
+            self?.receiveDoneNotice(event)
+        }
+        refreshDoneNotices()
         displayWatcher.onConnect = { [weak self] displays in
             self?.openScenes(for: displays)
         }
@@ -1211,7 +1227,7 @@ final class AppModel {
             }
         }
         do {
-            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments())
+            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile))
             if let folder = chosen {
                 var recent = recentFolders[profile.id] ?? RecentFolders()
                 recent.use(folder.path)
@@ -1261,7 +1277,7 @@ final class AppModel {
                 for: profile,
                 paths: paths,
                 in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
-                arguments: ["--resume", session.id] + Toolbox(paths: paths).mcpArguments()
+                arguments: ["--resume", session.id] + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
             )
             Log.app.info("Resumed a Claude Code session")
         } catch {
@@ -1286,6 +1302,94 @@ final class AppModel {
 
     func claudeCodeCommand(for profile: Profile) -> String {
         ClaudeCodeCommand.command(for: profile, paths: paths)
+    }
+
+    // MARK: Bitti Haberi
+
+    private static func loadDoneNoticeKinds() -> Set<ClaudeCodeHooks.Kind> {
+        guard let raw = UserDefaults.standard.stringArray(forKey: Preferences.Key.doneNoticeKinds) else {
+            return Set(ClaudeCodeHooks.Kind.allCases)
+        }
+        return Set(raw.compactMap(ClaudeCodeHooks.Kind.init(rawValue:)))
+    }
+
+    /// Turns "Bitti Haberi" on or off. Turning it on asks for notification
+    /// permission first; nothing is written when macOS says no.
+    func setDoneNotices(enabled: Bool) {
+        guard enabled else {
+            doneNoticesEnabled = false
+            UserDefaults.standard.set(false, forKey: Preferences.Key.doneNoticesEnabled)
+            refreshDoneNotices()
+            return
+        }
+        Task {
+            let allowed: Bool
+            switch await Notifier.authorizationStatus() {
+            case .notDetermined: allowed = await Notifier.requestPermission()
+            case .denied: allowed = false
+            default: allowed = true
+            }
+            guard allowed else {
+                notice = Notice(kind: .warning, message: String(localized: "Bitti Haberi için bildirim izni gerekiyor. Sistem Ayarları > Bildirimler > Lanes'ten açabilirsin."))
+                return
+            }
+            doneNoticesEnabled = true
+            UserDefaults.standard.set(true, forKey: Preferences.Key.doneNoticesEnabled)
+            refreshDoneNotices()
+        }
+    }
+
+    func setDoneNoticeKind(_ kind: ClaudeCodeHooks.Kind, enabled: Bool) {
+        if enabled { doneNoticeKinds.insert(kind) } else { doneNoticeKinds.remove(kind) }
+        UserDefaults.standard.set(doneNoticeKinds.map(\.rawValue).sorted(), forKey: Preferences.Key.doneNoticeKinds)
+        refreshDoneNotices()
+    }
+
+    /// Writes or removes Lanes's hook files to match the setting.
+    private func refreshDoneNotices() {
+        if doneNoticesEnabled {
+            doneNotices.install(profiles: library.activeProfiles, kinds: doneNoticeKinds)
+        } else {
+            doneNotices.uninstall()
+        }
+        CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
+    }
+
+    /// The settings file per account for the `lanes` tool to pass on.
+    private func doneNoticeSettingsFiles() -> [ProfileID: String] {
+        guard doneNoticesEnabled else { return [:] }
+        var files: [ProfileID: String] = [:]
+        for profile in library.activeProfiles {
+            files[profile.id] = doneNotices.settingsFile(for: profile.id).path
+        }
+        return files
+    }
+
+    private func receiveDoneNotice(_ event: ClaudeCodeHooks.Event) {
+        guard doneNoticesEnabled, doneNoticeKinds.contains(event.kind),
+              let profile = profile(withID: event.profileID), !profile.isArchived else { return }
+        if !doneNoticesWhileTerminalInFront,
+           let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+           ClaudeCodeHooks.terminalBundleIdentifiers.contains(front) {
+            return
+        }
+        let project = event.projectPath.map { URL(fileURLWithPath: $0).lastPathComponent }
+        let title: String
+        switch event.kind {
+        case .done: title = String(localized: "\(profile.name): Claude bitirdi")
+        case .waiting: title = String(localized: "\(profile.name): Claude onay bekliyor")
+        }
+        let body: String
+        if let project, !project.isEmpty {
+            body = event.kind == .done
+                ? String(localized: "\(project) klasöründeki oturum cevabını tamamladı.")
+                : String(localized: "\(project) klasöründeki oturum devam etmek için iznini bekliyor.")
+        } else {
+            body = event.kind == .done
+                ? String(localized: "Claude Code cevabını tamamladı.")
+                : String(localized: "Claude Code devam etmek için iznini bekliyor.")
+        }
+        Notifier.postClaudeCode(title: title, body: body, tty: event.tty, terminalProgram: event.terminalProgram, threadID: profile.id.rawValue)
     }
 
     // MARK: Editing profiles
@@ -1720,7 +1824,8 @@ final class AppModel {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
             SpotlightIndex.update(library.activeProfiles)
-            CommandLineTool.writeMap(library: library, paths: paths)
+            if doneNoticesEnabled { doneNotices.install(profiles: library.activeProfiles, kinds: doneNoticeKinds) }
+            CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
             if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan hesap listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }

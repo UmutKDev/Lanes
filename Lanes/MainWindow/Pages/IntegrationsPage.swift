@@ -55,6 +55,25 @@ struct IntegrationsPage: View {
             }
 
             Section {
+                Toggle("Bitti Haberi", isOn: Binding(
+                    get: { model.doneNoticesEnabled },
+                    set: { model.setDoneNotices(enabled: $0) }
+                ))
+                if model.doneNoticesEnabled {
+                    Toggle("Claude cevabını bitirince", isOn: kindBinding(.done))
+                    Toggle("Claude onay isteyince", isOn: kindBinding(.waiting))
+                    Toggle("Terminal öndeyken de bildir", isOn: Binding(
+                        get: { model.doneNoticesWhileTerminalInFront },
+                        set: { model.doneNoticesWhileTerminalInFront = $0 }
+                    ))
+                }
+            } header: {
+                Text("Claude Code bildirimleri")
+            } footer: {
+                Text("Lanes'in başlattığı Claude Code oturumları (Terminalde Aç düğmeleri, Kestirmeler ve lanes claude) cevabını bitirince ya da devam etmek için iznini isteyince hesabın adıyla bir bildirim gelir. Bildirimdeki \"Terminale Git\" Terminal ya da iTerm2'de o oturumun sekmesini seçer. Lanes bunun için hesapların settings.json dosyasına dokunmaz: kendi klasöründeki bir ayar dosyasını Claude Code'a --settings ile verir. Kanca, Claude Code'un ona gönderdiği veriyi okumadan atar. Açtığında zaten çalışan oturumlar bildirim göndermez; onları yeniden başlat.")
+            }
+
+            Section {
                 Button("Kestirmeler'i Aç") {
                     if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.shortcuts") {
                         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
@@ -94,6 +113,13 @@ struct IntegrationsPage: View {
             }
         }
         .libraryForm()
+    }
+
+    private func kindBinding(_ kind: ClaudeCodeHooks.Kind) -> Binding<Bool> {
+        Binding(
+            get: { model.doneNoticeKinds.contains(kind) },
+            set: { model.setDoneNoticeKind(kind, enabled: $0) }
+        )
     }
 
     private var cliExample: String {

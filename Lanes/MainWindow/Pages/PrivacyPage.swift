@@ -117,6 +117,12 @@ struct PrivacyPage: View {
                     detail: "Toolbox klasöründe paylaşılan CLAUDE.md, komutlar, ajanlar, beceriler ve mcp.json. Paylaştığın hesabın Claude Code klasörüne yalnız bir bağlantı (symlink) eklenir. Hesabın kendi dosyaları okunmaz, değiştirilmez."
                 )
                 PrivacyItem(
+                    systemImage: "bell.badge",
+                    title: "Bitti Haberi kancası",
+                    detail: "Yalnız Entegrasyonlar'da Bitti Haberi'ni açarsan. ClaudeCodeHooks klasöründe küçük bir kanca betiği ve her hesap için yalnız bu kancayı içeren bir ayar dosyası durur. Lanes'in başlattığı Claude Code oturumları bu dosyayı --settings ile alır; hesabın kendi settings.json dosyası okunmaz, değiştirilmez. Kanca, Claude Code'un ona gönderdiği veriyi okumadan atar ve Events klasörüne yalnız hesap kimliğini, olayı (bitti ya da onay bekliyor), terminalin adını ve proje klasörünün yolunu yazar. Lanes bu dosyayı bildirimi gösterince siler. Özellik kapatılınca klasörün tamamı silinir.",
+                    path: model.paths.root.appendingPathComponent(ClaudeCodeHooks.folderName, isDirectory: true)
+                )
+                PrivacyItem(
                     systemImage: "gearshape",
                     title: "Lanes'in kendi ayarları",
                     detail: "macOS'un uygulama ayarlarında (com.umutkdev.Lanes). Kısayollar ve her hesabın Claude Code'u açtığı son beş klasör de burada durur. Sahneler hesap listesiyle birlikte profiles.json dosyasında."
