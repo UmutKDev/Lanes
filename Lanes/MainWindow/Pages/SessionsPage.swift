@@ -306,11 +306,19 @@ private struct ProjectRowView: View {
         Section("Son Oturumu Sürdür") {
             ForEach(row.project.uses, id: \.profileID) { use in
                 if let profile = model.profile(withID: use.profileID) {
+                    let session = ClaudeCodeSessionList.Session(id: use.newestSessionID, projectFolderName: row.project.folderName, modifiedAt: use.lastUsed)
                     Button(profile.name) {
-                        model.resume(
-                            ClaudeCodeSessionList.Session(id: use.newestSessionID, projectFolderName: row.project.folderName, modifiedAt: use.lastUsed),
-                            of: profile
-                        )
+                        model.resume(session, of: profile)
+                    }
+                    let others = model.library.activeProfiles.filter { $0.id != profile.id }
+                    if !others.isEmpty {
+                        Menu("\(profile.name) oturumunu başka hesapla") {
+                            ForEach(others) { target in
+                                Button(target.name) {
+                                    model.continueSession(session, of: profile, with: target)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -387,6 +395,16 @@ private struct SessionRow: View {
         .contextMenu {
             Button("Sürdür") {
                 model.resume(row.session, of: row.profile)
+            }
+            let others = model.library.activeProfiles.filter { $0.id != row.profile.id }
+            if !others.isEmpty {
+                Menu("Başka Hesapla Sürdür") {
+                    ForEach(others) { target in
+                        Button(target.name) {
+                            model.continueSession(row.session, of: row.profile, with: target)
+                        }
+                    }
+                }
             }
             Button("Kimliği Kopyala") {
                 SystemActions.copy(row.session.id)

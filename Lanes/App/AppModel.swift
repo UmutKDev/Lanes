@@ -1263,6 +1263,65 @@ final class AppModel {
     /// Continues a Claude Code session in Terminal, with the account it
     /// belongs to and in its project folder when that still exists.
     func resume(_ session: ClaudeCodeSessionList.Session, of profile: Profile) {
+        resume(session, with: profile, arguments: ["--resume", session.id])
+    }
+
+    /// Continues another account's session with `target`: the session file
+    /// is copied into the target's Claude Code folder and resumed there as
+    /// a new session, so the original account's copy stays untouched. The
+    /// files are copied, never opened. Across account types, or between two
+    /// client accounts, Lanes asks first.
+    func continueSession(_ session: ClaudeCodeSessionList.Session, of source: Profile, with target: Profile) {
+        guard source.id != target.id else {
+            resume(session, of: source)
+            return
+        }
+        let sourceProjects = paths.effectiveClaudeCodeConfigDirectory(for: source).appendingPathComponent("projects", isDirectory: true)
+        let targetProjects = paths.effectiveClaudeCodeConfigDirectory(for: target).appendingPathComponent("projects", isDirectory: true)
+        guard let handoff = SessionHandoff(sessionID: session.id, projectFolderName: session.projectFolderName, fromProjects: sourceProjects, toProjects: targetProjects) else {
+            notice = Notice(kind: .error, message: String(localized: "Bu oturum başka bir hesaba aktarılamıyor."))
+            return
+        }
+        // Two client accounts are usually two clients, so they ask too.
+        if source.accountClass != target.accountClass || source.accountClass == .client {
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "Oturum \(target.name) hesabına geçsin mi?")
+            alert.informativeText = String(localized: "\(source.name) (\(source.accountClass.displayName)) hesabındaki konuşmanın bir kopyası \(target.name) (\(target.accountClass.displayName)) hesabına geçecek. Konuşmada bir müşterinin ya da işverenin bilgileri varsa öteki hesabın Claude Code klasöründe de durur.")
+            alert.addButton(withTitle: String(localized: "Yine de Sürdür"))
+            alert.addButton(withTitle: String(localized: "Vazgeç"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        let manager = FileManager.default
+        do {
+            let attributes = try manager.attributesOfItem(atPath: handoff.sourceFile.path)
+            guard attributes[.type] as? FileAttributeType == .typeRegular else {
+                throw CocoaError(.fileReadUnknown)
+            }
+            try manager.createDirectory(at: handoff.destinationFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+            // An earlier copy is replaced: it was resumed with
+            // --fork-session, so nothing was written into it.
+            if (try? manager.attributesOfItem(atPath: handoff.destinationFile.path)) != nil {
+                try manager.removeItem(at: handoff.destinationFile)
+            }
+            try manager.copyItem(at: handoff.sourceFile, to: handoff.destinationFile)
+            var isDirectory: ObjCBool = false
+            if manager.fileExists(atPath: handoff.sourceFolder.path, isDirectory: &isDirectory), isDirectory.boolValue,
+               (try? manager.destinationOfSymbolicLink(atPath: handoff.sourceFolder.path)) == nil {
+                if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
+                    try manager.removeItem(at: handoff.destinationFolder)
+                }
+                try manager.copyItem(at: handoff.sourceFolder, to: handoff.destinationFolder)
+            }
+        } catch {
+            notice = Notice(kind: .error, message: String(localized: "Oturum \(target.name) hesabına kopyalanamadı: \(error.localizedDescription)"))
+            return
+        }
+        Log.app.info("Copied a Claude Code session to another account")
+        resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
+    }
+
+    private func resume(_ session: ClaudeCodeSessionList.Session, with profile: Profile, arguments resumeArguments: [String]) {
         let folder = ClaudeCodeSessionList.projectPath(forFolderName: session.projectFolderName) { path in
             var isDirectory: ObjCBool = false
             return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
@@ -1277,7 +1336,7 @@ final class AppModel {
                 for: profile,
                 paths: paths,
                 in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
-                arguments: ["--resume", session.id] + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
+                arguments: resumeArguments + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
             )
             Log.app.info("Resumed a Claude Code session")
         } catch {

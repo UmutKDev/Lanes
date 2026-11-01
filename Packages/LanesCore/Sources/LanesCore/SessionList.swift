@@ -82,3 +82,41 @@ public struct ClaudeCodeSessionList: Equatable, Sendable {
         }
     }
 }
+
+/// Continuing one account's Claude Code session with another account.
+///
+/// Claude Code keeps a session as `projects/<folder>/<id>.jsonl`, with an
+/// optional `<id>/` folder next to it. Its own `--resume` only finds
+/// sessions in the account's own `projects/`, so Lanes copies those two
+/// items to the same place in the other account and resumes there with
+/// `--fork-session`. Lanes never opens the files; the copy is made by the
+/// file system. The original stays as it was.
+public struct SessionHandoff: Equatable, Sendable {
+    public var sourceFile: URL
+    public var sourceFolder: URL
+    public var destinationFile: URL
+    public var destinationFolder: URL
+
+    /// Nil when a name could lead outside `projects/`.
+    public init?(sessionID: String, projectFolderName: String, fromProjects source: URL, toProjects destination: URL) {
+        guard Self.isPlainName(sessionID), Self.isPlainName(projectFolderName),
+              source.standardizedFileURL != destination.standardizedFileURL else { return nil }
+        let from = source.appendingPathComponent(projectFolderName, isDirectory: true)
+        let to = destination.appendingPathComponent(projectFolderName, isDirectory: true)
+        sourceFile = from.appendingPathComponent(sessionID + ".jsonl", isDirectory: false)
+        sourceFolder = from.appendingPathComponent(sessionID, isDirectory: true)
+        destinationFile = to.appendingPathComponent(sessionID + ".jsonl", isDirectory: false)
+        destinationFolder = to.appendingPathComponent(sessionID, isDirectory: true)
+    }
+
+    /// The arguments that continue the copy as a new session, so the copy
+    /// itself stays an exact copy and can be replaced by a newer one later.
+    public static func resumeArguments(sessionID: String) -> [String] {
+        ["--resume", sessionID, "--fork-session"]
+    }
+
+    static func isPlainName(_ name: String) -> Bool {
+        !name.isEmpty && name.count <= 255 && name != "." && name != ".."
+            && !name.contains("/") && !name.contains("\0") && !name.hasPrefix(".")
+    }
+}

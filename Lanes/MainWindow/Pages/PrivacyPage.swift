@@ -47,7 +47,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "doc.text",
                     title: "Claude Code oturum dosyalarının adı ve tarihi",
-                    detail: "Oturumlar, Projeler ve Kullanım sayfaları ile Claude Code'un o an çalışıp çalışmadığını gösteren terminal simgesi için, her hesabın Claude Code klasöründeki projects altında. Lanes bu klasördeki değişiklikleri macOS'un dosya olaylarıyla izler; yalnız hangi dosyanın ne zaman değiştiğine bakar. Dosyaların içi, yani sohbetler, hiç açılmaz."
+                    detail: "Oturumlar, Projeler ve Kullanım sayfaları ile Claude Code'un o an çalışıp çalışmadığını gösteren terminal simgesi için, her hesabın Claude Code klasöründeki projects altında. Lanes bu klasördeki değişiklikleri macOS'un dosya olaylarıyla izler; yalnız hangi dosyanın ne zaman değiştiğine bakar. Dosyaların içi, yani sohbetler, hiç açılmaz. \"Başka Hesapla Sürdür\" dediğinde oturum dosyası, açılmadan, öteki hesabın Claude Code klasöründe aynı yere kopyalanır ve orada yeni bir oturum olarak sürer; asıl dosya değişmez."
                 )
                 PrivacyItem(
                     systemImage: "person.text.rectangle",
