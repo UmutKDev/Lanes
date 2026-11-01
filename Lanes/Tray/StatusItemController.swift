@@ -317,6 +317,9 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let settings = NSMenuItem(title: String(localized: "Ayarlar…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        let tour = NSMenuItem(title: String(localized: "Başlarken Turu…"), action: #selector(openOnboarding), keyEquivalent: "")
+        tour.target = self
+        menu.addItem(tour)
         if model.validation.iconClickRun != nil {
             let stop = NSMenuItem(title: String(localized: "Ölçümü Durdur"), action: #selector(stopIconClickTrials), keyEquivalent: "")
             stop.target = self
@@ -341,6 +344,10 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     @objc private func openPalette() {
         router.togglePalette()
+    }
+
+    @objc private func openOnboarding() {
+        router.showOnboarding()
     }
 
     @objc private func openSettings() {

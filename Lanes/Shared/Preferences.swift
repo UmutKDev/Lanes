@@ -24,6 +24,7 @@ enum Preferences {
         /// Set once the Kurulum page has been shown, so the first launch
         /// opens it at most once.
         static let setupShown = "setupShown"
+        static let onboardingCompleted = "onboardingCompleted"
         static let doneNoticesEnabled = "doneNoticesEnabled"
         static let accountFrameEnabled = "accountFrameEnabled"
         static let clipboardGuardEnabled = "clipboardGuardEnabled"

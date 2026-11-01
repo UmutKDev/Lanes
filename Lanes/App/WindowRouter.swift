@@ -12,6 +12,7 @@ final class WindowRouter {
     @ObservationIgnored weak var statusItemController: StatusItemController?
     @ObservationIgnored private var mainWindowController: MainWindowController?
     @ObservationIgnored private var paletteController: PaletteController?
+    @ObservationIgnored private var onboardingController: OnboardingWindowController?
 
     init(model: AppModel) {
         self.model = model
@@ -47,6 +48,19 @@ final class WindowRouter {
             navigation.selectSettingsPane(pane)
         }
         showMainWindow(.settings)
+    }
+
+    /// The Başlarken tour, in its own window.
+    func showOnboarding() {
+        statusItemController?.closePanel()
+        // A closed tour starts again from its first step.
+        let open = onboardingController?.window?.isVisible == true ? onboardingController : nil
+        let controller = open ?? OnboardingWindowController(model: model, router: self)
+        onboardingController = controller
+        guard let window = controller.window else { return }
+        Task { @MainActor in
+            _ = await WindowActivator.bringForward(window, alwaysInDock: true)
+        }
     }
 
     func showAddProfile() {
