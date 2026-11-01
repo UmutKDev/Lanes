@@ -19,9 +19,17 @@ struct AccountIdentityTab: View {
     var body: some View {
         Form {
             Section {
-                TextField("E-posta", text: $email, prompt: Text("ornek@alan.com"))
-                    .focused($focusedField, equals: .email)
-                    .onSubmit(commit)
+                // Label above a full-width field, like the note. The prompt
+                // says the field is optional instead of showing a sample
+                // address, which read as the account's real email.
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("E-posta")
+                    TextField("E-posta", text: $email, prompt: Text("Bu hesapla giriş yaptığın adres (isteğe bağlı)"))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .email)
+                        .onSubmit(commit)
+                }
                 VStack(alignment: .leading, spacing: DS.Space.s) {
                     Text("Not")
                     TextField("Not", text: $note, prompt: Text("Örneğin hangi iş için"), axis: .vertical)
