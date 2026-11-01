@@ -198,7 +198,6 @@ private struct GeneralSettings: View {
                 Text("Lanes")
             } footer: {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Örneğin Mac yeniden başladıktan sonra, Lanes kapanırken açık olan hesaplar sırayla açılır. Lanes açılınca açılan sahneler de ayrıca açılır.")
                     if let loginItemError {
                         Label {
                             Text(loginItemError)
@@ -215,7 +214,7 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Odak")
             } footer: {
-                Text("Ekranda yalnız öndeki hesabın Claude'u kalır, ötekiler Cmd-H ile gizlenir gibi gizlenir. Kapanmazlar; Dock'tan, Cmd-Tab'dan ya da Lanes'ten açınca geri gelirler. Sekmeli mod açıkken bu ayar kullanılmaz.")
+                Text("Gizlenen hesaplar kapanmaz. Sekmeli mod açıkken bu ayar kullanılmaz.")
             }
             Section {
                 Toggle("Öndeki Claude penceresini hesabın renginde çerçevele", isOn: $accountFrame)
@@ -231,7 +230,7 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Hesapları karıştırma")
             } footer: {
-                Text("Çerçeve, öndeki pencerenin hangi hesaba ait olduğunu bir bakışta gösterir; tıklamaları engellemez. Pano uyarısı, bir hesabın Claude'unda kopyalayıp on dakika içinde başka bir hesabınkine geçince bir kez bildirim gösterir. Lanes panoda ne olduğunu okumaz, yalnız değişip değişmediğine bakar.")
+                Text("Lanes panonun içeriğini okumaz, yalnız değişip değişmediğine bakar.")
             }
             .onChange(of: accountFrame) { model.updateAccountGuards() }
             .onChange(of: clipboardGuard) { model.updateAccountGuards() }
@@ -262,7 +261,7 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Bağlantılar")
             } footer: {
-                Text("Bağlantıların hangi hesapla açılacağını Hesap Haritası'ndan seçebilirsin. Yönlendirme kapalıyken bağlantıları her zaman Claude açar.")
+                Text("Bağlantıların hangi hesapla açılacağını Hesap Haritası'nda seçebilirsin.")
             }
         }
         .settingsForm()
@@ -287,7 +286,7 @@ private struct MenuBarAndDockSettings: View {
             } header: {
                 Text("Menü çubuğu")
             } footer: {
-                Text("Öndeki pencere Lanes'in açtığı bir hesaba aitse simge o hesabın rengini ve harfini alır; başka uygulamaya geçince eski hâline döner. Sayı yalnız birden fazla hesap açıkken görünür.")
+                Text("Sayı yalnız birden fazla hesap açıkken görünür.")
             }
             Section {
                 Toggle("Ana pencere açıkken Dock'ta ve Cmd-Tab'da göster", isOn: $showsDockIcon)
@@ -335,9 +334,9 @@ private struct UpdateSettings: View {
                 Text("Lanes")
             } footer: {
                 if model.updater.isAvailable {
-                    Text("Lanes güncelleme olup olmadığını GitHub'daki sürüm listesinden öğrenir. Kurulum sayfasından kendin başlattığın Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği bu denetim. Güncelleme yüklenmeden önce Lanes'in imzası denetlenir.")
+                    Text("Lanes güncellemeleri GitHub'dan denetler ve yüklemeden önce imzayı doğrular. Claude Code kurulumu dışında Lanes'in yaptığı tek ağ isteği budur.")
                 } else {
-                    Text("Bu derleme kendini güncellemez. Güncellemeler yalnız DMG ile dağıtılan sürümlerde açık.")
+                    Text("Bu derleme kendini güncellemez; güncellemeler yalnız DMG sürümlerinde var.")
                 }
             }
         }
@@ -372,8 +371,6 @@ private struct AdvancedSettings: View {
                 Toggle("Faz 0 denemelerini göster", isOn: $showsDeveloperPages)
             } header: {
                 Text("Geliştirme")
-            } footer: {
-                Text("Denemeleri yeniden yapmak için.")
             }
             Section {
                 folderRow("Lanes", url: model.paths.root)
@@ -399,11 +396,11 @@ private struct AdvancedSettings: View {
             } header: {
                 Text("Tanılama")
             } footer: {
-                Text("Lanes'in ve Claude'un sürümünü, hesapları ve çalışan her Claude'un kullandığı klasörü içerir. Hesap adları yerine numaralar, ev klasörün yerine ~ yazar. Hesap klasörlerinin içi okunmaz. Bir sorunu bildirirken bu metni yapıştırabilirsin.")
+                Text("Sürümleri, hesapları ve klasör yollarını içerir. Hesap adları yerine numara, ev klasörü yerine ~ yazar; hesap klasörlerinin içi okunmaz.")
             }
             Section {
                 DSStatusRow(.info, title: Text("Lanes'in dokunmadıkları")) {
-                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Claude Code'un hesap dosyasından yalnız e-posta, ad ve kuruluş adını okur. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
+                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz ve saklamaz. Claude Code'un hesap dosyasından yalnız e-posta, ad ve kuruluş adını okur.")
                 }
             }
         }

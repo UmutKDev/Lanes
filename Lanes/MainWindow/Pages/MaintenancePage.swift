@@ -8,7 +8,6 @@ struct MaintenancePage: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        let firstID = model.library.profiles.first?.id
         Form {
             ForEach(model.library.profiles) { profile in
                 Section {
@@ -17,11 +16,6 @@ struct MaintenancePage: View {
                     Text(profile.name)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                } footer: {
-                    // Explains the sizes once, under the first account.
-                    if profile.id == firstID {
-                        Text("Boyutlar dosyaların yalnız kapladığı yerden toplanır, hiçbir dosya açılmaz. Önbellek, Claude'un yeniden indirebildiği sayfa ve kod kopyalarıdır. Silinince giriş ve sohbetler yerinde kalır, Claude ilk açılışta biraz yavaş olabilir.")
-                    }
                 }
             }
             Section {
@@ -29,7 +23,7 @@ struct MaintenancePage: View {
             } header: {
                 Text("Yedekleme")
             } footer: {
-                Text("Lanes hesap klasörlerini kendisi yedeklemez, çünkü içlerinde giriş bilgileri var. Time Machine ~/Library/Application Support/Lanes klasörünü de yedekler.")
+                Text("Lanes hesap klasörlerini, giriş bilgileri içerdiği için yedeklemez. Time Machine bu klasörü yedekler.")
             }
             AccountListTransferSection()
         }
@@ -53,7 +47,7 @@ private struct AccountListTransferSection: View {
             Text("Hesap listesini taşı")
         } footer: {
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text("Hesapların adı, rengi, açılış biçimi, notları ve sahneler bir dosyaya yazılır. Giriş bilgileri ve sohbetler dosyaya girmez, bu yüzden başka bir Mac'te her hesapta yeniden giriş yapman gerekir. İçe aktarma yalnız eksik hesapları ve sahneleri ekler, var olanları değiştirmez.")
+                Text("Giriş bilgileri ve sohbetler dosyaya girmez. İçe aktarma yalnız eksik hesapları ve sahneleri ekler.")
                 // The result line keeps its place, so the page does not grow
                 // when a transfer finishes.
                 Text(verbatim: result ?? " ")
@@ -116,7 +110,6 @@ struct AccountStorageView: View {
                         // Never for the plain Claude.app account: its folders
                         // belong to Claude itself, and Lanes does not change them.
                         .disabled(profile.isDefault || isRunning || isMeasuring || (sizes?.cache ?? 0) == 0)
-                        .help(profile.isDefault ? "Claude uygulamasının kendi klasörlerine Lanes dokunmaz." : isRunning ? "Önce bu hesabın Claude'unu kapat." : "Claude'un önbellek klasörlerini sil")
                         .fixedSize()
                     // Says why the button is off while the account is open.
                     // Always laid out, so opening or quitting moves nothing.
@@ -170,11 +163,11 @@ struct AccountStorageView: View {
                 }
                 .frame(minWidth: 70, alignment: .trailing)
                 if let url {
-                    DSIconButton("Finder'da göster", systemImage: "folder") {
+                    DSIconButton("Finder'da Göster", systemImage: "folder") {
                         NSWorkspace.shared.activateFileViewerSelecting([url])
                     }
                 } else {
-                    DSIconButton("Finder'da göster", systemImage: "folder") {}
+                    DSIconButton("Finder'da Göster", systemImage: "folder") {}
                         .hidden()
                 }
             }

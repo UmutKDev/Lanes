@@ -98,7 +98,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             context.translateBy(x: 8, y: 8)
             context.rotate(by: -14 * .pi / 180)
             context.translateBy(x: -8, y: -8)
-            let panes: [(CGFloat, CGFloat, CGFloat)] = [(4.5, 2, 0.45), (3.5, 5.5, 0.7), (2.5, 9, 1)]
+            let panes: [(CGFloat, CGFloat, CGFloat)] = [(4.5, 2, 0.55), (3.5, 5.5, 0.8), (2.5, 9, 1)]
             for (x, y, alpha) in panes {
                 NSColor.black.withAlphaComponent(alpha).setFill()
                 NSBezierPath(roundedRect: NSRect(x: x, y: y, width: 9, height: 5), xRadius: 1.5, yRadius: 1.5).fill()

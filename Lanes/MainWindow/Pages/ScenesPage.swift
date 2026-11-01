@@ -19,9 +19,6 @@ struct ScenesPage: View {
                     }
                 } footer: {
                     VStack(alignment: .leading, spacing: DS.Space.xs) {
-                        Text("Hesaplar sırayla açılır, sondaki öne gelir. Bir sahneye kısayol vermek için Ayarlar > Kısayollar.")
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
                         Button("Kısayolları Ayarla…") {
                             router.showSettings(.shortcuts)
                         }
@@ -37,7 +34,7 @@ struct ScenesPage: View {
             DSEmptyState(
                 "Henüz sahne yok",
                 systemImage: Destination.scenes.symbol,
-                description: Text("Sahne, birlikte açtığın hesapların kayıtlı listesi. Örneğin sabahları İş ve Müşteri hesaplarını tek tıkla açabilirsin.")
+                description: Text("Birlikte açtığın hesapları sahne olarak kaydet.")
             ) {
                 Button("Sahne Oluştur") { isAdding = true }
             }
@@ -200,7 +197,7 @@ private struct SceneEditor: View {
             Section {
                 Toggle("Lanes açılınca bu sahneyi aç", isOn: $opensWhenLanesStarts)
             } footer: {
-                Text("Ayarlar > Genel'de \"Oturum açıldığında Lanes'i başlat\" açıksa sahne her oturum açılışında da açılır.")
+                Text("Lanes oturum açılışında başlıyorsa sahne de o an açılır.")
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -221,7 +218,7 @@ private struct SceneEditor: View {
             } header: {
                 Text("Kendiliğinden aç")
             } footer: {
-                Text("Gün seçmezsen her gün açılır. Mac o saatte uykudaysa sahne, saatinden sonraki iki saat içinde uyanınca açılır. Ekran, takılıp bağlandığında tanınır.")
+                Text("Gün seçmezsen her gün açılır. Mac o saatte uykudaysa sahne, iki saat içinde uyanırsa açılır.")
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -281,7 +278,7 @@ private struct SceneEditor: View {
                 dismiss()
             }
         } message: {
-            Text("Hesaplar silinmez, yalnız bu liste ve kısayolu gider.")
+            Text("Hesaplar silinmez, yalnızca sahne ve kısayolu silinir.")
         }
     }
 
@@ -438,8 +435,8 @@ private struct SceneLayoutSection: View {
             Text("Pencere yerleşimi")
         } footer: {
             Text(saved > 0
-                 ? String(localized: "\(saved) hesabın penceresinin yeri kayıtlı. Sahne açılınca pencereler oraya dizilir.")
-                 : String(localized: "Sahnedeki hesapları aç, pencerelerini istediğin yere koy ve kaydet. Sahne açılınca pencereler oraya dizilir. Erişilebilirlik izni gerekir."))
+                 ? String(localized: "\(saved) hesabın pencere yeri kayıtlı.")
+                 : String(localized: "Pencereleri yerleştirip kaydet. Erişilebilirlik izni gerekir."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

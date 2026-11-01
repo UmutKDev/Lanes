@@ -54,7 +54,7 @@ struct TimesheetPage: View {
                 Section {
                     TimesheetGrid(sheet: sheet, expanded: $expanded)
                 } footer: {
-                    caption("\"Claude önde\": hesabın Claude penceresinin öndeki uygulama olduğu süre; Mac beş dakika boşta kalınca durur. \"Claude Code\": oturum dosyaları en çok beş dakika arayla yazıldıkça çalışılmış sayılan tahmini süre. İkisi aynı anda olabilir, toplanmaz.")
+                    caption("\"Claude Code\" süresi tahminidir. İki süre çakışabilir, toplanmaz.")
                 }
             }
             Section {
@@ -68,7 +68,7 @@ struct TimesheetPage: View {
                     }
                 ))
             } footer: {
-                caption("Açıksa pazartesi 09:00'dan sonra Lanes geçen haftanın hesap başına süresini bir bildirimle söyler.")
+                caption("Geçen haftanın süreleri pazartesi sabahı bildirimle gelir.")
             }
         }
         .libraryForm()
@@ -259,7 +259,7 @@ private struct TimesheetReport: View {
             Text("Zaman Çizelgesi · \(TimesheetPage.title(for: sheet))")
                 .font(.title2.weight(.semibold))
             TimesheetGrid(sheet: sheet, expanded: .constant([]), isPrinting: true)
-            Text("Lanes ile hazırlandı. \"Claude önde\": Claude penceresinin öndeki uygulama olduğu süre. \"Claude Code\": oturum dosyalarının yazılmasından tahmini çalışma süresi.")
+            Text("Lanes ile hazırlandı. \"Claude önde\": Claude penceresinin önde olduğu süre. \"Claude Code\": tahmini çalışma süresi.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

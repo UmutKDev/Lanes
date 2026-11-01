@@ -122,7 +122,7 @@ struct QuitAccountIntent: AppIntent {
     static let title: LocalizedStringResource = "Claude Hesabını Kapat"
     /// Answers in the background, so the app in front stays in front.
     static let openAppWhenRun = false
-    static let description = IntentDescription("Bir hesabın Claude'unu ⌘Q gibi kapatır. Kapalıysa bir şey yapmaz.")
+    static let description = IntentDescription("Bir hesabın Claude'unu kapatır.")
 
     @Parameter(title: "Hesap")
     var account: AccountEntity
@@ -138,7 +138,7 @@ struct QuitAccountIntent: AppIntent {
 
 struct StartClaudeCodeIntent: AppIntent {
     static let title: LocalizedStringResource = "Claude Code'u Başlat"
-    static let description = IntentDescription("Terminalde bir hesabın Claude Code'unu açar: seçilen klasörde, yoksa hesabın varsayılan klasöründe.")
+    static let description = IntentDescription("Bir hesabın Claude Code'unu terminalde, seçilen ya da varsayılan klasörde açar.")
 
     @Parameter(title: "Hesap")
     var account: AccountEntity
@@ -165,7 +165,7 @@ struct MarkLimitedIntent: AppIntent {
     static let title: LocalizedStringResource = "Hesabı Dinlenmeye Al"
     /// Answers in the background, so the app in front stays in front.
     static let openAppWhenRun = false
-    static let description = IntentDescription("Limite takılan bir hesabı belirtilen saat kadar dinlenmeye alır; bağlantılar bu sürede aynı türdeki başka bir hesaba gider. 0 saat dinlenmeyi bitirir.")
+    static let description = IntentDescription("Hesabı belirtilen saat kadar dinlenmeye alır. Bağlantılar bu sürede aynı türdeki başka bir hesaba gider. 0 saat dinlenmeyi bitirir.")
 
     @Parameter(title: "Hesap")
     var account: AccountEntity
@@ -200,7 +200,7 @@ struct GetFrontTimeIntent: AppIntent {
     static let title: LocalizedStringResource = "Bugünkü Claude Süresi"
     /// Answers in the background, so the app in front stays in front.
     static let openAppWhenRun = false
-    static let description = IntentDescription("Bir hesabın bugün önde kaldığı süreyi dakika olarak verir (tahmini; boşta geçen süre sayılmaz).")
+    static let description = IntentDescription("Bir hesabın bugün önde kaldığı tahmini süreyi dakika olarak verir.")
 
     @Parameter(title: "Hesap")
     var account: AccountEntity
@@ -217,7 +217,7 @@ struct WorkingClaudeCodeIntent: AppIntent {
     static let title: LocalizedStringResource = "Claude Code Çalışan Hesaplar"
     /// Answers in the background, so the app in front stays in front.
     static let openAppWhenRun = false
-    static let description = IntentDescription("Claude Code'un şu an çalıştığı hesapların adlarını verir. Oturum dosyalarının değişme zamanından tahmin edilir.")
+    static let description = IntentDescription("Claude Code'un şu an çalıştığı hesapların adlarını verir (tahmini).")
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<[String]> {
@@ -261,7 +261,7 @@ enum AccountClassChoice: String, AppEnum {
 /// open when the Focus starts.
 struct LanesFocusFilter: SetFocusFilterIntent {
     static let title: LocalizedStringResource = "Lanes"
-    static let description = IntentDescription("Odak açıkken bağlantıların gideceği hesabı ve panelde görünen hesap türünü seçer, istersen bir sahne açar.")
+    static let description = IntentDescription("Odak açıkken bağlantıların gideceği hesabı ve paneldeki hesap türünü seçer.")
 
     @Parameter(title: "Bağlantıların gideceği hesap")
     var linkAccount: AccountEntity?

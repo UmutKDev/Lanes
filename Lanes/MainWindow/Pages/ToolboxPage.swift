@@ -26,7 +26,7 @@ struct ToolboxPage: View {
             Section {
                 PathRow(url: toolbox.directory)
             } footer: {
-                footerText("Paylaşılan bir öğe Araç Kutusu klasöründe bir kez durur ve seçtiğin hesapların Claude Code klasörüne bağlanır. Birinde değiştirdiğin komut ya da ajan hepsinde değişir. Hesabın kendine ait aynı adlı bir öğesi varsa Lanes ona dokunmaz.")
+                footerText("Paylaşılan bir öğeyi değiştirirsen bağlı olduğu bütün hesaplarda değişir.")
             }
             if !model.library.profiles.isEmpty {
                 Section {
@@ -58,7 +58,7 @@ struct ToolboxPage: View {
             } header: {
                 Text("MCP sunucuları")
             } footer: {
-                footerText("claude --mcp-config biçiminde. Lanes'ten açılan her Claude Code bu sunucuları da yükler (\"Klasörde Aç\", oturum sürdürme). Anahtar ya da parola yazacaksan bu dosyanın Mac'inde düz metin durduğunu unutma.")
+                footerText("Anahtar ve parolalar bu dosyada düz metin olarak saklanır.")
             }
             if !savedServers.isEmpty, !model.library.profiles.isEmpty {
                 Section {
@@ -66,7 +66,7 @@ struct ToolboxPage: View {
                 } header: {
                     Text("MCP Stüdyosu")
                 } footer: {
-                    footerText("Hangi hesabın Claude Code'unun hangi sunucuyu yükleyeceğini seç. Yeni bir sunucu ya da hesap başta açıktır. Değişiklik yeni başlatılan oturumlarda geçerli olur. Claude uygulamasının kendi MCP ayarlarına ve hesapların kendi Claude Code ayarlarına dokunulmaz.")
+                    footerText("Değişiklikler yeni başlatılan oturumlarda geçerli olur.")
                 }
             }
             Section {
@@ -78,7 +78,7 @@ struct ToolboxPage: View {
             } header: {
                 Text("Ekip Paketi")
             } footer: {
-                footerText("Araç Kutusu'nu tek bir dosyada bir ekip arkadaşına ver: MCP sunucuları, CLAUDE.md, komutlar, ajanlar ve beceriler. Ortam değişkenleri ve başlıkların değerleri dosyaya yazılmaz, yalnız adları; arkadaşın kendi anahtarını girer. Sunucu argümanlarına anahtar yazdıysan dışa aktarmadan önce çıkar. İçe aktarırken aynı adlı sunucu ve dosyalar olduğu gibi kalır.")
+                footerText("Ortam değişkenlerinin ve başlıkların değerleri pakete yazılmaz. Sunucu argümanlarındaki anahtarları dışa aktarmadan önce çıkar.")
             }
         }
         .libraryForm()
@@ -143,7 +143,6 @@ struct ToolboxPage: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.mini)
-            .help(item.title)
         }
     }
 
@@ -204,7 +203,7 @@ struct ToolboxPage: View {
                             Image(systemName: server.isRemote ? "globe" : "terminal")
                                 .foregroundStyle(.secondary)
                         }
-                        .help(server.isRemote ? "Uzak sunucu (adres)" : "Bu Mac'te çalışan komut")
+                        .help(server.isRemote ? "Uzak sunucu" : "Yerel komut")
                         .frame(minWidth: 140, alignment: .leading)
                         ForEach(profiles) { profile in
                             Toggle(isOn: Binding(
@@ -278,7 +277,7 @@ struct ToolboxPage: View {
                 message += " " + String(localized: "Değeri yazılmayanlar: \(made.pack.blanked.joined(separator: ", ")).")
             }
             if !made.skipped.isEmpty {
-                message += " " + String(localized: "Metin olmadığı ya da büyük olduğu için alınmayanlar: \(made.skipped.joined(separator: ", ")).")
+                message += " " + String(localized: "Metin olmadığı ya da çok büyük olduğu için atlananlar: \(made.skipped.joined(separator: ", ")).")
             }
             model.notice = AppModel.Notice(kind: .info, message: message)
         } catch {
@@ -304,10 +303,10 @@ struct ToolboxPage: View {
             var message = String(localized: "Eklendi: \(result.addedServers.count) sunucu, \(result.addedFiles.count) dosya.")
             let skipped = result.skippedServers + result.skippedFiles
             if !skipped.isEmpty {
-                message += " " + String(localized: "Zaten olduğu için dokunulmayanlar: \(skipped.joined(separator: ", ")).")
+                message += " " + String(localized: "Zaten var olduğu için atlananlar: \(skipped.joined(separator: ", ")).")
             }
             if !result.blanked.isEmpty {
-                message += " " + String(localized: "Değerini MCP sunucuları kutusuna senin yazman gerekenler: \(result.blanked.joined(separator: ", ")).")
+                message += " " + String(localized: "Değerini MCP sunucuları bölümünde kendin girmen gerekenler: \(result.blanked.joined(separator: ", ")).")
             }
             model.notice = AppModel.Notice(kind: .info, message: message)
         } catch TeamPack.Failure.notAPack {

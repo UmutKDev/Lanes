@@ -31,7 +31,7 @@ struct ShortcutRecorder: View {
                 field
             }
             .buttonStyle(.plain)
-            .help(isRecording ? "Esc ile vazgeç, Sil ile kaldır" : "Kısayol kaydetmek için tıkla")
+            .help(isRecording ? "Esc ile vazgeç, Sil ile kaldır" : "Kaydetmek için tıkla")
 
             DSIconButton("Kısayolu kaldır", systemImage: "xmark.circle.fill") {
                 try? model.setShortcut(nil, for: target)
@@ -165,7 +165,7 @@ private struct ShortcutRow<Title: View>: View {
             if let message {
                 problem(Text(message), tint: DS.Palette.danger)
             } else if isUnavailable {
-                problem(Text("Başka bir uygulama bu tuşları kullanıyor, kısayol çalışmıyor."), tint: DS.Palette.warning)
+                problem(Text("Bu tuşları başka bir uygulama kullanıyor, kısayol çalışmıyor."), tint: DS.Palette.warning)
             }
         }
         .animation(DS.Motion.standard, value: message)
@@ -215,7 +215,7 @@ struct ShortcutsSettings: View {
             } header: {
                 Text("Kısayollar")
             } footer: {
-                Text("Kısayollar her uygulamadayken çalışır. Lanes bunun için Erişilebilirlik ya da Giriş İzleme izni istemez: macOS ona yalnız burada kaydettiğin tuşlara basıldığını bildirir. Panel açıkken ⌘1–⌘9 ilk dokuz hesabı da açar.")
+                Text("Kısayollar her uygulamada çalışır ve izin gerektirmez. Panel açıkken ⌘1–⌘9 ilk dokuz hesabı açar.")
             }
             Section {
                 if model.library.profiles.isEmpty {
@@ -229,8 +229,6 @@ struct ShortcutsSettings: View {
                 }
             } header: {
                 Text("Hesaplar")
-            } footer: {
-                Text("Hesap kapalıysa açar, açıksa penceresini öne getirir.")
             }
             if !model.library.scenes.isEmpty {
                 Section {

@@ -38,7 +38,6 @@ struct SetupPage: View {
                 Text("İsteğe bağlı")
             } footer: {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Lanes açılınca menü çubuğunda bekler, bir pencere açmaz.")
                     if let loginItemError {
                         Label {
                             Text(loginItemError)
@@ -82,7 +81,7 @@ struct SetupPage: View {
                     .foregroundStyle(.tint)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Lanes'in çalışması için gerekenler burada. Sen bir düğmeye basmadan Lanes hiçbir şey kurmaz, indirmez ya da izin istemez.")
+                    Text("Sen bir düğmeye basmadan Lanes hiçbir şey kurmaz, indirmez ya da izin istemez.")
                         .font(DS.Typography.rowTitle)
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Başlarken Turunu Aç") { router.showOnboarding() }

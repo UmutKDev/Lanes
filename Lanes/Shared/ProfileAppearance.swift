@@ -56,11 +56,11 @@ extension ProfileMode {
     var explanation: String {
         switch self {
         case .standard:
-            return String(localized: "Claude'un kendisi, bu hesabın klasörüyle açılır. Dock'ta tüm hesaplar aynı simgeyi paylaşır.")
+            return String(localized: "Claude, bu hesabın klasörüyle açılır. Dock'ta tüm hesaplar aynı simgeyi kullanır.")
         case .signedClone:
-            return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır ve diskte neredeyse yer kaplamaz. \"Dock'ta gösterme\" kapalıyken Anthropic'in imzası olduğu gibi kalır.")
+            return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır ve diskte neredeyse yer kaplamaz.")
         case .separateIdentity:
-            return String(localized: "Kopya kendi kimliğini alır ve yerelde yeniden imzalanır. Deneysel, Faz 0 sonuçlarını bekliyor.")
+            return String(localized: "Kopya kendi kimliğini alır ve bu Mac'te yeniden imzalanır. Deneysel.")
         }
     }
 }
@@ -68,7 +68,7 @@ extension ProfileMode {
 extension ProfileMode {
     /// What "Dock'ta gösterme" costs, shown next to the switch.
     static var dockHidingCost: String {
-        String(localized: "Claude Dock'ta ve Cmd-Tab'da görünmez, hesaba Lanes'ten geçersin. Bunun için kopya bu Mac'te yeniden imzalanır ve Anthropic'in imzası gider: ilk açılışta anahtarlık parolası sorulur, Claude'un menüleri menü çubuğunda görünmez, Cmd-C ve Cmd-V gibi kısayollar çalışmayabilir.")
+        String(localized: "Claude Dock'ta ve Cmd-Tab'da görünmez, hesaba Lanes'ten geçersin. Kopya bu Mac'te yeniden imzalanır ve Anthropic'in imzası gider: ilk açılışta anahtarlık parolası sorulur, Claude'un menüleri menü çubuğunda görünmez, Cmd-C ve Cmd-V gibi kısayollar çalışmayabilir.")
     }
 }
 

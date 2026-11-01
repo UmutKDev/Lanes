@@ -42,17 +42,11 @@ struct AddProfileSheet: View {
                         Label(kind.displayName, systemImage: kind.symbol).tag(kind)
                     }
                 }
-            } footer: {
-                Text(ProfileMode.signedClone.explanation)
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section {
                 Toggle("Ekledikten sonra bu hesabı aç", isOn: $opensAfterAdding)
             } footer: {
-                Text("Claude boş bir pencereyle açılır. Giriş Claude'un kendi penceresinde olur, Lanes giriş bilgilerini görmez.")
+                Text("Giriş Claude'un penceresinde yapılır, Lanes giriş bilgilerini görmez.")
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -62,9 +56,9 @@ struct AddProfileSheet: View {
                 // Faz 0.5 check 3: the return link of a Google or email
                 // link sign-in reaches the main Claude, not the new
                 // window. Typing the emailed code works in any window.
-                SignInStep(number: 1, text: "Google ya da Apple ile değil, e-posta adresinle devam et.")
-                SignInStep(number: 2, text: "Gelen e-postadaki bağlantıya tıklama. Bağlantı Claude uygulamasının penceresinde açılır.")
-                SignInStep(number: 3, text: "E-postadaki doğrulama kodunu yeni pencereye yaz.")
+                SignInStep(number: 1, text: "Google ya da Apple yerine e-posta adresinle devam et.")
+                SignInStep(number: 2, text: "E-postadaki bağlantıya tıklama, ana Claude penceresinde açılır.")
+                SignInStep(number: 3, text: "Doğrulama kodunu yeni pencereye yaz.")
             }
         }
         .formStyle(.grouped)

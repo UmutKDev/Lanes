@@ -77,7 +77,7 @@ struct UsagePage: View {
         } header: {
             Text("Son 14 gün, günlük Claude Code oturumları")
         } footer: {
-            footerText("O gün yazılan oturum dosyaları sayılır. Lanes dosyaların içini açmaz, bu yüzden mesaj ya da token sayısı gösterilmez. Claude'un kullanım sınırları yalnız Claude'un kendi ayarlarında görünür.")
+            footerText("Lanes oturum dosyalarını sayar, içlerini okumaz. Kullanım sınırları Claude'un ayarlarında görünür.")
         }
     }
 
@@ -134,7 +134,7 @@ struct UsagePage: View {
         } header: {
             Text("Önde geçen süre")
         } footer: {
-            footerText("Hesabın Claude'u öndeki uygulamayken geçen süre. Lanes bunu yalnız macOS'un \"uygulama öne geldi\" bildirimlerinden sayar, Claude'un içine bakmaz. Ekran kapalıyken ya da Mac uykudayken sayılmaz. Son 30 gün bu Mac'te saklanır.")
+            footerText("Claude'un öndeki uygulama olduğu süre. Son 30 gün yalnız bu Mac'te saklanır.")
         }
     }
 

@@ -138,7 +138,6 @@ private struct AccountOpenButton: View {
             }
             .labelStyle(.titleAndIcon)
         }
-        .help(isRunning ? "Bu hesabın Claude penceresini öne getir" : "Bu hesapla Claude'u aç")
         .dsPrimaryAction(tint: profile.color.buttonTint)
     }
 }
@@ -155,8 +154,8 @@ private struct AccountMoreMenu: View {
                 model.setArchived(profile, !profile.isArchived)
             }
             .help(profile.isArchived
-                ? "Hesabı genel bakışa, panele ve ⌘1-9'a geri getirir."
-                : "Hesabı genel bakıştan, panelden, Dock menüsünden ve ⌘1-9'dan kaldırır. Girişi ve verileri kalır.")
+                ? "Hesabı listelere ve ⌘1-9'a geri getirir."
+                : "Hesabı listelerden ve ⌘1-9'dan kaldırır. Giriş ve veriler silinmez.")
             Divider()
             Button("Claude'dan Çık") {
                 model.quit(profile)
@@ -211,7 +210,7 @@ private struct AccountGeneralTab: View {
                 Section {
                     AccountIdentityRow(profile: profile)
                 } footer: {
-                    Text("Bu, Claude uygulamasında kullandığın hesap. Lanes onu yalnız gösterir, açar ve öne getirir. Adı, simgesi, girişi ve klasörleri Claude'un kendisine ait, Lanes bunları değiştirmez. Lanes'te eklediğin hesaplar ise kendi renkli simgeli kopyalarıyla, kendi klasörleriyle açılır.")
+                    Text("Lanes bu hesabı yalnız açar ve öne getirir, ayarlarını değiştirmez.")
                 }
             }
             .accountForm()
@@ -275,7 +274,7 @@ private struct AccountGeneralTab: View {
                 Section {
                     Toggle("Dock'ta gösterme (Deneysel)", isOn: binding(\.hidesFromDock))
                 } footer: {
-                    Text(String(localized: "\(ProfileMode.dockHidingCost) Değişiklik, hesap kapalıyken bir sonraki açılışta uygulanır."))
+                    Text(String(localized: "\(ProfileMode.dockHidingCost) Bir sonraki açılışta uygulanır."))
                 }
             }
             memorySections
@@ -326,7 +325,7 @@ private struct AccountGeneralTab: View {
         } header: {
             Text("Bellek")
         } footer: {
-            Text("Hesap bu kadar süre öne gelmezse Lanes Claude'unu kapatır, bellek boşalır. Claude o an çalışıyorsa (örneğin uzun bir yanıt ya da Claude Code işi) kapatmaz. Giriş ve sohbetler kalır, yeniden açınca kaldığın yerden devam edersin.")
+            Text("Claude bir iş yaparken kapatılmaz. Giriş ve sohbetler kalır.")
         }
         Section {
             LabeledContent {
@@ -360,7 +359,7 @@ private struct AccountGeneralTab: View {
                 .tint(progress.used >= progress.limit ? DS.Palette.warning : profile.color.swatch)
             }
         } footer: {
-            Text("Hesap bir günde bu kadar süre önde kalınca Lanes bir bildirim gösterir. Hesabı kapatmaz.")
+            Text("Yalnız bildirim gösterir, hesabı kapatmaz.")
         }
     }
 
@@ -426,7 +425,7 @@ private struct AccountGeneralTab: View {
         case .standard:
             return ProfileMode.standard.explanation
         case .signedClone, .separateIdentity:
-            return String(localized: "\(ProfileMode.signedClone.explanation) Claude güncellenince ya da hesabın adı, rengi veya harfi değişince klon, hesap kapalıyken bir sonraki açılışta yenilenir. Klonu Finder'dan açma, Lanes'ten aç.")
+            return String(localized: "Klonu Finder'dan değil, Lanes'ten aç.")
         }
     }
 
@@ -522,9 +521,9 @@ private struct AccountDesktopTab: View {
             } header: {
                 Text("Veri klasörü")
             } footer: {
-                Text(profile.isDefault
-                     ? String(localized: "Claude uygulamasının kendi hesabı, Claude'un varsayılan klasörünü kullanır.")
-                     : String(localized: "Oturumların, ayarların ve önbellek bu klasörde durur. Başka hiçbir hesap bu klasörü görmez."))
+                if !profile.isDefault {
+                    Text("Bu klasörü başka hiçbir hesap görmez.")
+                }
             }
         }
         .accountForm()
@@ -551,9 +550,9 @@ private struct AccountClaudeCodeTab: View {
             } header: {
                 Text("Yerel Claude Code")
             } footer: {
-                Text(profile.isDefault
-                     ? String(localized: "Claude uygulamasının kendi hesabı, Claude Code'un varsayılan klasörünü (~/.claude) kullanır.")
-                     : String(localized: "Bu hesabın Claude Code oturumları ve ayarları bu klasörde durur. Diğer hesaplar aynı anda kendi klasörleriyle çalışabilir."))
+                if !profile.isDefault {
+                    Text("Bu hesabın Claude Code oturumları ve ayarları burada durur.")
+                }
             }
             Section("Komut") {
                 CommandLineBlock(text: command)
@@ -575,7 +574,7 @@ private struct AccountClaudeCodeTab: View {
                             Label("Bulunamadı", systemImage: "exclamationmark.triangle.fill")
                                 .labelStyle(.iconOnly)
                                 .foregroundStyle(DS.Palette.warning)
-                                .help("Bu klasör artık yok ya da izin verilen klasörlerin dışında. \"Terminalde Aç\" şimdilik ana klasörde açılıyor.")
+                                .help("Klasör yok ya da izin verilen klasörlerin dışında. \"Terminalde Aç\" ana klasörde açılır.")
                         }
                         Button("Değiştir…") {
                             if let folder = ClaudeCodeFolderPicker.chooseDefault() {
@@ -598,7 +597,7 @@ private struct AccountClaudeCodeTab: View {
             } header: {
                 Text("Varsayılan klasör")
             } footer: {
-                Text("\"Terminalde Aç\" Claude Code'u bu klasörde başlatır. Seçilmezse ana klasörde başlar ve Claude Code her seferinde klasöre güvenip güvenmediğini sorar.")
+                Text("\"Terminalde Aç\" Claude Code'u bu klasörde başlatır, seçilmezse ana klasörde.")
             }
             Section {
                 ForEach(profile.linkedFolders, id: \.self) { path in
@@ -611,7 +610,7 @@ private struct AccountClaudeCodeTab: View {
                 Button("Klasör Bağla…") {
                     if let folder = ClaudeCodeFolderPicker.chooseFolders(
                         prompt: String(localized: "Bağla"),
-                        message: String(localized: "lanes claude bu klasörde ve altındaki klasörlerde \(profile.name) hesabını kullanır."),
+                        message: String(localized: "lanes claude bu klasörde \(profile.name) hesabını kullanır."),
                         allowsMultipleSelection: false
                     ).first {
                         model.addLinkedFolder(folder, to: profile)
@@ -621,7 +620,7 @@ private struct AccountClaudeCodeTab: View {
             } header: {
                 Text("Bağlı klasörler")
             } footer: {
-                Text("Terminalde lanes claude bu klasörlerde ve altlarında Claude Code'u bu hesapla başlatır. Bir klasördeki .lanes dosyası bunun önüne geçer. Aracı Entegrasyonlar sayfasından kurabilirsin.")
+                Text("lanes claude bu klasörlerde ve altlarında bu hesabı kullanır. Bir .lanes dosyası önceliklidir.")
             }
             if !recent.isEmpty {
                 Section {
@@ -633,7 +632,7 @@ private struct AccountClaudeCodeTab: View {
                                 model.openClaudeCode(profile, in: folder)
                             }
                             .fixedSize()
-                            .help("Claude Code'u bu klasörde, Terminalde aç")
+                            .help("Claude Code'u Terminalde aç")
                             DSIconButton("Listeden çıkar", systemImage: "minus.circle.fill", role: .destructive) {
                                 model.forgetRecentFolder(folder.path, for: profile)
                             }
@@ -642,7 +641,7 @@ private struct AccountClaudeCodeTab: View {
                 } header: {
                     Text("Son klasörler")
                 } footer: {
-                    Text("Claude Code bu hesapla seçtiğin klasörde başlar. Liste yalnız Lanes'in ayarlarında durur, klasörlerin içine bakılmaz.")
+                    Text("Liste yalnız Lanes'in ayarlarında durur, klasörlerin içine bakılmaz.")
                 }
             }
         }
@@ -830,7 +829,7 @@ struct CloneStatusRow: View {
             .controlSize(.small)
             .fixedSize()
             .disabled(isRunning || isPreparing || !needsWork || !hasClaude)
-            .help(isRunning ? "Açık bir klon yenilenmez. Hesabı kapatınca yeniden dene." : (hasClaude ? "Klonu şimdi oluştur ya da yenile" : "Claude bulunamadı"))
+            .help(isRunning ? "Hesap açıkken klon yenilenemez. Önce hesabı kapat." : (hasClaude ? "Klonu oluştur ya da yenile" : "Claude bulunamadı"))
             .opacity(needsWork ? 1 : 0)
             .accessibilityHidden(!needsWork)
         }

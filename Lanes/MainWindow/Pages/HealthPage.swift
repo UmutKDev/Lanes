@@ -40,17 +40,13 @@ struct HealthPage: View {
                     }
                 } else {
                     HealthRow(state: .problem, title: String(localized: "Claude bulunamadı")) {
-                        Text("Claude'u Uygulamalar klasörüne kurduğunda Lanes onu kendiliğinden bulur.")
+                        Text("Claude'u Uygulamalar klasörüne kur.")
                     }
                 }
                 linkHandlerRow
                 permissionRow
             } header: {
                 Text("Claude")
-            } footer: {
-                if model.claude != nil {
-                    Text("Claude kendini güncelleyip yeniden açılınca sürüm yeniden okunur.")
-                }
             }
 
             Section("Açık hesaplar") {
@@ -76,7 +72,7 @@ struct HealthPage: View {
                 let outside = model.instances.filter { $0.profileID == nil && !$0.isStrayClone }
                 if !outside.isEmpty {
                     HealthRow(state: .warning, title: String(localized: "Lanes'in tanımadığı \(outside.count) Claude açık")) {
-                        Text("Lanes dışından, kendi klasörü olmadan açılmış bir Claude ya da başka bir kopya. Claude uygulamasının verilerini kullanıyor olabilir.")
+                        Text("Claude uygulamasının verilerini kullanıyor olabilir.")
                     }
                 }
             }
@@ -94,7 +90,7 @@ struct HealthPage: View {
                     }
                 } else {
                     HealthRow(state: .warning, title: String(localized: "claude komutu bulunamadı")) {
-                        Text("\"Claude Code'u Terminalde Aç\" için Claude Code'un komut satırı sürümü gerekiyor. Kurulum sayfasından kurabilirsin.")
+                        Text("\"Claude Code'u Terminalde Aç\" için gerekli.")
                     } accessory: {
                         setupButton
                     }
@@ -108,7 +104,7 @@ struct HealthPage: View {
                     }
                 } else {
                     HealthRow(state: .warning, title: String(localized: "\(orphans.count) klasör hiçbir hesaba ait değil")) {
-                        Text("Genellikle kaldırılmış hesaplardan kalır. İçlerinde o hesapların girişleri olabilir. Lanes bunları silmez, istersen Finder'dan kendin silebilirsin.")
+                        Text("Genellikle kaldırılmış hesaplardan kalır ve giriş bilgileri içerebilir. Lanes bunları silmez.")
                     }
                     ForEach(orphans, id: \.self) { folder in
                         HStack(spacing: DS.Space.s) {
@@ -300,7 +296,7 @@ struct HealthPage: View {
                 Text("Klonlar")
             } footer: {
                 if !profiles.isEmpty {
-                    Text("Klonlarda Anthropic'in imzası korunur. Özel simge paketin köküne bir Finder bilgisi eklediği için codesign'ın sıkı denetimi geçmez. Bu beklenen bir durum, macOS'un açılış denetimi (Gatekeeper) klonu kabul eder. Dock'ta gösterilmeyen klonlar bu Mac'te yeniden imzalanır, onlarda Anthropic'in imzası yoktur.")
+                    Text("Özel simge yüzünden klonların sıkı imza denetiminden geçmemesi beklenen bir durum.")
                 }
             }
         }
@@ -330,7 +326,7 @@ struct HealthPage: View {
         // not fight it, but says so and offers to take it again.
         if model.isLinkRoutingOn, !LinkHandlerRegistry.lanesIsHandler {
             HealthRow(state: .warning, title: String(localized: "Yönlendirme açık ama claude:// bağlantılarını Lanes açmıyor")) {
-                Text("Bağlantılar hesaplara yönlendirilmiyor. Yeniden Al'a basarsan Lanes onları yeniden üstlenir.")
+                Text("Bağlantılar hesaplara yönlendirilmiyor.")
             } accessory: {
                 Button("Yeniden Al") {
                     Task {
@@ -341,15 +337,15 @@ struct HealthPage: View {
             }
         } else if let handler, let claude = model.claude, handler.standardizedFileURL == claude.url.standardizedFileURL {
             HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Claude açıyor")) {
-                Text("Girişler ve bağlantılar her zamanki gibi çalışır.")
+                EmptyView()
             }
         } else if LinkHandlerRegistry.lanesIsHandler, model.isLinkRoutingOn {
             HealthRow(state: .good, title: String(localized: "claude:// bağlantılarını Lanes yönlendiriyor")) {
-                Text("Hesap Haritası'ndaki kurallara göre. Giriş bağlantıları yönlendirilmez.")
+                Text("Giriş bağlantıları yönlendirilmez.")
             }
         } else if LinkHandlerRegistry.lanesIsHandler {
             HealthRow(state: .warning, title: String(localized: "claude:// bağlantılarını Lanes açıyor")) {
-                Text("Yönlendirme kapalıyken Lanes varsayılanı açılışta Claude'a geri verir.")
+                Text("Yönlendirme kapalı. Lanes açılışta bu görevi Claude'a geri verir.")
             }
         } else {
             HealthRow(state: .warning, title: String(localized: "claude:// bağlantılarını açan: \(handler?.deletingPathExtension().lastPathComponent ?? String(localized: "yok"))")) {
@@ -371,17 +367,17 @@ struct HealthPage: View {
             }
         case .denied?:
             HealthRow(state: .problem, title: String(localized: "Otomasyon izni kapalı")) {
-                Text("Lanes açık bir hesabı öne getirmekte zorlanabilir. Sistem Ayarları > Gizlilik ve Güvenlik > Otomasyon'dan Lanes altında Claude'u açabilirsin.")
+                Text("Açık hesaplar öne getirilemeyebilir. Sistem Ayarları > Gizlilik ve Güvenlik > Otomasyon > Lanes altında Claude'u aç.")
             }
         case .notAskedYet?:
             HealthRow(state: .info, title: String(localized: "Otomasyon izni henüz sorulmadı")) {
-                Text("macOS bunu Lanes bir pencereyi ilk kez öne getirirken sorabilir. Kurulum sayfasından şimdi de isteyebilirsin.")
+                Text("macOS bunu ilk gerektiğinde sorar.")
             } accessory: {
                 setupButton
             }
         case .claudeNotRunning?:
             HealthRow(state: .info, title: String(localized: "Otomasyon izni denetlenemedi")) {
-                Text("Bu yalnız bir Claude açıkken denetlenebiliyor.")
+                Text("Yalnız bir Claude açıkken denetlenebilir.")
             }
         case let .unknown(code)?:
             HealthRow(state: .info, title: String(localized: "Otomasyon izni bilinmiyor (\(code))")) {
@@ -412,7 +408,7 @@ struct HealthPage: View {
             }
         } else if let result = model.separationResults[profile.id], !result.usesOwnFolder {
             HealthRow(state: .problem, title: profile.name) {
-                Text("Açıldıktan sonra kendi klasörüne yazmadı. Claude uygulamasının verilerini kullanıyor olabilir.")
+                Text("Kendi klasörüne yazmadı, Claude uygulamasının verilerini kullanıyor olabilir.")
             }
         } else if model.separationResults[profile.id]?.usesOwnFolder == true {
             HealthRow(state: .good, title: profile.name) {
@@ -424,7 +420,7 @@ struct HealthPage: View {
                 // The sentence first and the folder on its own line, so the
                 // shortened path never reads as part of the sentence.
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                    Text("Lanes bu oturumda açılışını görmedi, ayrılık denetlenmedi.")
+                    Text("Klasör ayrılığı denetlenmedi.")
                     Text(verbatim: shown)
                         .font(DS.Typography.path)
                         .textSelection(.enabled)
@@ -587,8 +583,8 @@ struct CloneSignatureSummary: Equatable {
     var summary: String {
         if signedHere {
             return valid
-                ? String(localized: "Dock'ta görünmemesi için bu Mac'te imzalandı, imza geçerli. Anthropic'in imzası olmadığı için Gatekeeper'ın kabul etmemesi beklenen bir durum.")
-                : String(localized: "Bu Mac'te yapılan imza geçersiz. Hesap kapalıyken \"Dock'ta gösterme\" ayarını kapat, hesabı bir kez açıp kapat, sonra ayarı yeniden aç. Klon bir sonraki açılışta baştan hazırlanır.")
+                ? String(localized: "Bu Mac'te imzalandı, imza geçerli. Gatekeeper'ın kabul etmemesi beklenen bir durum.")
+                : String(localized: "İmza geçersiz. Hesap kapalıyken \"Dock'ta gösterme\" ayarını kapat, hesabı bir kez açıp kapat, sonra ayarı yeniden aç.")
         }
         let signature = valid ? String(localized: "İmza geçerli") : String(localized: "İmza geçersiz")
         let gate = gatekeeper ? String(localized: "Gatekeeper kabul ediyor") : String(localized: "Gatekeeper kabul etmiyor")

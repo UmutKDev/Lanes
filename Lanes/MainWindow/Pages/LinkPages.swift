@@ -29,7 +29,7 @@ struct AccountMapPage: View {
                     }
                 ))
             } footer: {
-                footerText("Açıkken başka uygulamalardan gelen claude:// bağlantıları, aşağıdaki kurallara göre seçilen hesabın Claude'unda açılır. Hesap kapalıysa önce açılır. Giriş, OAuth ve Lanes'in tanımadığı bağlantılar hiçbir zaman yönlendirilmez: Lanes onları bırakır ve varsayılanı birkaç dakikalığına Claude'a geri verir, sen girişi bitirebilesin diye.")
+                footerText("Giriş, OAuth ve tanınmayan bağlantılar yönlendirilmez.")
             }
             SmartLinkRulesSection(isRouting: isRouting)
             Section {
@@ -51,7 +51,7 @@ struct AccountMapPage: View {
             } header: {
                 Text("Tür kuralları")
             } footer: {
-                footerText("\"Öndeki hesap\", en son öne gelen hesabın Claude'udur. Hiçbiri öne gelmediyse bağlantı Claude uygulamasına gider.")
+                footerText("Öndeki hesap yoksa bağlantı Claude uygulamasına gider.")
             }
             .foregroundStyle(isRouting ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
         }
@@ -176,7 +176,7 @@ struct LinksPage: View {
                 "Henüz bağlantı gelmedi",
                 systemImage: Destination.links.symbol,
                 description: Text(model.isLinkRoutingOn
-                     ? "Başka bir uygulamadan bir claude:// bağlantısı açıldığında burada türünü, hangi hesaba gittiğini ve nedenini görürsün. Kayıtlar 30 gün tutulur."
+                     ? "Gelen claude:// bağlantıları burada 30 gün listelenir."
                      : "Bağlantı yönlendirme kapalı. Hesap Haritası'ndan açabilirsin.")
             )
         }
@@ -198,7 +198,7 @@ struct LinksPage: View {
                 DispatchQueue.main.async { model.clearLinkLog() }
             }
         } message: {
-            Text("Son 30 günün kayıtları silinir. Bağlantıların kendisi zaten hiç saklanmaz.")
+            Text("Son 30 günün kayıtları silinir.")
         }
     }
 }

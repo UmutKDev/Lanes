@@ -24,14 +24,14 @@ struct OverviewPage: View {
             if model.isTranslocated && !model.isTranslocationNoticeDismissed {
                 DSNoticeRow(
                     kind: .warning,
-                    message: String(localized: "Lanes doğrudan DMG'den ya da İndirilenler'deki geçici bir kopyadan çalışıyor. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne sürükle ve oradan aç. Yoksa güncellemeler yüklenemez, DMG çıkarılınca da Lanes kapanır."),
+                    message: String(localized: "Lanes geçici bir konumdan çalışıyor ve güncellenemez. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne taşı ve oradan aç."),
                     onDismiss: { model.isTranslocationNoticeDismissed = true }
                 )
             }
             if model.claude == nil && !model.isMissingClaudeNoticeDismissed {
                 DSNoticeRow(
                     kind: .warning,
-                    message: String(localized: "Claude bu Mac'te bulunamadı. Lanes, hesapları açmak için Claude'un yüklü olmasını bekliyor."),
+                    message: String(localized: "Claude bu Mac'te bulunamadı. Hesapları açmak için Claude'u yükle."),
                     onDismiss: { model.isMissingClaudeNoticeDismissed = true }
                 )
             }
@@ -58,24 +58,22 @@ struct OverviewPage: View {
             }
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("Tümünü Aç") { model.openAllClosedAccounts() }
-                    .help("Kapalı hesapların hepsini sırayla açar. Arşivdeki hesaplar açılmaz.")
                     .disabled(model.closedActiveProfiles.count <= 1)
                 Button("Tümünü Kapat") { isConfirmingQuitAll = true }
-                    .help("Lanes'te eklediğin açık hesapların hepsini kapatır. Claude uygulamasının kendi hesabı açık kalır.")
                     .disabled(model.quittableOpenCount == 0)
             }
             ToolbarItem(placement: .primaryAction) {
                 Button("Hesap Ekle", systemImage: "plus") {
                     navigation.isAddingProfile = true
                 }
-                .help("Yeni bir Claude hesabı ekle")
+                .help("Hesap Ekle")
                 .dsPrimaryAction()
             }
         }
         .confirmationDialog("Açık \(model.quittableOpenCount) hesap kapatılsın mı?", isPresented: $isConfirmingQuitAll) {
             Button("Tümünü Kapat") { model.quitAllLanesAccounts() }
         } message: {
-            Text("Her hesabın Claude'u kendi Çık komutuyla kapanır. Giriş ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
+            Text("Girişler ve sohbetler kalır. Claude uygulamasının kendi hesabı açık kalır.")
         }
         .onChange(of: usedClasses) { _, classes in
             if let classFilter, !classes.contains(classFilter) { self.classFilter = nil }
@@ -95,7 +93,7 @@ struct OverviewPage: View {
     /// no account uses memory.
     private var memorySubtitle: String {
         guard model.totalMemoryBytes > 0 else { return "" }
-        return String(localized: "Açık hesaplar toplam \(ByteCountFormatter.string(fromByteCount: Int64(clamping: model.totalMemoryBytes), countStyle: .memory)) bellek kullanıyor")
+        return String(localized: "Toplam bellek: \(ByteCountFormatter.string(fromByteCount: Int64(clamping: model.totalMemoryBytes), countStyle: .memory))")
     }
 
     /// Kinds of the Lanes accounts, in their usual order. The Claude app's
@@ -126,7 +124,7 @@ private struct WelcomeBanner: View {
                         .font(DS.Typography.heroTitle)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Hesap Ekle ile ilk hesabını ekle. Lanes her hesabı kendi renkli simgesi olan bir Claude kopyasıyla, kendi klasörüyle açar. Claude uygulaması ve oradaki girişin olduğu gibi kalır, Lanes ona dokunmaz. Lanes giriş bilgilerine hiçbir zaman dokunmaz.\n\nLanes menü çubuğunda yaşar. Bu pencereyi kapattığında çalışmaya devam eder, menü çubuğundaki simgesinden yeniden açabilirsin.")
+                    Text("Hesap Ekle ile ilk hesabını ekle. Lanes, Claude uygulamasına ve giriş bilgilerine dokunmaz. Pencereyi kapatınca menü çubuğunda çalışmaya devam eder.")
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
