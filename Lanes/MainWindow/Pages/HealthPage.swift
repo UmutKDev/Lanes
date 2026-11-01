@@ -284,7 +284,7 @@ struct HealthPage: View {
                     .animation(DS.Motion.standard, value: signatures[profile.id])
                 }
                 if !legacyClones.isEmpty {
-                    HealthRow(state: .warning, title: String(localized: "Faz 0'dan kalan \(legacyClones.count) deneme klonu")) {
+                    HealthRow(state: .warning, title: String(localized: "Eski sürümlerden kalan \(legacyClones.count) Claude kopyası")) {
                         Text("~/Applications/Lanes Profiles içinde. Spotlight'tan açılırsa Claude uygulamasının verileriyle çalışır.")
                     } accessory: {
                         Button("Çöp Sepeti'ne Taşı") { model.trashLegacyClones() }

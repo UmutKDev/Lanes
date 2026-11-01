@@ -272,7 +272,7 @@ private struct AccountGeneralTab: View {
             }
             if CloneCheck.usesClone(profile) {
                 Section {
-                    Toggle("Dock'ta gösterme (Deneysel)", isOn: binding(\.hidesFromDock))
+                    Toggle("Dock'ta gösterme", isOn: binding(\.hidesFromDock))
                 } footer: {
                     Text(String(localized: "\(ProfileMode.dockHidingCost) Bir sonraki açılışta uygulanır."))
                 }

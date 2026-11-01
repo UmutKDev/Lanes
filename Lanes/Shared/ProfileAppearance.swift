@@ -60,7 +60,7 @@ extension ProfileMode {
         case .signedClone:
             return String(localized: "Claude'un bir kopyası kendi simgesiyle açılır ve diskte neredeyse yer kaplamaz.")
         case .separateIdentity:
-            return String(localized: "Kopya kendi kimliğini alır ve bu Mac'te yeniden imzalanır. Deneysel.")
+            return String(localized: "Kopya kendi kimliğini alır ve bu Mac'te yeniden imzalanır.")
         }
     }
 }

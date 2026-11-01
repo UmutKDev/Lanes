@@ -47,9 +47,9 @@ struct AddProfileSheet: View {
                 Toggle("Ekledikten sonra bu hesabı aç", isOn: $opensAfterAdding)
             }
             Section("Yeni pencerede giriş") {
-                // Faz 0.5 check 3: the return link of a Google or email
-                // link sign-in reaches the main Claude, not the new
-                // window. Typing the emailed code works in any window.
+                // The return link of a Google or email link sign-in
+                // reaches the main Claude, not the new window. Typing the
+                // emailed code works in any window.
                 SignInStep(number: 1, text: "Google ya da Apple yerine e-posta adresinle devam et.")
                 SignInStep(number: 2, text: "E-postadaki bağlantıyı açma: ana Claude penceresinde açılır.")
                 SignInStep(number: 3, text: "Doğrulama kodunu yeni pencereye yaz.")

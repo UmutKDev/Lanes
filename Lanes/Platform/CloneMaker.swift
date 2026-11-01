@@ -3,14 +3,8 @@ import LanesCore
 
 /// Makes a copy of Claude.app with its own Finder icon. On APFS the copy is a
 /// clone, so it takes almost no disk space. Anthropic's signature is left as
-/// is; Faz 0 checks whether macOS still accepts it.
+/// is unless the clone has to be re-signed, as for hiding it from the Dock.
 enum CloneMaker {
-    struct Result {
-        var bundleURL: URL
-        var copySeconds: Double
-        var iconApplied: Bool
-    }
-
     enum Failure: LocalizedError {
         case outsideClonesFolder
         case signingFailed(String)
@@ -23,25 +17,6 @@ enum CloneMaker {
                 return String(localized: "Dock'ta görünmeyen klon imzalanamadı: \(detail)")
             }
         }
-    }
-
-    static func makeClone(of claudeApp: URL, at destination: URL, icon: NSImage?, paths: ProfilePaths) throws -> Result {
-        guard paths.isClonePath(destination.path), destination.pathExtension == "app" else {
-            throw Failure.outsideClonesFolder
-        }
-        let fileManager = FileManager.default
-        try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if fileManager.fileExists(atPath: destination.path) {
-            try fileManager.removeItem(at: destination)
-        }
-        let start = Date()
-        try fileManager.copyItem(at: claudeApp, to: destination)
-        let copySeconds = Date().timeIntervalSince(start)
-        var iconApplied = false
-        if let icon {
-            iconApplied = NSWorkspace.shared.setIcon(icon, forFile: destination.path, options: [])
-        }
-        return Result(bundleURL: destination, copySeconds: copySeconds, iconApplied: iconApplied)
     }
 
     /// Copies Claude.app next to a profile's clone under a hidden name. The
@@ -185,21 +160,6 @@ enum CloneMaker {
             return String(localized: "macOS klonu değiştirmeye izin vermedi. Sistem Ayarları > Gizlilik ve Güvenlik > Uygulama Yönetimi'nde Lanes'e izin verip yeniden dene.")
         }
         return error.localizedDescription
-    }
-
-    static func removeClone(at bundle: URL, paths: ProfilePaths) throws {
-        guard paths.isClonePath(bundle.path) else {
-            throw Failure.outsideClonesFolder
-        }
-        try FileManager.default.trashItem(at: bundle, resultingItemURL: nil)
-        // The account's folder under Clones was made only to hold this
-        // bundle. Left empty, it would sit there forever.
-        let folder = bundle.deletingLastPathComponent()
-        if paths.isClonePath(folder.path),
-           let rest = try? FileManager.default.contentsOfDirectory(atPath: folder.path),
-           rest.allSatisfy({ $0 == ".DS_Store" }) {
-            try? FileManager.default.removeItem(at: folder)
-        }
     }
 }
 

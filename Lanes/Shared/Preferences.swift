@@ -7,7 +7,9 @@ enum Preferences {
         static let showsRunningCountInMenuBar = "showsRunningCountInMenuBar"
         static let linkRoutingEnabled = "linkRoutingEnabled"
         static let lastSettingsPane = "lastSettingsPane"
-        static let showsDeveloperPages = "showsDeveloperPages"
+        /// The last one-time cleanup of files and settings early builds left
+        /// behind. See `AlphaCleanup`.
+        static let alphaCleanupVersion = "alphaCleanupVersion"
         static let relaunchedAfterUpdate = "relaunchedAfterUpdate"
         static let shortcuts = "shortcuts"
         static let recentClaudeCodeFolders = "recentClaudeCodeFolders"
@@ -91,17 +93,7 @@ enum Preferences {
         UserDefaults.standard.object(forKey: Key.showsRunningCountInMenuBar) as? Bool ?? true
     }
 
-    /// Debug builds show the Faz 0 checks; builds for testers hide them until
-    /// the setting is turned on.
-    static let developerPagesDefault: Bool = {
-        #if DEBUG
-        return true
-        #else
-        return false
-        #endif
-    }()
-
-    /// Off until Faz 0 shows that links can be delivered to the right window.
+    /// Off by default; the user turns it on.
     static var linkRoutingEnabled: Bool {
         UserDefaults.standard.bool(forKey: Key.linkRoutingEnabled)
     }

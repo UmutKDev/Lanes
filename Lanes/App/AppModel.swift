@@ -67,7 +67,6 @@ final class AppModel {
     /// the next attempt clears it.
     @ObservationIgnored private var activationWarningID: Notice.ID?
 
-    let validation: ValidationModel
     let updater = Updater()
     /// Kurulum's checks, shared by the page and its sidebar badge.
     let setup = SetupStatus()
@@ -190,14 +189,12 @@ final class AppModel {
         self.paths = paths
         self.store = store
         self.doneNotices = ClaudeCodeDoneNotices(paths: paths)
-        self.validation = ValidationModel(paths: paths)
         self.library = startup.library
         self.shortcuts = AppModel.loadShortcuts()
         self.recentFolders = AppModel.loadRecentFolders()
         self.linkRules = AppModel.loadLinkRules()
         self.linkLog = LinkLog.load(from: paths.root.appendingPathComponent("LinkLog.json", isDirectory: false), now: Date())
         self.receivedLinks = linkLog.entries
-        validation.currentClaude = { [weak self] in self?.claude }
 
         if startup.restoredFromBackup {
             Log.app.error("Profile list unreadable, restored from backup")
@@ -228,6 +225,7 @@ final class AppModel {
         }
         monitor.start()
         refreshInstances()
+        AlphaCleanup.runIfNeeded(paths: paths, instances: instances)
         refreshCloneStatuses()
         updateAccountGuards()
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -1014,8 +1012,8 @@ final class AppModel {
         claudeCodeAccounts[profile.id]?.email ?? profile.email
     }
 
-    /// Claude.app and every clone on disk, including Faz 0 clones in the
-    /// old folder, so none of them passes for Claude itself.
+    /// Claude.app and every clone on disk, including old builds' clones in
+    /// the old folder, so none of them passes for Claude itself.
     var knownBundlePaths: [String] {
         var bundles: [String] = []
         if let claude { bundles.append(claude.url.path) }
@@ -1235,7 +1233,7 @@ final class AppModel {
         refreshCloneStatuses()
     }
 
-    /// Faz 0 put its test clones in ~/Applications, where Spotlight finds
+    /// Old builds put their clones in ~/Applications, where Spotlight finds
     /// them and opens them without an account folder.
     var legacyClones: [URL] {
         let items = (try? FileManager.default.contentsOfDirectory(at: paths.legacyClonesDirectory, includingPropertiesForKeys: nil)) ?? []
@@ -2050,14 +2048,34 @@ final class AppModel {
     func orphanProfileFolders() -> [URL] {
         let profilesDirectory = paths.root.appendingPathComponent("Profiles", isDirectory: true)
         let names = (try? FileManager.default.contentsOfDirectory(atPath: profilesDirectory.path)) ?? []
-        // The Faz 0 clone check keeps its own folder there; it is Lanes', not
-        // a removed account's.
         return OrphanProfileFolders.find(folderNames: names, library: library)
-            .filter { $0 != ValidationModel.cloneTestProfile.id.rawValue }
             .map { profilesDirectory.appendingPathComponent($0, isDirectory: true) }
     }
 
     // MARK: Diagnostics
+
+    /// The build and machine Lanes runs on, for the diagnostics report.
+    func buildEnvironment() -> BuildEnvironment {
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        #if arch(arm64)
+        let architecture = "arm64"
+        #else
+        let architecture = "x86_64"
+        #endif
+        let info = Bundle.main.infoDictionary
+        let lanesVersion = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return BuildEnvironment(
+            macOSVersion: "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)",
+            architecture: architecture,
+            claudeVersion: claude?.version,
+            lanesVersion: "\(lanesVersion) (\(build))",
+            commit: info?["LanesGitCommit"] as? String,
+            commitHasLocalChanges: info?["LanesGitTreeDirty"] as? Bool,
+            signing: CodeSignature.current?.kind.reportLabel,
+            appPath: (Bundle.main.bundlePath as NSString).abbreviatingWithTildeInPath
+        )
+    }
 
     /// Copies the diagnostics report and saves it in the Diagnostics folder.
     /// Returns the saved file, or nil when it could not be written.
@@ -2069,7 +2087,7 @@ final class AppModel {
             folderExists[profile.id] = FileManager.default.fileExists(atPath: paths.profileDirectory(for: profile.id).path)
         }
         let report = DiagnosticsReport(
-            environment: validation.environment(),
+            environment: buildEnvironment(),
             claudePath: claude?.url.path,
             linkHandlerPath: LinkHandlerRegistry.currentHandler()?.path,
             isTranslocated: isTranslocated,

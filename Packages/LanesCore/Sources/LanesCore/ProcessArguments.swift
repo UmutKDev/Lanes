@@ -97,7 +97,7 @@ public struct RunningInstance: Equatable, Sendable, Identifiable {
     public var profileID: ProfileID?
     /// A Lanes clone started without its account's folder, from Finder,
     /// Spotlight or the Dock. It runs on the main account's data, so it
-    /// belongs to no profile and Lanes warns about it (Faz 0.5.2).
+    /// belongs to no profile and Lanes warns about it.
     public var isStrayClone: Bool
 
     public var id: Int32 { pid }

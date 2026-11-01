@@ -7,7 +7,7 @@ final class DiagnosticsTests: XCTestCase {
 
     func report(profiles: [Profile], instances: [RunningInstance], folderExists: [ProfileID: Bool] = [:]) -> String {
         DiagnosticsReport(
-            environment: ValidationEnvironment(
+            environment: BuildEnvironment(
                 macOSVersion: "27.0.1",
                 architecture: "arm64",
                 claudeVersion: "2.26454.0",
@@ -58,5 +58,37 @@ final class DiagnosticsTests: XCTestCase {
         let stray = RunningInstance(pid: 7, applicationBundlePath: claudePath, userDataDirectory: nil, profileID: nil)
         let text = report(profiles: [main], instances: [stray])
         XCTAssertTrue(text.contains("| 7 | Lanes dışında açılmış | Claude | Claude'un kendi klasörü |"))
+    }
+
+    func testAbbreviatingHome() {
+        XCTAssertEqual(DiagnosticsReport.abbreviatingHome("/Users/ali/", in: "/Users/ali/a /Users/ali.b /Users/ali"), "~/a /Users/ali.b ~")
+        XCTAssertEqual(DiagnosticsReport.abbreviatingHome("/", in: "/Users/ali"), "/Users/ali")
+        XCTAssertEqual(
+            DiagnosticsReport.abbreviatingHome("/Users/ali", in: "-Users-ali-Lanes: 2 oturum (-Users-ali) -Users-alican-X"),
+            "~-Lanes: 2 oturum (~) -Users-alican-X"
+        )
+        XCTAssertEqual(DiagnosticsReport.abbreviatingHome("/Users/ümit", in: "-Users--mit-Lanes"), "~-Lanes")
+    }
+
+    func testHomeIsHiddenInClaudeCodeFolderNames() {
+        let text = DiagnosticsReport.abbreviatingHome("/Users/ali", in: "-Users-ali-Lanes: 2 oturum")
+        XCTAssertFalse(text.contains("Users-ali"))
+        XCTAssertEqual(text, "~-Lanes: 2 oturum")
+    }
+
+    func testSigningKinds() {
+        XCTAssertEqual(SigningKind.classify(flags: nil, leafCertificateSummary: nil), .unsigned)
+        XCTAssertEqual(SigningKind.classify(flags: 0x20002, leafCertificateSummary: nil), .linkerSigned)
+        XCTAssertEqual(SigningKind.classify(flags: 0x10002, leafCertificateSummary: nil), .adHoc)
+        XCTAssertEqual(SigningKind.classify(flags: 0x10000, leafCertificateSummary: nil), .adHoc)
+        XCTAssertEqual(SigningKind.classify(flags: 0x10000, leafCertificateSummary: nil, teamID: "ABCDE12345"), .otherCertificate)
+        XCTAssertEqual(SigningKind.classify(flags: 0x10000, leafCertificateSummary: "Apple Development: Ali Veli (QWERTY1234)", teamID: "ABCDE12345"), .appleDevelopment)
+        XCTAssertEqual(SigningKind.classify(flags: 0, leafCertificateSummary: "Mac Developer: Ali Veli (QWERTY1234)", teamID: "ABCDE12345"), .appleDevelopment)
+        XCTAssertEqual(SigningKind.classify(flags: 0x10000, leafCertificateSummary: "Developer ID Application: Ali Veli (ABCDE12345)", teamID: "ABCDE12345"), .developerID)
+        XCTAssertEqual(SigningKind.classify(flags: 0, leafCertificateSummary: "Apple Distribution: Ali Veli (ABCDE12345)", teamID: "ABCDE12345"), .appleDistribution)
+        XCTAssertEqual(SigningKind.classify(flags: 0, leafCertificateSummary: "3rd Party Mac Developer Application: Ali Veli (ABCDE12345)", teamID: "ABCDE12345"), .appleDistribution)
+        XCTAssertEqual(SigningKind.classify(flags: 0, leafCertificateSummary: "Apple Mac OS Application Signing", teamID: "ABCDE12345"), .otherCertificate)
+        XCTAssertEqual(SigningKind.classify(flags: 0, leafCertificateSummary: "Apple Developmentish: Ali", teamID: "ABCDE12345"), .otherCertificate)
+        XCTAssertFalse(SigningKind.allCases.contains { $0.reportLabel.contains("Ali") })
     }
 }

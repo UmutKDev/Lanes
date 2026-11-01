@@ -56,7 +56,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
 struct MainWindowView: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     /// Whether the window is wide enough for sidebar, page and inspector.
     @State private var fitsThreeColumns = true
@@ -72,9 +71,8 @@ struct MainWindowView: View {
 
     var body: some View {
         @Bindable var navigation = navigation
-        // One value for the detail, the title and the inspector, so a hidden
-        // page left in the history never shows one page under another's title.
-        let shown = navigation.selection.displayed(showingDeveloperPages: showsDeveloperPages)
+        // One value for the detail, the title and the inspector.
+        let shown = navigation.selection
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(
@@ -230,8 +228,7 @@ private struct DetailView: View {
 
     @ViewBuilder
     private func page(_ destination: Destination) -> some View {
-        // MainWindowView passes the page actually shown: a hidden page left
-        // in the history, or one the setting just hid, arrives as the overview.
+        // MainWindowView passes the selected page.
         switch destination {
         case .overview:
             OverviewPage()
@@ -264,8 +261,6 @@ private struct DetailView: View {
             MaintenancePage()
         case .toolbox:
             ToolboxPage()
-        case .validation:
-            ValidationPage()
         }
     }
 }

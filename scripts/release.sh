@@ -171,16 +171,34 @@ tag="v$version-$build"
 updates="$out/updates"
 mkdir -p "$updates"
 cp "$dmg" "$updates/"
-# Release notes for Sparkle's update window: the commit subjects since the
-# previous release tag. generate_appcast picks the file up by the DMG's name.
-previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+# Release notes for Sparkle's update window. generate_appcast picks the file
+# up by the DMG's name. A curated docs/release-notes/<version>.md is used when
+# it exists, turned into simple HTML: "#" headings, "- " items and paragraphs.
+# Otherwise the notes are the commit subjects since the previous release tag.
 notes="$updates/$(basename "$dmg" .dmg).html"
-{
-  echo "<ul>"
-  git log --no-merges --format='%s' ${previous:+"$previous..HEAD"} \
-    | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's#.*#<li>&</li>#'
-  echo "</ul>"
-} >"$notes"
+curated="docs/release-notes/$version.md"
+if [ -f "$curated" ]; then
+  sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' "$curated" | awk '
+    function close_list() { if (in_list) { print "</ul>"; in_list = 0 } }
+    /^### / { close_list(); print "<h3>" substr($0, 5) "</h3>"; next }
+    /^## / { close_list(); print "<h2>" substr($0, 4) "</h2>"; next }
+    /^# / { close_list(); print "<h1>" substr($0, 3) "</h1>"; next }
+    /^- / { if (!in_list) { print "<ul>"; in_list = 1 } print "<li>" substr($0, 3) "</li>"; next }
+    /^[[:space:]]*$/ { close_list(); next }
+    { close_list(); print "<p>" $0 "</p>" }
+    END { close_list() }
+  ' >"$notes"
+  notes_args=(--notes-file "$curated")
+else
+  previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+  {
+    echo "<ul>"
+    git log --no-merges --format='%s' ${previous:+"$previous..HEAD"} \
+      | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's#.*#<li>&</li>#'
+    echo "</ul>"
+  } >"$notes"
+  notes_args=(--notes "Commit $commit")
+fi
 generate_appcast="$out/packages/artifacts/sparkle/Sparkle/bin/generate_appcast"
 [ -x "$generate_appcast" ] || fail "generate_appcast bulunamadı: $generate_appcast"
 # Signs the DMG with the EdDSA key from the keychain and embeds the notes.
@@ -192,7 +210,7 @@ shasum -a 256 "$dmg"
 echo "$dmg"
 echo "$updates/appcast.xml"
 
-publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" --notes "Commit $commit" "$updates/$(basename "$dmg")" "$updates/appcast.xml")
+publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" "${notes_args[@]}" "$updates/$(basename "$dmg")" "$updates/appcast.xml")
 if [ "${LANES_PUBLISH:-}" = 1 ]; then
   step "GitHub'da yayınlanıyor"
   command -v gh >/dev/null || fail "gh gerekli: brew install gh"

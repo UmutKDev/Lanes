@@ -389,15 +389,9 @@ private struct AdvancedSettings: View {
     @Environment(AppModel.self) private var model
     @State private var diagnosticsPrepared = false
     @State private var diagnosticsFile: URL?
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         Form {
-            Section {
-                Toggle("Faz 0 denemelerini göster", isOn: $showsDeveloperPages)
-            } header: {
-                Text("Geliştirme")
-            }
             Section {
                 folderRow("Lanes", url: model.paths.root)
                 folderRow("Hesap klasörleri", url: model.paths.root.appendingPathComponent("Profiles", isDirectory: true))

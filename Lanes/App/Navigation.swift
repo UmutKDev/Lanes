@@ -18,7 +18,6 @@ enum Destination: Hashable {
     case maintenance
     case privacy
     case integrations
-    case validation
     case settings
 
     var title: String {
@@ -37,7 +36,6 @@ enum Destination: Hashable {
         case .maintenance: return String(localized: "Bakım")
         case .privacy: return String(localized: "Gizlilik")
         case .integrations: return String(localized: "Entegrasyonlar")
-        case .validation: return String(localized: "Faz 0 Doğrulama")
         case .settings: return String(localized: "Ayarlar")
         }
     }
@@ -58,8 +56,6 @@ enum Destination: Hashable {
         case .maintenance: return "externaldrive"
         case .privacy: return "hand.raised"
         case .integrations: return "puzzlepiece.extension"
-        // Not "checklist": Kurulum uses it in the same sidebar section.
-        case .validation: return "testtube.2"
         case .settings: return "gearshape"
         }
     }
@@ -85,27 +81,11 @@ enum Destination: Hashable {
         }
     }
 
-    /// Whether the sidebar lists the page. Only the Faz 0 checks need the
-    /// developer pages setting.
-    func isVisible(showingDeveloperPages: Bool) -> Bool {
-        switch self {
-        case .validation: return showingDeveloperPages
-        default: return true
-        }
-    }
-
-    /// The page the window actually shows for this selection. A hidden page
-    /// left in the history, or one the setting just hid, shows the overview.
-    /// The title, the sidebar highlight and the detail all use this value.
-    func displayed(showingDeveloperPages: Bool) -> Destination {
-        isVisible(showingDeveloperPages: showingDeveloperPages) ? self : .overview
-    }
-
-    /// Pages with their own list column (Settings panes, Validation checks)
-    /// need the width the inspector would take, so it stays closed there.
+    /// Pages with their own list column (the Settings panes) need the width
+    /// the inspector would take, so it stays closed there.
     var allowsInspector: Bool {
         switch self {
-        case .settings, .validation: return false
+        case .settings: return false
         default: return true
         }
     }

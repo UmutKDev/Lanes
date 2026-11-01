@@ -1,8 +1,9 @@
 import LanesCore
 import SwiftUI
 
-/// Everything Lanes looks at, writes and sends, in one list. The README and
-/// the tester guide repeat this list; change them together.
+/// Everything Lanes looks at, writes and sends, in one list. The README
+/// repeats this list and the user guide (docs/kullanim-kilavuzu.md) points
+/// to it; change them together.
 struct PrivacyPage: View {
     @Environment(AppModel.self) private var model
 
@@ -46,7 +47,7 @@ struct PrivacyPage: View {
                     systemImage: "clock",
                     title: "Klasörlerin değişme saati",
                     detail: "Claude'un kendi klasörünü kullandığını doğrulamak için; dosyalar açılmaz.",
-                    help: "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde."
+                    help: "Bir hesap açıldıktan sonraki 30 saniyede."
                 )
                 PrivacyItem(
                     systemImage: "doc.text",
@@ -135,7 +136,7 @@ struct PrivacyPage: View {
                     systemImage: "square.on.square",
                     title: "Klonlar",
                     detail: "Her hesap için Claude.app'in bir kopyası.",
-                    help: "Kopyaya hesabın simgesi eklenir; \"Dock'ta gösterme\" açıksa kopya bu Mac'te yeniden imzalanır. Hesap kaldırılınca klon Çöp Sepeti'ne gider.",
+                    help: "Kopyaya hesabın simgesi eklenir; \"Dock'ta gösterme\" açıksa kopya bu Mac'te yeniden imzalanır. Hesap kaldırılınca klon Çöp Sepeti'ne gider. Deneme sürümlerinden kalan deneme klonunu ve sonuç dosyalarını Lanes ilk açılışta bir kez kaldırır, klonu Çöp Sepeti'ne taşır.",
                     path: model.paths.clonesDirectory
                 )
                 PrivacyItem(

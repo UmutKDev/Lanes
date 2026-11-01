@@ -6,7 +6,7 @@ import Foundation
 /// Nothing is read from inside a profile folder; whether a folder exists is
 /// all Lanes checks.
 public struct DiagnosticsReport: Sendable {
-    public var environment: ValidationEnvironment
+    public var environment: BuildEnvironment
     public var claudePath: String?
     public var linkHandlerPath: String?
     public var isTranslocated: Bool
@@ -18,7 +18,7 @@ public struct DiagnosticsReport: Sendable {
     public var homeDirectory: String
 
     public init(
-        environment: ValidationEnvironment,
+        environment: BuildEnvironment,
         claudePath: String?,
         linkHandlerPath: String?,
         isTranslocated: Bool,
@@ -45,7 +45,7 @@ public struct DiagnosticsReport: Sendable {
         var lines: [String] = []
         lines.append(L("# Lanes tanılama", "# Lanes Diagnostics"))
         lines.append("")
-        lines.append(L("- Tarih: ", "- Date: ") + ValidationReport.dateString(generatedAt))
+        lines.append(L("- Tarih: ", "- Date: ") + DiagnosticsReport.dateString(generatedAt))
         lines.append("- Lanes: \(environment.lanesVersion), commit \(environment.commitDescription)")
         lines.append(L("- İmza: ", "- Signature: ") + (environment.signing ?? unknown))
         lines.append(L("- Uygulama: ", "- App: ") + (environment.appPath ?? unknown) + (isTranslocated ? L(" (geçici kopya)", " (translocated copy)") : ""))
@@ -84,7 +84,7 @@ public struct DiagnosticsReport: Sendable {
             }
         }
         let text = lines.joined(separator: "\n") + "\n"
-        return ValidationReport.abbreviatingHome(homeDirectory, in: text)
+        return DiagnosticsReport.abbreviatingHome(homeDirectory, in: text)
     }
 
     private var unknown: String { L("bilinmiyor", "unknown") }

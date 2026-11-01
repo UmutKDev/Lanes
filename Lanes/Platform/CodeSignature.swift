@@ -2,9 +2,9 @@ import Foundation
 import LanesCore
 import Security
 
-/// How this copy of Lanes is signed, for the Faz 0 report. Automation and
-/// App Management permissions follow the signature, so a check only carries
-/// over to a build signed the same way.
+/// How this copy of Lanes is signed, for the diagnostics report. Automation
+/// and App Management permissions follow the signature, so a permission only
+/// carries over to a build signed the same way.
 ///
 /// This type only reads raw facts from the Security framework.
 /// `SigningKind.classify` in LanesCore decides what they mean, so those rules
