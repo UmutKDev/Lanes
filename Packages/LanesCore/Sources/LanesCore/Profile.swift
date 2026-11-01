@@ -97,6 +97,9 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
     /// limit. Links go to another account meanwhile. The user enters it;
     /// Lanes reads no usage data from Claude.
     public var limitedUntil: Date? { didSet { keptFields[Field.limitedUntil.rawValue] = nil } }
+    /// Project folders that belong to this account: `lanes claude` started
+    /// in one of them, or below, runs Claude Code with this account.
+    public var linkedFolders: [String] { didSet { keptFields[Field.linkedFolders.rawValue] = nil } }
     /// Fields this build could not read, as they were written. Saving puts
     /// them back, so an older Lanes never erases what a newer one stored.
     /// Setting a field drops its kept value.
@@ -119,7 +122,8 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         dailyLimitMinutes: Int? = nil,
         isArchived: Bool = false,
         defaultProjectFolder: String? = nil,
-        limitedUntil: Date? = nil
+        limitedUntil: Date? = nil,
+        linkedFolders: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -138,6 +142,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
         self.isArchived = isArchived
         self.defaultProjectFolder = defaultProjectFolder
         self.limitedUntil = limitedUntil
+        self.linkedFolders = linkedFolders
     }
 
     /// First letter of the name, upper-cased with Turkish rules ("işler" → "İ").
@@ -163,7 +168,7 @@ public struct Profile: Identifiable, Hashable, Codable, Sendable {
 
 extension Profile {
     enum Field: String, CaseIterable {
-        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil
+        case id, name, monogram, color, mode, accountClass, isDefault, createdAt, email, note, allowedFolders, hidesFromDock, idleQuitMinutes, dailyLimitMinutes, isArchived, defaultProjectFolder, limitedUntil, linkedFolders
     }
 
     /// Reads a profile even when fields are missing or hold values this build
@@ -203,6 +208,7 @@ extension Profile {
         isArchived = try read(Bool.self, .isArchived) ?? false
         defaultProjectFolder = try read(String.self, .defaultProjectFolder)
         limitedUntil = try read(Date.self, .limitedUntil)
+        linkedFolders = try read([String].self, .linkedFolders) ?? []
         keptFields = kept
     }
 
@@ -233,6 +239,7 @@ extension Profile {
         if isArchived { try write(isArchived, .isArchived) }
         if let defaultProjectFolder, !defaultProjectFolder.isEmpty { try write(defaultProjectFolder, .defaultProjectFolder) }
         if let limitedUntil { try write(limitedUntil, .limitedUntil) }
+        if !linkedFolders.isEmpty { try write(linkedFolders, .linkedFolders) }
     }
 
     /// Whether the account is resting after hitting its limit.

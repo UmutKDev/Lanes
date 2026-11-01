@@ -171,6 +171,8 @@ final class AppModel {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
         SpotlightIndex.update(library.activeProfiles)
+        CommandLineTool.writeMap(library: library, paths: paths)
+        CommandLineTool.updateIfOutdated()
         monitor.onChange = { [weak self] in
             self?.refreshInstances()
         }
@@ -1315,6 +1317,26 @@ final class AppModel {
         }
     }
 
+    // MARK: Command line tool
+
+    func addLinkedFolder(_ folder: URL, to profile: Profile) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        let path = folder.standardizedFileURL.path
+        if let owner = library.profiles.first(where: { $0.id != profile.id && $0.linkedFolders.contains(path) }) {
+            notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) zaten \(owner.name) hesabına bağlı. Önce oradan çıkar."))
+            return
+        }
+        guard !updated.linkedFolders.contains(path) else { return }
+        updated.linkedFolders.append(path)
+        updateProfile(updated)
+    }
+
+    func removeLinkedFolder(_ path: String, from profile: Profile) {
+        guard var updated = self.profile(withID: profile.id) else { return }
+        updated.linkedFolders.removeAll { $0 == path }
+        updateProfile(updated)
+    }
+
     /// The account that takes this one's links while it rests.
     func limitStandIn(for profile: Profile) -> Profile? {
         LimitWatch.standIn(for: profile, in: library, now: Date())
@@ -1570,6 +1592,7 @@ final class AppModel {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
             SpotlightIndex.update(library.activeProfiles)
+            CommandLineTool.writeMap(library: library, paths: paths)
             if let setAside {
                 notice = Notice(kind: .warning, message: String(localized: "Okunamayan hesap listesi \(setAside.lastPathComponent) adıyla aynı klasörde saklandı."))
             }

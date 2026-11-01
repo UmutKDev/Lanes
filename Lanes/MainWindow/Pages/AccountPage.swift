@@ -600,6 +600,29 @@ private struct AccountClaudeCodeTab: View {
             } footer: {
                 Text("\"Terminalde Aç\" Claude Code'u bu klasörde başlatır. Seçilmezse ana klasörde başlar ve Claude Code her seferinde klasöre güvenip güvenmediğini sorar.")
             }
+            Section {
+                ForEach(profile.linkedFolders, id: \.self) { path in
+                    AccountFolderRow(url: URL(fileURLWithPath: path, isDirectory: true)) {
+                        DSIconButton("Bağlantıyı kaldır", systemImage: "minus.circle.fill", role: .destructive) {
+                            model.removeLinkedFolder(path, from: profile)
+                        }
+                    }
+                }
+                Button("Klasör Bağla…") {
+                    if let folder = ClaudeCodeFolderPicker.chooseFolders(
+                        prompt: String(localized: "Bağla"),
+                        message: String(localized: "lanes claude bu klasörde ve altındaki klasörlerde \(profile.name) hesabını kullanır."),
+                        allowsMultipleSelection: false
+                    ).first {
+                        model.addLinkedFolder(folder, to: profile)
+                    }
+                }
+                .fixedSize()
+            } header: {
+                Text("Bağlı klasörler")
+            } footer: {
+                Text("Terminalde lanes claude bu klasörlerde ve altlarında Claude Code'u bu hesapla başlatır. Bir klasördeki .lanes dosyası bunun önüne geçer. Aracı Entegrasyonlar sayfasından kurabilirsin.")
+            }
             if !recent.isEmpty {
                 Section {
                     ForEach(recent, id: \.self) { folder in
