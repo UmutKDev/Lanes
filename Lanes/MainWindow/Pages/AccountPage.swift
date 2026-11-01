@@ -568,6 +568,32 @@ private struct AccountClaudeCodeTab: View {
                     }
                 }
             }
+            Section {
+                if let path = profile.defaultProjectFolder, !path.isEmpty {
+                    AccountFolderRow(url: URL(fileURLWithPath: path, isDirectory: true)) {
+                        Button("Değiştir…") {
+                            if let folder = ClaudeCodeFolderPicker.choose() {
+                                model.setDefaultProjectFolder(folder, for: profile)
+                            }
+                        }
+                        .fixedSize()
+                        DSIconButton("Varsayılanı kaldır", systemImage: "minus.circle.fill", role: .destructive) {
+                            model.setDefaultProjectFolder(nil, for: profile)
+                        }
+                    }
+                } else {
+                    Button("Varsayılan Klasör Seç…") {
+                        if let folder = ClaudeCodeFolderPicker.choose() {
+                            model.setDefaultProjectFolder(folder, for: profile)
+                        }
+                    }
+                    .fixedSize()
+                }
+            } header: {
+                Text("Varsayılan klasör")
+            } footer: {
+                Text("\"Terminalde Aç\" Claude Code'u bu klasörde başlatır. Seçilmezse ana klasörde başlar ve Claude Code her seferinde klasöre güvenip güvenmediğini sorar.")
+            }
             if !recent.isEmpty {
                 Section {
                     ForEach(recent, id: \.self) { folder in

@@ -50,6 +50,9 @@ enum RunningInstanceScanner {
 @MainActor
 final class RunningInstanceMonitor {
     var onChange: (() -> Void)?
+    /// Called first for every app that starts, before `onChange`, so a
+    /// clone opened outside Lanes can be caught while it is still running.
+    var onLaunch: ((NSRunningApplication) -> Void)?
     private var observers: [NSObjectProtocol] = []
     /// Exit watchers for running instances. A clone kept out of the Dock is
     /// an agent app, and NSWorkspace does not report agents quitting.
@@ -80,8 +83,13 @@ final class RunningInstanceMonitor {
         let center = NSWorkspace.shared.notificationCenter
         let names = [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification]
         for name in names {
-            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                let launched = name == NSWorkspace.didLaunchApplicationNotification
                 MainActor.assumeIsolated {
+                    if launched, let app {
+                        self?.onLaunch?(app)
+                    }
                     self?.onChange?()
                 }
             }

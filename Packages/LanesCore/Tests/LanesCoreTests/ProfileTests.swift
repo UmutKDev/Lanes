@@ -14,6 +14,15 @@ final class ProfileTests: XCTestCase {
         let profile = Profile(name: "Müşteri", monogram: "AC", color: .teal)
         XCTAssertEqual(profile.monogram, "AC")
     }
+
+    func testDefaultProjectFolderRoundTripsAndIsLeftOutWhenUnset() throws {
+        var profile = Profile(name: "İş", color: .orange)
+        let plain = try String(decoding: JSONEncoder().encode(profile), as: UTF8.self)
+        XCTAssertFalse(plain.contains("defaultProjectFolder"))
+        profile.defaultProjectFolder = "/Users/umut/Projeler/lanes"
+        let decoded = try JSONDecoder().decode(Profile.self, from: JSONEncoder().encode(profile))
+        XCTAssertEqual(decoded.defaultProjectFolder, "/Users/umut/Projeler/lanes")
+    }
 }
 
 final class ProfilePathsTests: XCTestCase {
