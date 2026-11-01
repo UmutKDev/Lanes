@@ -31,10 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // start in the menu bar alone and look like it never opened.
         let relaunched = Updater.takeRelaunchedAfterUpdate()
         // A new install starts with the Başlarken tour; its last step
-        // opens the main window.
-        if !UserDefaults.standard.bool(forKey: Preferences.Key.onboardingCompleted),
-           model.isFirstLaunch || !UserDefaults.standard.bool(forKey: Preferences.Key.setupShown),
-           !model.isTranslocated {
+        // opens the main window. Existing users updating never see it. The
+        // mark stays until the tour is closed, so a translocated first
+        // launch or a crash mid-tour shows it on the next launch.
+        if model.isFirstLaunch {
+            UserDefaults.standard.set(true, forKey: Preferences.Key.onboardingPending)
+        }
+        if Preferences.onboardingDue, !model.isTranslocated, !relaunched {
             router.showOnboarding()
         } else if model.isFirstLaunch || relaunched || model.isTranslocated {
             router.showMainWindow(.overview)

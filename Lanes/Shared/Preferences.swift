@@ -25,11 +25,27 @@ enum Preferences {
         /// opens it at most once.
         static let setupShown = "setupShown"
         static let onboardingCompleted = "onboardingCompleted"
+        /// Set on a new install until the Başlarken tour is closed, so a
+        /// tour cut short by a crash, a quit or a translocated first launch
+        /// comes back on the next launch.
+        static let onboardingPending = "onboardingPending"
         static let doneNoticesEnabled = "doneNoticesEnabled"
         static let accountFrameEnabled = "accountFrameEnabled"
         static let clipboardGuardEnabled = "clipboardGuardEnabled"
         static let doneNoticeKinds = "doneNoticeKinds"
         static let doneNoticesWhileTerminalInFront = "doneNoticesWhileTerminalInFront"
+    }
+
+    /// Whether this launch should open the Başlarken tour: a new install
+    /// whose tour has not been closed yet.
+    static var onboardingDue: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.bool(forKey: Key.onboardingPending) && !defaults.bool(forKey: Key.onboardingCompleted)
+    }
+
+    static func finishOnboarding() {
+        UserDefaults.standard.set(true, forKey: Key.onboardingCompleted)
+        UserDefaults.standard.removeObject(forKey: Key.onboardingPending)
     }
 
     /// Accounts as tabs under one strip. Off until the user turns it on,
