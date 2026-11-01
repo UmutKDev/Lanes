@@ -24,33 +24,35 @@ struct SidebarView: View {
             if !isSearching || !active.isEmpty {
                 Section("Hesaplar") {
                     ForEach(active) { profile in
-                        NavigationLink(value: Destination.account(profile.id)) {
-                            DSAccountLabel(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
-                        }
-                        .badge(shortcutBadge(for: profile))
-                        .contextMenu {
-                            Button(model.isRunning(profile) ? "Öne Getir" : "Aç") {
-                                model.open(profile)
-                            }
-                            Button("Claude Code'u Terminalde Aç") {
-                                model.openClaudeCode(profile)
-                            }
-                            Button("Hesabı Çoğalt") {
-                                if let copy = model.duplicateProfile(profile) {
-                                    navigation.navigate(to: .account(copy.id))
+                        DSAccountLabel(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
+                            .badge(shortcutBadge(for: profile))
+                            // An explicit tag: inside a movable ForEach the row
+                            // would otherwise be tagged with the profile's id,
+                            // which the Destination selection never matches.
+                            .tag(Destination.account(profile.id))
+                            .contextMenu {
+                                Button(model.isRunning(profile) ? "Öne Getir" : "Aç") {
+                                    model.open(profile)
                                 }
-                            }
-                            if !profile.isDefault {
-                                Button("Arşivle") {
-                                    model.setArchived(profile, true)
+                                Button("Claude Code'u Terminalde Aç") {
+                                    model.openClaudeCode(profile)
                                 }
+                                Button("Hesabı Çoğalt") {
+                                    if let copy = model.duplicateProfile(profile) {
+                                        navigation.navigate(to: .account(copy.id))
+                                    }
+                                }
+                                if !profile.isDefault {
+                                    Button("Arşivle") {
+                                        model.setArchived(profile, true)
+                                    }
+                                }
+                                Divider()
+                                Button("Hesabı Kaldır…", role: .destructive) {
+                                    profilePendingRemoval = profile
+                                }
+                                .disabled(profile.isDefault)
                             }
-                            Divider()
-                            Button("Hesabı Kaldır…", role: .destructive) {
-                                profilePendingRemoval = profile
-                            }
-                            .disabled(profile.isDefault)
-                        }
                     }
                     // Rows can only be dragged in the full list, not a filtered one.
                     .onMove(perform: query.isEmpty ? moveRows : nil)
@@ -60,19 +62,18 @@ struct SidebarView: View {
             if !archived.isEmpty {
                 Section("Arşiv") {
                     ForEach(archived) { profile in
-                        NavigationLink(value: Destination.account(profile.id)) {
-                            ArchivedAccountLabel(profile: profile, isRunning: model.isRunning(profile))
-                        }
-                        .badge(shortcutBadge(for: profile))
-                        .contextMenu {
-                            Button("Arşivden Çıkar") {
-                                model.setArchived(profile, false)
+                        ArchivedAccountLabel(profile: profile, isRunning: model.isRunning(profile))
+                            .badge(shortcutBadge(for: profile))
+                            .tag(Destination.account(profile.id))
+                            .contextMenu {
+                                Button("Arşivden Çıkar") {
+                                    model.setArchived(profile, false)
+                                }
+                                Divider()
+                                Button("Hesabı Kaldır…", role: .destructive) {
+                                    profilePendingRemoval = profile
+                                }
                             }
-                            Divider()
-                            Button("Hesabı Kaldır…", role: .destructive) {
-                                profilePendingRemoval = profile
-                            }
-                        }
                     }
                 }
             }
@@ -190,9 +191,8 @@ struct SidebarView: View {
     /// The destinations the developer pages setting lets through.
     private func rows(_ destinations: [Destination]) -> some View {
         ForEach(destinations.filter { $0.isVisible(showingDeveloperPages: showsDeveloperPages) }, id: \.self) { destination in
-            NavigationLink(value: destination) {
-                Label(destination.title, systemImage: destination.symbol)
-            }
+            Label(destination.title, systemImage: destination.symbol)
+                .tag(destination)
         }
     }
 }

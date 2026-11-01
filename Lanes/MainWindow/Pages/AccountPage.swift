@@ -2,9 +2,10 @@ import AppKit
 import LanesCore
 import SwiftUI
 
-/// One account: the selected tab's Form. The tab picker, the open button and
-/// the other actions live in the window toolbar; the state line is the
-/// window subtitle.
+/// One account: the selected tab's Form under a tab picker. The open button
+/// and the other actions live in the window toolbar; the state line is the
+/// window subtitle. The picker stays out of the toolbar: six segments next
+/// to the title and the actions pushed every item into the overflow menu.
 struct AccountPage: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
@@ -14,6 +15,11 @@ struct AccountPage: View {
     var body: some View {
         if let profile = model.profile(withID: profileID) {
             tabContent(for: profile)
+                // A bar, not an inset: the Form scrolls under a scroll edge
+                // effect instead of showing through the picker.
+                .safeAreaBar(edge: .top, spacing: 0) {
+                    tabPicker(for: profile)
+                }
                 .navigationSubtitle(statusLine(for: profile))
                 .toolbar {
                     toolbarContent(for: profile)
@@ -57,18 +63,24 @@ struct AccountPage: View {
         return parts.joined(separator: " · ")
     }
 
+    /// The tabs as one segmented control, centred above the Form. Segments
+    /// share the width the page has, so a narrow window never hides a tab.
+    private func tabPicker(for profile: Profile) -> some View {
+        Picker("Bölüm", selection: tabBinding) {
+            ForEach(tabs(for: profile)) { tab in
+                Text(tab.title).tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: DS.Metrics.readableWidth)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, DS.Space.l)
+        .padding(.vertical, DS.Space.s)
+    }
+
     @ToolbarContentBuilder
     private func toolbarContent(for profile: Profile) -> some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            Picker("Bölüm", selection: tabBinding) {
-                ForEach(tabs(for: profile)) { tab in
-                    Text(tab.title).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-
         ToolbarItem(placement: .primaryAction) {
             AccountOpenButton(profile: profile)
         }
