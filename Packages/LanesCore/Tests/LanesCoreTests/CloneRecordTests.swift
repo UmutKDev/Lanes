@@ -64,14 +64,14 @@ final class CloneRecordTests: XCTestCase {
     }
 }
 
-final class InsideLanesModeTests: XCTestCase {
-    func testInsideLanesNeedsNoCloneAndNoClaudeApp() throws {
-        let profile = Profile(name: "Web", color: .teal, mode: .insideLanes)
-        XCTAssertFalse(CloneCheck.usesClone(profile))
-        XCTAssertFalse(profile.mode.usesClaudeApp)
-        XCTAssertTrue(ProfileMode.standard.usesClaudeApp)
-        XCTAssertEqual(ProfileMode.insideLanes.rawValue, "lanes")
-        let data = try JSONEncoder().encode(profile)
-        XCTAssertEqual(try JSONDecoder().decode(Profile.self, from: data).mode, .insideLanes)
+final class RetiredInsideLanesModeTests: XCTestCase {
+    func testOldWebAccountsOpenAsClones() throws {
+        let json = #"{"id": "p1", "name": "Web", "color": "teal", "mode": "lanes"}"#
+        let profile = try JSONDecoder().decode(Profile.self, from: Data(json.utf8))
+        XCTAssertEqual(profile.mode, .signedClone)
+        XCTAssertTrue(CloneCheck.usesClone(profile))
+        let saved = String(decoding: try JSONEncoder().encode(profile), as: UTF8.self)
+        XCTAssertTrue(saved.contains(#""mode":"signedClone""#), saved)
+        XCTAssertFalse(ProfileMode.allCases.map(\.rawValue).contains("lanes"))
     }
 }

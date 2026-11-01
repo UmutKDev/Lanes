@@ -30,15 +30,21 @@ public enum ProfileMode: String, Codable, CaseIterable, Sendable {
     case signedClone
     /// A clone with its own bundle identifier, re-signed locally. Experimental.
     case separateIdentity
-    /// claude.ai in a tab of Lanes's own window, with its own website data,
-    /// so the account never shows up as another Claude in the Dock. Claude
-    /// Desktop's local features (MCP servers, Claude Code tab, Cowork) are
-    /// not there.
-    case insideLanes = "lanes"
 
-    /// Whether the account runs as a Claude Desktop process.
-    public var usesClaudeApp: Bool {
-        self != .insideLanes
+    /// Accounts saved by builds that could open claude.ai inside Lanes
+    /// stored "lanes". That mode is gone: those accounts now open as a
+    /// clone of Claude.app and sign in there again.
+    static let retiredInsideLanesRawValue = "lanes"
+
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        if raw == Self.retiredInsideLanesRawValue {
+            self = .signedClone
+        } else if let mode = ProfileMode(rawValue: raw) {
+            self = mode
+        } else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unknown mode \(raw)"))
+        }
     }
 }
 

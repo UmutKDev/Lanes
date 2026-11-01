@@ -254,12 +254,18 @@ private struct AccountGeneralTab: View {
                 }
             }
             Section {
-                Picker("Açılış biçimi", selection: binding(\.mode)) {
-                    ForEach(modeChoices, id: \.self) { mode in
-                        Text(modeTitle(mode)).tag(mode)
+                // Every account opens as a clone; the choice only shows for
+                // an account still on plain Claude.app or Ayrı kimlik, so it
+                // can move to the clone.
+                if modeChoices.count > 1 {
+                    Picker("Açılış biçimi", selection: binding(\.mode)) {
+                        ForEach(modeChoices, id: \.self) { mode in
+                            Text(modeTitle(mode)).tag(mode)
+                        }
                     }
+                } else {
+                    LabeledContent("Açılış biçimi", value: modeTitle(profile.mode))
                 }
-                .disabled(modeChoices.count < 2)
                 if CloneCheck.usesClone(profile) {
                     CloneStatusRow(profile: profile)
                 }
@@ -273,9 +279,7 @@ private struct AccountGeneralTab: View {
                     Text(String(localized: "\(ProfileMode.dockHidingCost) Değişiklik, hesap kapalıyken bir sonraki açılışta uygulanır."))
                 }
             }
-            if profile.mode.usesClaudeApp {
-                memorySections
-            }
+            memorySections
         }
         .accountForm()
         .onAppear {
@@ -401,11 +405,11 @@ private struct AccountGeneralTab: View {
         )
     }
 
-    /// The clone with its own icon, or the web version. Plain Claude.app
-    /// and Ayrı kimlik are only listed for an account that still uses them,
-    /// so it can be moved to the clone.
+    /// The clone with its own icon. Plain Claude.app and Ayrı kimlik are
+    /// only listed for an account that still uses them, so it can be moved
+    /// to the clone.
     private var modeChoices: [ProfileMode] {
-        var choices: [ProfileMode] = [.signedClone, .insideLanes]
+        var choices: [ProfileMode] = [.signedClone]
         if profile.mode == .standard || profile.mode == .separateIdentity { choices.append(profile.mode) }
         return choices
     }
@@ -414,15 +418,12 @@ private struct AccountGeneralTab: View {
         switch mode {
         case .standard: return String(localized: "Claude uygulaması")
         case .signedClone: return String(localized: "Claude uygulaması, kendi simgesiyle")
-        case .insideLanes: return String(localized: "Lanes içinde, web sürümü")
         default: return mode.displayName
         }
     }
 
     private var modeCaption: String {
         switch profile.mode {
-        case .insideLanes:
-            return String(localized: "\(ProfileMode.insideLanes.explanation) Claude uygulamasına geçersen bu hesaba orada yeniden giriş yapman gerekir.")
         case .standard:
             return ProfileMode.standard.explanation
         case .signedClone, .separateIdentity:
@@ -480,9 +481,6 @@ private struct AccountDesktopTab: View {
     var body: some View {
         let dataDirectory = model.paths.effectiveDesktopDataDirectory(for: profile)
         Form {
-            if model.runsInsideLanes(profile) {
-                InsideLanesSection(profile: profile)
-            }
             Section("Claude Desktop") {
                 LabeledContent("Durum") {
                     Group {
@@ -810,34 +808,6 @@ extension CloneRenewalReason {
             return String(localized: "Dock ayarı değişti")
         case .unknownOrigin:
             return String(localized: "klonun kaydı yok")
-        }
-    }
-}
-
-/// An account that runs in a Lanes tab: its state, and a way to sign out
-/// for good.
-private struct InsideLanesSection: View {
-    @Environment(AppModel.self) private var model
-    let profile: Profile
-    @State private var confirmingForget = false
-
-    var body: some View {
-        Section {
-            LabeledContent("Durum", value: model.webAccounts.isOpen(profile.id) ? String(localized: "Sekmesi açık") : String(localized: "Kapalı"))
-            Button("Bu Hesabın Girişini Sil…", role: .destructive) {
-                confirmingForget = true
-            }
-        } header: {
-            Text("Lanes içinde")
-        } footer: {
-            Text("Giriş ve claude.ai'nin sakladığı her şey bu hesaba ayrılmış, Lanes'e ait bir WebKit deposunda durur. Lanes onu okumaz. Öbür hesaplar ve Safari bu girişi görmez.")
-        }
-        .confirmationDialog("\(profile.name) hesabının girişi ve claude.ai verisi silinsin mi?", isPresented: $confirmingForget) {
-            Button("Girişi Sil", role: .destructive) {
-                Task { await model.webAccounts.removeData(for: profile.id) }
-            }
-        } message: {
-            Text("Sohbetlerin claude.ai'de kalır. Bir sonraki açılışta yeniden giriş yaparsın.")
         }
     }
 }

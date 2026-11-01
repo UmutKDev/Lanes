@@ -37,8 +37,6 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     /// The app in front other than Lanes. Matched against the accounts on
     /// each scan, so a Claude that just opened shows once Lanes has seen it.
     private var frontPID: pid_t?
-    private var keyWindowObserver: NSObjectProtocol?
-    private var appActiveObserver: NSObjectProtocol?
     private var shownIconKey: String?
     /// Recent presses on the icon, on the system uptime clock that NSEvent
     /// timestamps use.
@@ -111,45 +109,12 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             }
         }
         frontApplicationChanged(to: NSWorkspace.shared.frontmostApplication?.processIdentifier)
-        observeAccountTabs()
     }
 
     private func frontApplicationChanged(to pid: pid_t?) {
-        // Lanes itself coming forward keeps the account that was in front,
-        // unless one of its own account tabs is in front.
-        if pid == ProcessInfo.processInfo.processIdentifier, model.webAccounts.keyProfileID == nil { return }
+        // Lanes itself coming forward keeps the account that was in front.
+        if pid == ProcessInfo.processInfo.processIdentifier { return }
         frontPID = pid
-        updateIcon()
-    }
-
-    /// Switching between account tabs inside Lanes changes the key window.
-    private func observeAccountTabs() {
-        keyWindowObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didBecomeKeyNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.showAccountTabIfInFront()
-            }
-        }
-        // The window can become key a moment before Lanes becomes active.
-        appActiveObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didBecomeActiveNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.showAccountTabIfInFront()
-            }
-        }
-    }
-
-    private func showAccountTabIfInFront() {
-        guard NSApp.isActive, let key = NSApp.keyWindow,
-              key.tabbingIdentifier == WebAccounts.tabbingIdentifier,
-              model.webAccounts.keyProfileID != nil else { return }
-        frontPID = ProcessInfo.processInfo.processIdentifier
         updateIcon()
     }
 
@@ -157,9 +122,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         guard let button = statusItem.button else { return }
         var profile: Profile?
         if Preferences.showsFrontAccountInMenuBar, let frontPID {
-            let id = frontPID == ProcessInfo.processInfo.processIdentifier
-                ? model.webAccounts.keyProfileID
-                : model.instances.first(where: { $0.pid == frontPID })?.profileID
+            let id = model.instances.first(where: { $0.pid == frontPID })?.profileID
             profile = id.flatMap(model.profile(withID:))
         }
         let key = profile.map { "\($0.id.rawValue)|\($0.color.rawValue)|\($0.monogram)" } ?? "lanes"

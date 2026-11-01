@@ -33,7 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
         model.reopenLastAccountsIfWanted()
-        Task { await model.webAccounts.restore(from: model.library.profiles) }
+        Task { [model] in
+            if await LegacyWebData.removeOnce() > 0 {
+                model.notice = AppModel.Notice(kind: .info, message: String(localized: "Lanes içinde açılan hesaplar artık Claude uygulamasında, kendi simgeleriyle açılıyor. Bu hesaplara Claude'un penceresinde bir kez yeniden giriş yapman gerekir."))
+            }
+        }
     }
 
     /// Registers the shortcuts again whenever they, the accounts or the
