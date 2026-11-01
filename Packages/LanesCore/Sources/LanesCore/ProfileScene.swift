@@ -27,17 +27,23 @@ public struct ProfileScene: Identifiable, Hashable, Codable, Sendable {
     /// Where each account's Claude window goes when the scene opens, keyed
     /// by profile ID. Empty means windows stay where Claude puts them.
     public var windowFrames: [String: SceneWindowFrame]
+    /// Opens the scene at a time of day on chosen weekdays.
+    public var schedule: SceneSchedule?
+    /// Opens the scene when this display is connected.
+    public var display: SceneDisplay?
 
-    public init(id: SceneID = .make(), name: String, profileIDs: [ProfileID], opensWhenLanesStarts: Bool = false, windowFrames: [String: SceneWindowFrame] = [:]) {
+    public init(id: SceneID = .make(), name: String, profileIDs: [ProfileID], opensWhenLanesStarts: Bool = false, windowFrames: [String: SceneWindowFrame] = [:], schedule: SceneSchedule? = nil, display: SceneDisplay? = nil) {
         self.id = id
         self.name = name
         self.profileIDs = profileIDs
         self.opensWhenLanesStarts = opensWhenLanesStarts
         self.windowFrames = windowFrames
+        self.schedule = schedule
+        self.display = display
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, profileIDs, opensWhenLanesStarts, windowFrames
+        case id, name, profileIDs, opensWhenLanesStarts, windowFrames, schedule, display
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -50,6 +56,8 @@ public struct ProfileScene: Identifiable, Hashable, Codable, Sendable {
         if !windowFrames.isEmpty {
             try container.encode(windowFrames, forKey: .windowFrames)
         }
+        try container.encodeIfPresent(schedule, forKey: .schedule)
+        try container.encodeIfPresent(display, forKey: .display)
     }
 
     public func windowFrame(for id: ProfileID) -> SceneWindowFrame? {
@@ -70,6 +78,8 @@ public struct ProfileScene: Identifiable, Hashable, Codable, Sendable {
         profileIDs = (try? container.decode([ProfileID].self, forKey: .profileIDs)) ?? []
         opensWhenLanesStarts = (try? container.decode(Bool.self, forKey: .opensWhenLanesStarts)) ?? false
         windowFrames = (try? container.decode([String: SceneWindowFrame].self, forKey: .windowFrames)) ?? [:]
+        schedule = try? container.decodeIfPresent(SceneSchedule.self, forKey: .schedule)
+        display = try? container.decodeIfPresent(SceneDisplay.self, forKey: .display)
     }
 
     /// The scene's accounts that still exist, in the scene's order.
@@ -115,5 +125,68 @@ public struct SceneWindowFrame: Codable, Hashable, Sendable {
         self.y = y
         self.width = width
         self.height = height
+    }
+}
+
+/// A time of day and the weekdays a scene opens on by itself.
+public struct SceneSchedule: Hashable, Codable, Sendable {
+    /// Minutes after midnight, 0..<1440.
+    public var minuteOfDay: Int
+    /// Calendar weekdays, 1 = Sunday … 7 = Saturday. Empty means every day.
+    public var weekdays: Set<Int>
+
+    /// A scene the Mac slept through opens on waking only within this
+    /// many seconds of its time; later it waits for the next day.
+    public static let lateWindow: TimeInterval = 2 * 3600
+
+    public init(minuteOfDay: Int, weekdays: Set<Int> = []) {
+        self.minuteOfDay = min(max(minuteOfDay, 0), 1439)
+        self.weekdays = weekdays.filter { (1...7).contains($0) }
+    }
+
+    /// This day's opening time, or nil on a day the scene skips.
+    public func occurrence(on day: Date, calendar: Calendar = .current) -> Date? {
+        let weekday = calendar.component(.weekday, from: day)
+        guard weekdays.isEmpty || weekdays.contains(weekday) else { return nil }
+        // By wall clock, so a daylight saving day still opens at 09:00.
+        return calendar.date(bySettingHour: minuteOfDay / 60, minute: minuteOfDay % 60, second: 0, of: day)
+    }
+
+    /// Whether the scene should open now: today's time has come, at most
+    /// `lateWindow` ago, and the scene has not opened since.
+    /// Yesterday's time counts too, so 23:30 still opens on a wake at 00:30.
+    public func isDue(now: Date, lastOpened: Date?, calendar: Calendar = .current) -> Bool {
+        let days = [now, calendar.date(byAdding: .day, value: -1, to: now)].compactMap { $0 }
+        return days.contains { day in
+            guard let time = occurrence(on: day, calendar: calendar), now >= time,
+                  now.timeIntervalSince(time) <= SceneSchedule.lateWindow else { return false }
+            return (lastOpened ?? .distantPast) < time
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case minuteOfDay, weekdays
+    }
+
+    /// Read through the clamping initializer, so a hand-edited file cannot
+    /// move the time to another day.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            minuteOfDay: try container.decode(Int.self, forKey: .minuteOfDay),
+            weekdays: (try? container.decode(Set<Int>.self, forKey: .weekdays)) ?? []
+        )
+    }
+}
+
+/// A display that opens a scene when it is connected, by the identifier
+/// macOS keeps for it, with its name for the settings.
+public struct SceneDisplay: Hashable, Codable, Sendable {
+    public var identifier: String
+    public var name: String
+
+    public init(identifier: String, name: String) {
+        self.identifier = identifier
+        self.name = name
     }
 }

@@ -188,7 +188,13 @@ struct CommandPanelView: View {
                 ForEach(matchingProfiles) { profile in
                     AccountCardView(profile: profile, onClose: onClose)
                 }
-                if matchingProfiles.isEmpty {
+                if hiddenByFocusCount > 0 && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Odak filtresi \(hiddenByFocusCount) hesabı gizliyor.")
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DS.Space.s)
+                } else if matchingProfiles.isEmpty {
                     Text("\"\(query)\" ile eşleşen hesap yok.")
                         .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
@@ -201,11 +207,17 @@ struct CommandPanelView: View {
         }
     }
 
+    /// Active accounts the current Focus filter leaves out of the panel.
+    private var hiddenByFocusCount: Int {
+        model.library.activeProfiles.filter { !model.isShownUnderFocus($0) }.count
+    }
+
     /// Accounts whose name, email or note holds the search text, ignoring
     /// case and accents with Turkish rules.
     private var matchingProfiles: [Profile] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles
+        let profiles = (sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles)
+            .filter(model.isShownUnderFocus)
         guard !text.isEmpty else { return profiles }
         return profiles.filter { profile in
             SearchText.matches(text, in: [profile.name, model.email(for: profile) ?? "", profile.note ?? ""])

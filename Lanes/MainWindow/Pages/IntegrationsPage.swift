@@ -64,7 +64,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("Kestirmeler ve Spotlight")
             } footer: {
-                Text("Kestirmeler uygulamasında \"Claude Hesabını Aç\" ve \"Lanes Sahnesini Aç\" eylemleri var. Spotlight'ta Lanes yazınca da çıkarlar. Siri'ye \"Lanes ile Claude hesabı aç\" diyebilirsin.")
+                Text("Kestirmeler uygulamasında şu eylemler var: Claude Hesabını Aç, Claude Hesabını Kapat, Lanes Sahnesini Aç, Claude Code'u Başlat, Hesabı Dinlenmeye Al, Öndeki Claude Hesabı, Bugünkü Claude Süresi ve Claude Code Çalışan Hesaplar. Spotlight'ta Lanes yazınca da çıkarlar. Siri'ye \"Lanes ile Claude hesabı aç\" diyebilirsin.")
             }
 
             Section {

@@ -163,6 +163,11 @@ private struct SceneEditor: View {
     @State private var name = ""
     @State private var selected: [ProfileID] = []
     @State private var opensWhenLanesStarts = false
+    @State private var opensOnSchedule = false
+    @State private var scheduleTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var weekdays: Set<Int> = []
+    @State private var display: SceneDisplay?
+    @State private var displays: [DisplayWatcher.Display] = []
     @State private var isConfirmingRemoval = false
     @FocusState private var focus: Field?
 
@@ -196,6 +201,27 @@ private struct SceneEditor: View {
                 Toggle("Lanes açılınca bu sahneyi aç", isOn: $opensWhenLanesStarts)
             } footer: {
                 Text("Ayarlar > Genel'de \"Oturum açıldığında Lanes'i başlat\" açıksa sahne her oturum açılışında da açılır.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Section {
+                Toggle("Belli bir saatte aç", isOn: $opensOnSchedule)
+                if opensOnSchedule {
+                    DatePicker("Saat", selection: $scheduleTime, displayedComponents: .hourAndMinute)
+                    WeekdayPicker(selection: $weekdays)
+                }
+                Picker("Bu ekran bağlanınca aç", selection: displayIdentifier) {
+                    Text("Hiçbiri").tag(String?.none)
+                    ForEach(displayChoices, id: \.identifier) { choice in
+                        Text(choice.name).tag(Optional(choice.identifier))
+                    }
+                }
+            } header: {
+                Text("Kendiliğinden aç")
+            } footer: {
+                Text("Gün seçmezsen her gün açılır. Mac o saatte uykudaysa sahne, saatinden sonraki iki saat içinde uyanınca açılır. Ekran, takılıp bağlandığında tanınır.")
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -240,7 +266,14 @@ private struct SceneEditor: View {
                 name = scene.name
                 selected = scene.profileIDs.filter { model.profile(withID: $0) != nil }
                 opensWhenLanesStarts = scene.opensWhenLanesStarts
+                if let schedule = scene.schedule {
+                    opensOnSchedule = true
+                    weekdays = schedule.weekdays
+                    scheduleTime = Calendar.current.date(bySettingHour: schedule.minuteOfDay / 60, minute: schedule.minuteOfDay % 60, second: 0, of: Date()) ?? scheduleTime
+                }
+                display = scene.display
             }
+            displays = DisplayWatcher.current()
         }
         .confirmationDialog("\(name) sahnesi silinsin mi?", isPresented: $isConfirmingRemoval) {
             Button("Sil", role: .destructive) {
@@ -250,6 +283,31 @@ private struct SceneEditor: View {
         } message: {
             Text("Hesaplar silinmez, yalnız bu liste ve kısayolu gider.")
         }
+    }
+
+    /// The connected displays, plus the saved one while it is unplugged.
+    private var displayChoices: [SceneDisplay] {
+        var choices = displays.map { SceneDisplay(identifier: $0.identifier, name: $0.name) }
+        if let display, !choices.contains(where: { $0.identifier == display.identifier }) {
+            choices.append(display)
+        }
+        return choices
+    }
+
+    /// Chosen by identifier, so a display whose name changed still matches.
+    private var displayIdentifier: Binding<String?> {
+        Binding(
+            get: { display?.identifier },
+            set: { identifier in
+                display = identifier.flatMap { id in displayChoices.first { $0.identifier == id } }
+            }
+        )
+    }
+
+    private var schedule: SceneSchedule? {
+        guard opensOnSchedule else { return nil }
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: scheduleTime)
+        return SceneSchedule(minuteOfDay: (parts.hour ?? 9) * 60 + (parts.minute ?? 0), weekdays: weekdays)
     }
 
     /// A new scene needs a name; an edited one keeps its old name when the
@@ -298,11 +356,51 @@ private struct SceneEditor: View {
             scene.name = name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? scene.name : name.trimmingCharacters(in: .whitespacesAndNewlines)
             scene.profileIDs = selected
             scene.opensWhenLanesStarts = opensWhenLanesStarts
+            scene.schedule = schedule
+            scene.display = display
             scene.pruneWindowFrames()
             model.updateScene(scene)
         } else if var created = model.addScene(name: name, profileIDs: selected) {
             created.opensWhenLanesStarts = opensWhenLanesStarts
-            if opensWhenLanesStarts { model.updateScene(created) }
+            created.schedule = schedule
+            created.display = display
+            if opensWhenLanesStarts || schedule != nil || display != nil { model.updateScene(created) }
+        }
+    }
+}
+
+/// Seven day buttons, Monday first. None selected means every day.
+private struct WeekdayPicker: View {
+    @Binding var selection: Set<Int>
+
+    var body: some View {
+        // Calendar weekdays: 1 = Sunday. Shown from Monday.
+        let order = [2, 3, 4, 5, 6, 7, 1]
+        LabeledContent("Günler") {
+            HStack(spacing: DS.Space.xxs) {
+                ForEach(order, id: \.self) { day in
+                    dayButton(day)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dayButton(_ day: Int) -> some View {
+        let calendar = Calendar.current
+        let isOn = selection.contains(day)
+        let button = Button {
+            if isOn { selection.remove(day) } else { selection.insert(day) }
+        } label: {
+            Text(calendar.shortWeekdaySymbols[day - 1])
+        }
+        .controlSize(.small)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+        .help(calendar.weekdaySymbols[day - 1])
+        if isOn {
+            button.buttonStyle(.borderedProminent)
+        } else {
+            button.buttonStyle(.bordered)
         }
     }
 }
