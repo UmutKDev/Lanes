@@ -24,9 +24,6 @@ struct ImportClaudeFolderSheet: View {
     @State private var runningLaunchers: [ClaudeFolderScanner.Launcher] = []
     @State private var isAskingToQuit = false
     @State private var importedProfile: Profile?
-    /// Picked folders that don't look like Claude data; Lanes asks once.
-    @State private var unlikelyFolders: Set<URL> = []
-    @State private var isConfirmingUnlikely = false
 
     @State private var name = ""
     @State private var suggestedName = ""
@@ -78,21 +75,11 @@ struct ImportClaudeFolderSheet: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("İçe Aktar") {
-                    if let selected, unlikelyFolders.contains(selected.url) {
-                        isConfirmingUnlikely = true
-                    } else {
-                        runImport()
-                    }
+                    runImport()
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canImport)
             }
-        }
-        .confirmationDialog("Claude klasörüne benzemiyor. Yine de aktarılsın mı?", isPresented: $isConfirmingUnlikely) {
-            Button("İçe Aktar") {
-                runImport()
-            }
-            Button("Vazgeç", role: .cancel) {}
         }
         .alert("Önce kapat", isPresented: $isAskingToQuit) {
             Button("Tekrar Dene") {
@@ -114,6 +101,11 @@ struct ImportClaudeFolderSheet: View {
         }
         .task {
             await load()
+        }
+        // A Claude quitting frees its folder; the list follows without
+        // reopening the sheet.
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didTerminateApplicationNotification)) { _ in
+            Task { await load() }
         }
     }
 
@@ -205,8 +197,9 @@ struct ImportClaudeFolderSheet: View {
             pickError = ClaudeFolderImport.Refusal.otherVolume.message
             return
         }
-        if !ClaudeFolderScanner.looksLikeClaudeData(url) {
-            unlikelyFolders.insert(url)
+        guard ClaudeFolderScanner.looksLikeClaudeData(url) else {
+            pickError = String(localized: "Bu bir Claude klasörü değil.")
+            return
         }
         Task {
             let candidate = await ClaudeFolderScanner.candidate(for: url, paths: model.paths, userDataDirectories: usedDirectories)
@@ -318,7 +311,7 @@ private struct CandidateRow: View {
                 }
                 Spacer(minLength: 0)
                 if candidate.inUse {
-                    Text("Açık")
+                    Text("Açık, önce kapat")
                         .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                 }

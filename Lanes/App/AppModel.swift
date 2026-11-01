@@ -1735,6 +1735,9 @@ final class AppModel {
         let values = try? source.resourceValues(forKeys: [.isSymbolicLinkKey, .isDirectoryKey])
         if values?.isSymbolicLink == true { return refuse(.symbolicLink) }
         guard values?.isDirectory == true else { return refuse(.notAFolder) }
+        guard ClaudeFolderScanner.looksLikeClaudeData(source) else {
+            return fail(String(localized: "Bu bir Claude klasörü değil."))
+        }
         if let refusal = ClaudeFolderImport.refusal(for: source.path, paths: paths, library: library, userDataDirectories: usedDirectories()) {
             return refuse(refusal)
         }

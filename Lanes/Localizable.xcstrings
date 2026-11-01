@@ -9903,16 +9903,6 @@
         }
       }
     },
-    "Claude klasörüne benzemiyor. Yine de aktarılsın mı?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Doesn't look like a Claude folder. Import anyway?"
-          }
-        }
-      }
-    },
     "%@ artık gerekmiyor. Çöp Sepeti'ne taşınsın mı?": {
       "localizations": {
         "en": {
@@ -10019,6 +10009,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ is still open."
+          }
+        }
+      }
+    },
+    "Bu bir Claude klasörü değil.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This isn't a Claude folder."
+          }
+        }
+      }
+    },
+    "Açık, önce kapat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open, quit it first"
           }
         }
       }
