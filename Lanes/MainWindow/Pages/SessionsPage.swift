@@ -65,8 +65,8 @@ struct SessionsPage: View {
                 mode == .sessions ? "Oturum yok" : "Proje yok",
                 systemImage: mode == .sessions ? Destination.sessions.symbol : "folder",
                 description: mode == .sessions
-                    ? Text("Bir hesapla Claude Code'u açtığında oturumları burada görünür. Lanes yalnız oturum dosyalarının adına ve tarihine bakar, içlerini açmaz.")
-                    : Text("Claude Code'u bir klasörde açtığında proje burada, o projede çalışan hesaplarla birlikte görünür.")
+                    ? Text("Claude Code oturumları burada görünür. Lanes konuşmaların içini okumaz.")
+                    : Text("Claude Code'u açtığın klasörler burada görünür.")
             )
         }
         .searchable(text: $search, placement: .toolbar, prompt: "Projede ara")
@@ -78,7 +78,6 @@ struct SessionsPage: View {
                 }
                 .pickerStyle(.segmented)
                 .fixedSize()
-                .help("Oturumları tek tek ya da projeye göre gruplanmış göster")
             }
             ToolbarItem(placement: .primaryAction) {
                 Picker("Hesap", selection: $filter) {
@@ -89,7 +88,6 @@ struct SessionsPage: View {
                 }
                 .pickerStyle(.menu)
                 .fixedSize()
-                .help("Hesap")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -222,13 +220,13 @@ private struct ProjectRowView: View {
                         .help(row.path ?? row.name)
                     if let working {
                         ClaudeCodePulseIcon(pulse: .working, project: row.name)
-                            .help(String(localized: "Claude Code şu an \(working.name) hesabıyla bu projede çalışıyor (tahmini)"))
+                            .help(String(localized: "Claude Code şu an \(working.name) hesabıyla çalışıyor (tahmini)"))
                     }
                     if mixes {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundStyle(DS.Palette.warning)
-                            .help("Bu projede farklı türde hesaplar çalıştı (\(classNames(profiles))). Bir hesabın bilgileri öbürünün oturumlarına karışmış olabilir.")
+                            .help("Farklı türde hesaplar çalıştı (\(classNames(profiles))). Oturum bilgileri karışmış olabilir.")
                             .accessibilityLabel(Text("Farklı türde hesaplar"))
                     } else if row.project.isShared {
                         Image(systemName: "person.2.fill")
@@ -288,7 +286,6 @@ private struct ProjectRowView: View {
         .buttonStyle(.glass)
         .controlSize(.small)
         .fixedSize()
-        .help("Claude Code'u bu projede bir hesapla aç ya da son oturumu sürdür")
     }
 
     @ViewBuilder
@@ -422,7 +419,6 @@ private struct SessionRow: View {
             .buttonStyle(.glass)
             .controlSize(.small)
             .fixedSize()
-            .help("Bu oturumu \(row.profile.name) hesabıyla, kendi proje klasöründe Terminalde sürdür")
         }
         .padding(.vertical, DS.Space.xxs)
         .contextMenu {
@@ -464,7 +460,7 @@ private struct WorktreeSheet: View {
             if !hasGit {
                 Section {
                     DSStatusRow(.warning, title: Text("Xcode Komut Satırı Araçları gerekiyor")) {
-                        Text("Worktree'yi git oluşturur ve bu Mac'te git kurulu değil. Kurulum Apple'ın penceresinde birkaç dakika sürer; bitince Yeniden Dene'ye bas.")
+                        Text("Bu Mac'te git kurulu değil. Kurulum bitince Yeniden Dene'ye bas.")
                     } accessory: {
                         HStack {
                             Button("Araçları Kur…") {
@@ -492,11 +488,10 @@ private struct WorktreeSheet: View {
                         Text("Klasör: \(targetFolder.path)")
                             .textSelection(.enabled)
                         if folderExists {
-                            Text("Bu klasör zaten var; başka bir dal adı seç.")
+                            Text("Bu klasör zaten var. Başka bir dal adı seç.")
                                 .foregroundStyle(DS.Palette.warning)
                         }
                     }
-                    Text("Dal yoksa deponun şu anki commit'inden oluşturulur, varsa o dal açılır. Worktree'yi işin bitince git worktree remove ile kaldırabilirsin.")
                     if let error {
                         Text(error)
                             .foregroundStyle(DS.Palette.warning)

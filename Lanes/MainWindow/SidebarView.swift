@@ -132,7 +132,6 @@ struct SidebarView: View {
             }
             .buttonStyle(.glass)
             .controlSize(.large)
-            .help("Hesap ekle")
             .padding(DS.Space.m)
         }
         .confirmationDialog(
@@ -184,13 +183,9 @@ struct SidebarView: View {
         let folder = (directory.path as NSString).abbreviatingWithTildeInPath
         // Only the clone goes to the Trash; the account's own folder, with
         // its sign-in and chats, stays where it is.
-        var message = FileManager.default.fileExists(atPath: directory.path)
-            ? String(localized: "Hesabın klasörü silinmez, yerinde kalır: \(folder). Claude kopyası Çöp Sepeti'ne taşınır. Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
-            : String(localized: "Bu hesap hiç açılmadığı için klasörü yok. Claude kopyası Çöp Sepeti'ne taşınır.")
-        if model.isRunning(profile) {
-            message += "\n\n" + String(localized: "Bu hesabın Claude'u şu an açık. Lanes önce onu kapatır, sonra hesabı kaldırır.")
-        }
-        return message
+        return FileManager.default.fileExists(atPath: directory.path)
+            ? String(localized: "Hesabın klasörü yerinde kalır: \(folder). Claude kopyası Çöp Sepeti'ne taşınır. Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
+            : String(localized: "Claude kopyası Çöp Sepeti'ne taşınır.")
     }
 
     private var selection: Binding<Destination?> {

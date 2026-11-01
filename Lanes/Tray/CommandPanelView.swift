@@ -245,7 +245,6 @@ struct CommandPanelView: View {
                     )
                 }
                 .buttonStyle(DSRowButtonStyle())
-                .help("Sahnedeki hesapları aç")
             }
         }
     }
@@ -279,7 +278,7 @@ struct CommandPanelView: View {
             .font(DS.Typography.caption)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-            .help("Bugün Claude hesaplarının önde geçirdiği toplam süre. Ayrıntısı Kullanım sayfasında.")
+            .help("Hesapların bugün önde geçirdiği toplam süre")
             .opacity(todayTotal >= 60 ? 1 : 0)
             .accessibilityHidden(todayTotal < 60)
             moreMenu

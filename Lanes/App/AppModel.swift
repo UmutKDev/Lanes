@@ -203,9 +203,9 @@ final class AppModel {
             Log.app.error("Profile list unreadable, restored from backup")
             // Saving now moves the unreadable file aside and keeps it.
             save()
-            notice = Notice(kind: .warning, message: String(localized: "Hesap listesi okunamadı, son sağlam kopyasından geri yüklendi. Okunamayan dosya aynı klasörde başka bir adla saklandı."))
+            notice = Notice(kind: .warning, message: String(localized: "Hesap listesi okunamadı, yedekten geri yüklendi. Okunamayan dosya aynı klasörde başka bir adla saklandı."))
         } else if let loadError = startup.loadError {
-            notice = Notice(kind: .error, message: String(localized: "Hesap listesi okunamadı: \(loadError.localizedDescription) Lanes bu dosyayı silmez, ilk değişikliği kaydederken onu aynı klasörde başka bir adla saklar."))
+            notice = Notice(kind: .error, message: String(localized: "Hesap listesi okunamadı: \(loadError.localizedDescription) Dosya silinmez, ilk kayıtta aynı klasörde başka bir adla saklanır."))
         } else if startup.isFirstLaunch {
             isFirstLaunch = true
             save()
@@ -388,7 +388,7 @@ final class AppModel {
             lastOpened[scene.id.rawValue] = now.timeIntervalSinceReferenceDate
             changed = true
             Log.app.info("Opening a scheduled scene")
-            notice = Notice(kind: .info, message: String(localized: "\(scene.name) sahnesi zamanı geldiği için açılıyor."))
+            notice = Notice(kind: .info, message: String(localized: "Zamanı geldi, \(scene.name) sahnesi açılıyor."))
             Task { await openAndWait(scene) }
         }
         if changed {
@@ -534,7 +534,7 @@ final class AppModel {
             Log.instances.info("Quitting an account left unused for \(profile.idleQuitMinutes ?? 0) minutes")
             InstanceLauncher.terminate(pid: item.pid)
             lastActiveAt[item.id] = nil
-            Notifier.post(.idleQuit, body: String(localized: "\(profile.name) \(IdleQuitPolicy.describe(minutes: profile.idleQuitMinutes ?? 0)) kullanılmadığı için kapatıldı. Lanes'ten yeniden açabilirsin."))
+            Notifier.post(.idleQuit, body: String(localized: "\(profile.name) \(IdleQuitPolicy.describe(minutes: profile.idleQuitMinutes ?? 0)) kullanılmadığı için kapatıldı."))
         }
     }
 
@@ -574,7 +574,7 @@ final class AppModel {
 
     private func warnAboutCrossAccountPaste(from: ProfileID, to: ProfileID) {
         guard let source = profile(withID: from), let target = profile(withID: to) else { return }
-        Notifier.post(.clipboardCrossAccount, body: String(localized: "Panodaki şey \(source.name) hesabında kopyalandı; şimdi \(target.name) hesabındasın. Yapıştırmadan önce emin ol."), force: true)
+        Notifier.post(.clipboardCrossAccount, body: String(localized: "Panodaki içerik \(source.name) hesabından kopyalandı, şu an \(target.name) hesabındasın."), force: true)
     }
 
     // MARK: Reopening and recent order
@@ -878,7 +878,7 @@ final class AppModel {
         if let last = lastMemoryAlert, now.timeIntervalSince(last) < 3600 { return }
         lastMemoryAlert = now
         let memory = ByteCountFormatter.string(fromByteCount: Int64(clamping: totalMemoryBytes), countStyle: .memory)
-        Notifier.post(.memoryHigh, body: String(localized: "Açık hesaplar toplam \(memory) bellek kullanıyor. Kullanmadıklarını kapatabilirsin."), force: true)
+        Notifier.post(.memoryHigh, body: String(localized: "Açık hesaplar toplam \(memory) bellek kullanıyor."), force: true)
     }
 
     /// The last 30 days of time in front as CSV, for a spreadsheet.
@@ -901,13 +901,13 @@ final class AppModel {
             let export = try LibraryExport.decode(Data(contentsOf: url))
             let result = export.merge(into: library)
             guard result.addedProfiles + result.addedScenes > 0 else {
-                return String(localized: "Dosyadaki hesaplar ve sahneler zaten burada, hiçbir şey eklenmedi.")
+                return String(localized: "Dosyadaki her şey zaten burada, hiçbir şey eklenmedi.")
             }
             library = result.library
             save()
             refreshCloneStatuses()
             Log.app.info("Imported \(result.addedProfiles) accounts and \(result.addedScenes) scenes")
-            return String(localized: "\(result.addedProfiles) hesap ve \(result.addedScenes) sahne eklendi. Hesaplar ilk açılışta girişsiz başlar, her birinde yeniden giriş yapman gerekir.")
+            return String(localized: "\(result.addedProfiles) hesap ve \(result.addedScenes) sahne eklendi. Her hesapta yeniden giriş yapman gerekecek.")
         } catch {
             return String(localized: "İçe aktarılamadı: \(error.localizedDescription)")
         }
@@ -1061,7 +1061,7 @@ final class AppModel {
             ?? URL(fileURLWithPath: first.applicationBundlePath).deletingPathExtension().lastPathComponent
         Log.instances.info("A clone was opened without its folder")
         Notifier.post(.strayClone, body: String(localized: "\(name) klonu Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
-        let warning = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç. Sağlık sayfasından tek tıkla kapatabilirsin."))
+        let warning = Notice(kind: .warning, message: String(localized: "\(name) klonu Lanes dışından açıldı ve Claude uygulamasının verileriyle çalışıyor. Kapatıp Lanes'ten aç."))
         notice = warning
         strayNoticeID = warning.id
     }
@@ -1280,7 +1280,7 @@ final class AppModel {
         }
         activationWarningID = nil
         guard let claude else {
-            let message = String(localized: "Claude bulunamadı. Claude'u Uygulamalar klasörüne kurduktan sonra yeniden dene.")
+            let message = String(localized: "Claude bulunamadı. Uygulamalar klasörüne kurup yeniden dene.")
             notice = Notice(kind: .error, message: message)
             notifyIfNoWindow(message)
             return
@@ -1307,7 +1307,7 @@ final class AppModel {
         case let .launch(plan):
             let launchedAt = Date()
             if plan.fallsBackToClaude {
-                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) klonu olmadığı için Claude'un kendisiyle, kendi klasörüyle açılıyor. Klonu Sağlık sayfasından yeniden oluşturabilirsin."))
+                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) klonu olmadığı için Claude'un kendisiyle açılıyor. Klonu Sağlık sayfasından yeniden oluşturabilirsin."))
             }
             do {
                 try await InstanceLauncher.launch(plan)
@@ -1329,7 +1329,7 @@ final class AppModel {
         if let pid = stayedBehind,
            instance(for: profile)?.pid == pid,
            NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
-            let warning = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi. Cmd-Tab ile geçebilirsin."))
+            let warning = Notice(kind: .warning, message: String(localized: "\(profile.name) öne getirilemedi."))
             notice = warning
             activationWarningID = warning.id
         }
@@ -1352,7 +1352,7 @@ final class AppModel {
         guard isRunning(profile) else { return }
         separationResults[profile.id] = SeparationResult(usesOwnFolder: false, checkedAt: Date())
         Log.instances.error("Separation check: own folder unchanged 30 s after launch")
-        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) açıldı ama 30 saniyedir kendi klasörüne hiçbir şey yazmadı. Bu pencere Claude uygulamasının verilerini kullanıyor olabilir. Ayarlar > Gelişmiş'ten tanılama bilgisini hazırlayıp bildirmen çok yardımcı olur."))
+        notice = Notice(kind: .warning, message: String(localized: "\(profile.name) 30 saniyedir kendi klasörüne yazmadı, Claude uygulamasının verilerini kullanıyor olabilir."))
     }
 
     func quit(_ profile: Profile) {
@@ -1366,7 +1366,7 @@ final class AppModel {
     @discardableResult
     func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) -> Bool {
         if let email = identityMismatch(for: profile) {
-            let warning = Notice(kind: .warning, message: String(localized: "Dikkat: \(profile.name) hesabının Claude Code'u beklenmeyen bir adresle (\(email)) giriş yapmış."))
+            let warning = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabının Claude Code'u beklenmeyen bir adresle (\(email)) giriş yapmış."))
             notice = warning
             identityNotice = (id: warning.id, profileID: profile.id)
         }
@@ -1378,7 +1378,7 @@ final class AppModel {
                 return false
             }
             guard profile.allowsFolder(folder.path) else {
-                notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+                notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent), \(profile.name) hesabının izin verilen klasörlerinden biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin."))
                 return false
             }
         }
@@ -1403,13 +1403,13 @@ final class AppModel {
     func launchWorktree(repository: URL, branch: String, with profile: Profile) async -> String? {
         let folder = WorktreePlan.folder(forRepository: repository, branch: branch)
         guard profile.allowsFolder(folder.path) else {
-            return String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(WorktreePlan.worktreesFolder(forRepository: repository).path) bunlardan biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin.")
+            return String(localized: "\(WorktreePlan.worktreesFolder(forRepository: repository).path), \(profile.name) hesabının izin verilen klasörlerinden biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin.")
         }
         do {
             let made = try await GitWorktree.add(repository: repository, branch: branch)
             Log.app.info("Made a git worktree for Claude Code")
             guard openClaudeCode(profile, in: made) else {
-                return String(localized: "Worktree \(made.path) klasöründe oluşturuldu ama Terminal açılamadı. Projeler'den o klasörde açabilirsin.")
+                return String(localized: "Worktree \(made.path) klasöründe oluşturuldu ama Terminal açılamadı.")
             }
             return nil
         } catch {
@@ -1431,7 +1431,7 @@ final class AppModel {
     func setDefaultProjectFolder(_ folder: URL?, for profile: Profile) {
         guard var updated = self.profile(withID: profile.id) else { return }
         if let folder, !updated.allowsFolder(folder.path) {
-            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+            notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent), \(profile.name) hesabının izin verilen klasörlerinden biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin."))
             return
         }
         updated.defaultProjectFolder = folder?.path
@@ -1468,7 +1468,7 @@ final class AppModel {
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = String(localized: "Oturum \(target.name) hesabına geçsin mi?")
-            alert.informativeText = String(localized: "\(source.name) (\(source.accountClass.displayName)) hesabındaki konuşmanın bir kopyası \(target.name) (\(target.accountClass.displayName)) hesabına geçecek. Konuşmada bir müşterinin ya da işverenin bilgileri varsa öteki hesabın Claude Code klasöründe de durur.")
+            alert.informativeText = String(localized: "\(source.name) (\(source.accountClass.displayName)) hesabındaki konuşmanın bir kopyası \(target.name) (\(target.accountClass.displayName)) hesabına geçer. İçinde müşteri ya da işveren bilgisi varsa o hesapta da durur.")
             alert.addButton(withTitle: String(localized: "Yine de Sürdür"))
             alert.addButton(withTitle: String(localized: "Vazgeç"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -1485,7 +1485,7 @@ final class AppModel {
             // target's own session, which Lanes never overwrites.
             if let existing = try? manager.attributesOfItem(atPath: handoff.destinationFile.path) {
                 guard isUntouchedHandoffCopy(handoff.destinationFile, attributes: existing) else {
-                    notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kendi bir kaydı var; Lanes onu değiştirmez. O hesapta Sürdür ile açabilirsin."))
+                    notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kaydı zaten var, değiştirilmedi. O hesapta Sürdür ile açabilirsin."))
                     return
                 }
                 try manager.removeItem(at: handoff.destinationFile)
@@ -1493,7 +1493,7 @@ final class AppModel {
                     try manager.removeItem(at: handoff.destinationFolder)
                 }
             } else if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
-                notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kendi bir kaydı var; Lanes onu değiştirmez. O hesapta Sürdür ile açabilirsin."))
+                notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kaydı zaten var, değiştirilmedi. O hesapta Sürdür ile açabilirsin."))
                 return
             }
             try manager.copyItem(at: handoff.sourceFile, to: handoff.destinationFile)
@@ -1544,7 +1544,7 @@ final class AppModel {
         }
         if let folder, !profile.allowsFolder(folder) {
             let name = (folder as NSString).lastPathComponent
-            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(name) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
+            notice = Notice(kind: .warning, message: String(localized: "\(name), \(profile.name) hesabının izin verilen klasörlerinden biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin."))
             return nil
         }
         return .some(folder)
@@ -1736,7 +1736,7 @@ final class AppModel {
             if rules != linkRules { setLinkRules(rules) }
             let folderStays = FileManager.default.fileExists(atPath: paths.profileDirectory(for: profile.id).path)
             notice = Notice(kind: .info, message: folderStays
-                ? String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında duruyor, Claude kopyası Çöp Sepeti'nde.")
+                ? String(localized: "\(profile.name) kaldırıldı. Klasörü Lanes > Profiles altında, Claude kopyası Çöp Sepeti'nde.")
                 : String(localized: "\(profile.name) kaldırıldı. Claude kopyası Çöp Sepeti'nde."))
         } catch {
             notice = Notice(kind: .error, message: error.localizedDescription)
@@ -1797,7 +1797,7 @@ final class AppModel {
         if let standIn = LimitWatch.standIn(for: updated, in: library, now: Date()) {
             notice = Notice(kind: .info, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor. Bağlantılar bu sürede \(standIn.name) hesabına gidecek."))
         } else {
-            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor, ama aynı türde dinlenmeyen başka hesap yok. Bağlantılar yine bu hesaba gider."))
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor ama aynı türde dinlenmeyen başka hesap yok, bağlantılar yine bu hesaba gider."))
         }
     }
 
@@ -1948,7 +1948,7 @@ final class AppModel {
             frames[profile.id.rawValue] = SceneWindowFrame(x: frame.minX, y: frame.minY, width: frame.width, height: frame.height)
         }
         guard !frames.isEmpty else {
-            return String(localized: "\(scene.name) sahnesinde açık pencere yok. Önce sahnenin hesaplarını aç.")
+            return String(localized: "\(scene.name) sahnesinde açık pencere yok.")
         }
         scene.windowFrames = frames
         updateScene(scene)
@@ -2189,14 +2189,14 @@ final class AppModel {
             // Whatever the routing setting says: the next try of this link,
             // a sign-in above all, has to reach Claude directly.
             if claude == nil {
-                outcome = String(localized: "İletilmedi. Claude bulunamadığı için varsayılan geri verilemedi.")
-                notice = Notice(kind: .warning, message: String(localized: "Lanes'e gelen bir bağlantı iletilmedi. Claude bulunamadığı için bağlantılar Claude'a geri verilemedi. Claude'u kurduktan sonra yeniden dene."))
+                outcome = String(localized: "İletilmedi, Claude bulunamadı.")
+                notice = Notice(kind: .warning, message: String(localized: "Bir bağlantı iletilmedi çünkü Claude bulunamadı. Claude'u kurup yeniden dene."))
             } else if link?.mustNotForward == true {
                 outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
-                notice = Notice(kind: .warning, message: String(localized: "Bir giriş bağlantısı Lanes'e geldi. Bağlantıları yeniden Claude açacak, girişi bir kez daha dene."))
+                notice = Notice(kind: .warning, message: String(localized: "Giriş bağlantısı iletilmedi. Bağlantıları artık Claude açacak, girişi yeniden dene."))
             } else {
                 outcome = String(localized: "İletilmedi, varsayılan Claude'a geri verildi.")
-                notice = Notice(kind: .warning, message: String(localized: "Lanes'in tanımadığı bir bağlantı geldi ve iletilmedi. Bağlantıları yeniden Claude açacak, bağlantıyı bir kez daha aç."))
+                notice = Notice(kind: .warning, message: String(localized: "Tanınmayan bir bağlantı iletilmedi. Bağlantıları artık Claude açacak, bağlantıyı yeniden aç."))
             }
             Task {
                 await giveLinksBackToClaude()

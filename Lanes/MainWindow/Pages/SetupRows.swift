@@ -23,7 +23,7 @@ struct SetupClaudeAppRow: View {
             }
         } else {
             DSStatusRow(.error, title: Text("Claude uygulaması")) {
-                Text("Hesapları açmak için gerekiyor. İndirip Uygulamalar klasörüne taşıdığında Lanes onu kendiliğinden bulur.")
+                Text("Hesaplar için gerekli. Uygulamalar klasörüne kurduğunda Lanes onu bulur.")
             } accessory: {
                 HStack(spacing: DS.Space.s) {
                     DSIconButton("Yeniden Denetle", systemImage: "arrow.clockwise") {
@@ -107,7 +107,7 @@ struct SetupClaudeCodeRow: View {
             }
         } else {
             DSStatusRow(.warning, title: title) {
-                Text("\"Claude Code'u Terminalde Aç\", oturumlar ve kaldığın yerden sürdürme için gerekiyor. Kur'a basınca Lanes resmî kurulum betiğini claude.ai'dan indirip çalıştırır.")
+                Text("Terminal ve oturumlar için. \"Kur\" resmî kurulum betiğini claude.ai'dan indirip çalıştırır.")
             } accessory: {
                 installButton(String(localized: "Kur"))
             }
@@ -187,7 +187,7 @@ struct SetupAutomationRow: View {
     @ViewBuilder
     private var automationRow: some View {
         let title = Text("Otomasyon izni")
-        let purpose = String(localized: "Lanes'in açık bir hesabın penceresini öne getirebilmesi için.")
+        let purpose = String(localized: "Açık bir hesabın penceresini öne getirmek için.")
         switch setup.automation {
         case nil:
             DSStatusRow(.loading, title: title) {
@@ -195,11 +195,11 @@ struct SetupAutomationRow: View {
             }
         case .granted?:
             DSStatusRow(.ok, title: title) {
-                Text("Verilmiş. Lanes açık bir hesabın penceresini öne getirebilir.")
+                Text("Verilmiş.")
             }
         case .denied?:
             DSStatusRow(.error, title: title) {
-                Text("Kapalı. Sistem Ayarları > Gizlilik ve Güvenlik > Otomasyon'dan Lanes altında Claude'u açabilirsin.")
+                Text("Kapalı. Sistem Ayarları > Gizlilik ve Güvenlik > Otomasyon'dan açabilirsin.")
             } accessory: {
                 Button("Sistem Ayarları'nı Aç") {
                     NSWorkspace.shared.open(SetupLinks.automationSettings)
@@ -263,11 +263,11 @@ struct SetupAccessibilityRow: View {
         let title = Text("Erişilebilirlik izni")
         if setup.accessibilityGranted {
             DSStatusRow(.ok, title: title) {
-                Text("Verilmiş. Sekme çubuğu ve sahne pencerelerinin yerleşimi çalışabilir.")
+                Text("Verilmiş.")
             }
         } else {
             DSStatusRow(.warning, title: title) {
-                Text("Sekme çubuğu ve sahne pencerelerinin yerleşimi için gerekiyor. Sistem Ayarları'nda Lanes'i açınca bu satır kendiliğinden güncellenir.")
+                Text("Sekme çubuğu ve sahne pencerelerinin yerleşimi için.")
             } accessory: {
                 Button("İzin Ver") {
                     AccessibilityPermission.request()
@@ -297,7 +297,7 @@ struct SetupNotificationsRow: View {
             }
         case .notDetermined?:
             DSStatusRow(.info, title: title) {
-                Text("Ayarlar > Bildirimler'de açtığın olaylar için. macOS bir kez sorar.")
+                Text("Seçtiğin olaylar için. macOS bir kez sorar.")
             } accessory: {
                 Button("İzin İste") {
                     requestingNotifications = true
@@ -311,7 +311,7 @@ struct SetupNotificationsRow: View {
             }
         case .denied?:
             DSStatusRow(.warning, title: title) {
-                Text("Kapalı. Sistem Ayarları > Bildirimler'den Lanes'e izin verebilirsin.")
+                Text("Kapalı. Sistem Ayarları > Bildirimler'den açabilirsin.")
             } accessory: {
                 Button("Sistem Ayarları'nı Aç") {
                     NSWorkspace.shared.open(SetupLinks.notificationSettings)
@@ -320,7 +320,7 @@ struct SetupNotificationsRow: View {
             }
         case .authorized?, .provisional?:
             DSStatusRow(.ok, title: title) {
-                Text("Verilmiş. Hangi olaylarda bildirim geleceğini Ayarlar > Bildirimler'den seçebilirsin.")
+                Text("Verilmiş.")
             }
         default:
             DSStatusRow(.info, title: title) {
@@ -393,11 +393,11 @@ struct SetupGitRow: View {
         Group {
             if hasGit {
                 DSStatusRow(.ok, title: title) {
-                    Text("Kurulu. Worktree Fırlatıcı kullanılabilir.")
+                    Text("Kurulu.")
                 }
             } else {
                 DSStatusRow(.info, title: title) {
-                    Text("Yalnız Worktree Fırlatıcı için. Kur'a basınca macOS, Apple'ın kendi kurulum penceresini açar.")
+                    Text("Yalnız Worktree Fırlatıcı için. \"Kur\" Apple'ın kurulum penceresini açar.")
                 } accessory: {
                     HStack(spacing: DS.Space.s) {
                         DSIconButton("Yeniden Denetle", systemImage: "arrow.clockwise") {

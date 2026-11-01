@@ -19,12 +19,7 @@ struct TabSettings: View {
             } header: {
                 Text("Sekmeler")
             } footer: {
-                VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Ekranın üstünde Chrome'daki gibi ince bir sekme çubuğu açılır. Bir sekmeye tıklayınca o hesabın Claude penceresi çubuğun hemen altına, aynı genişlikte yerleşir ve öteki hesaplar gizlenir. Gizlenen hesaplar arkada açık kalır, geri dönünce oldukları gibi gelir. Çubuğu taşıyınca ya da boyutunu değiştirince Claude da onunla gider, Claude'un penceresini taşıyınca da çubuk onu izler.")
-                    Text("Sınırlar")
-                        .fontWeight(.semibold)
-                    Text("macOS, bir uygulamanın başka bir uygulamanın penceresini kendi içine almasına izin vermiyor. Bu yüzden her hesap yine kendi Claude penceresinde çalışır, Claude'un kendi pencere çerçevesi de görünür kalır. Tam ekrandaki ya da küçültülmüş bir pencereye dokunulmaz. Bir hesabın birden çok penceresi varsa öndeki yerleşir.")
-                }
+                Text("Öteki hesaplar gizlenir ama açık kalır. Tam ekrandaki ya da küçültülmüş pencerelere dokunulmaz.")
             }
             Section {
                 // One stable row: the state on the left, the request button
@@ -49,7 +44,8 @@ struct TabSettings: View {
                 Text("Erişilebilirlik izni")
             } footer: {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Claude'un penceresini taşımak ve boyutlandırmak için gerekiyor. Lanes bu izinle yalnız etkin hesabın Claude penceresinin yerine ve boyutuna dokunur. Pencerelerin içine, başlıklarına ya da yazdıklarına bakmaz. Sekmeli modu kapatınca izni Sistem Ayarları'ndan geri alabilirsin.")
+                    Text("Claude penceresini taşımak ve boyutlandırmak için gerekir. Sekmeli modu kapatınca izni geri alabilirsin.")
+                        .help("Lanes pencerelerin içine ve başlıklarına bakmaz. İzni Sistem Ayarları'ndan geri alabilirsin.")
                     Button("Sistem Ayarları'nı Aç") {
                         AccessibilityPermission.openSettings()
                     }

@@ -51,7 +51,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("lanes komut satırı aracı")
             } footer: {
-                Text("Terminalde lanes claude yazınca Claude Code, bulunduğun klasörün hesabıyla başlar, Lanes'in açtığı terminallerin dışında da. Hesap, bu klasördeki ya da üst klasörlerinden birindeki .lanes dosyasından, yoksa hesabın Claude Code sekmesindeki bağlı klasörlerden bulunur. Araç hangi hesabı kullandığını her seferinde yazar. Araç ~/.local/bin/lanes dosyasına kurulur. Terminal \"command not found\" derse bu klasörü PATH'e ekle: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zshrc. Araç yalnız hesap adlarını ve klasör yollarını tutan bir listeyi okur.")
+                Text("Terminal \"lanes\" komutunu bulamazsa ~/.local/bin klasörünü PATH'e ekle.")
             }
 
             Section {
@@ -70,7 +70,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("Claude Code bildirimleri")
             } footer: {
-                Text("Lanes'in başlattığı Claude Code oturumları (Terminalde Aç düğmeleri, Kestirmeler ve lanes claude) cevabını bitirince ya da devam etmek için iznini isteyince hesabın adıyla bir bildirim gelir. Bildirimdeki \"Terminale Git\" Terminal ya da iTerm2'de o oturumun sekmesini seçer. Lanes bunun için hesapların settings.json dosyasına dokunmaz: kendi klasöründeki bir ayar dosyasını Claude Code'a --settings ile verir. Kanca, Claude Code'un ona gönderdiği veriyi okumadan atar. Açtığında zaten çalışan oturumlar bildirim göndermez; onları yeniden başlat.")
+                Text("Yalnız Lanes'in başlattığı oturumlar bildirim gönderir. Bu ayarı açmadan önce başlamış oturumları yeniden başlat.")
             }
 
             Section {
@@ -82,8 +82,6 @@ struct IntegrationsPage: View {
                 .fixedSize()
             } header: {
                 Text("Kestirmeler ve Spotlight")
-            } footer: {
-                Text("Kestirmeler uygulamasında şu eylemler var: Claude Hesabını Aç, Claude Hesabını Kapat, Lanes Sahnesini Aç, Claude Code'u Başlat, Hesabı Dinlenmeye Al, Öndeki Claude Hesabı, Bugünkü Claude Süresi ve Claude Code Çalışan Hesaplar. Spotlight'ta Lanes yazınca da çıkarlar. Siri'ye \"Lanes ile Claude hesabı aç\" diyebilirsin.")
             }
 
             Section {
@@ -98,18 +96,14 @@ struct IntegrationsPage: View {
             } header: {
                 Text("lanes:// adresleri")
             } footer: {
-                VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("Raycast, Alfred, bir betik ya da bir bağlantı bu adreslerle Lanes'e iş verebilir. Adresler yalnız hesap ve sahne açar, pencere gösterir. Hiçbir şeyi silmez, kapatmaz ya da ayar değiştirmez, çünkü herhangi bir web sayfası da onları açabilir.")
-                    Text("Hesap adı yerine listedeki sırası da yazılabilir: lanes://open?account=2")
-                }
+                Text("Bu adresler yalnız hesap, sahne ve pencere açar; hiçbir şeyi silmez ya da değiştirmez.")
+                    .help("Hesap adı yerine sıra numarası da yazılabilir: lanes://open?account=2")
             }
 
             Section {
                 DSCodeBlock(text: cliExample)
             } header: {
                 Text("Komut satırı")
-            } footer: {
-                Text("Terminalden ya da bir betikten macOS'un open komutuyla.")
             }
         }
         .libraryForm()
@@ -138,7 +132,7 @@ struct IntegrationsPage: View {
         case .notInstalled: return String(localized: "Kurulu değil")
         case .installed: return String(localized: "Kurulu")
         case .outdated: return String(localized: "Eski sürüm kurulu")
-        case .foreign: return String(localized: "~/.local/bin/lanes başka bir programa ait, Lanes ona dokunmuyor")
+        case .foreign: return String(localized: "~/.local/bin/lanes başka bir programa ait")
         }
     }
 

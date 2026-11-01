@@ -51,7 +51,7 @@ struct AccountIdentityTab: View {
                     // which read as the account's real email.
                     VStack(alignment: .leading, spacing: DS.Space.s) {
                         Text("E-posta")
-                        TextField("E-posta", text: $email, prompt: Text("Bu hesapla giriş yaptığın adres (isteğe bağlı)"))
+                        TextField("E-posta", text: $email, prompt: Text("İsteğe bağlı"))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .focused($focusedField, equals: .email)
@@ -62,14 +62,15 @@ struct AccountIdentityTab: View {
                 Text("Claude hesabı")
             } footer: {
                 Text(model.claudeCodeAccounts[profile.id] == nil
-                     ? "Bu hesapla Claude Code'a giriş yapıldığında e-posta, ad ve kuruluş kendiliğinden buraya gelir. Lanes yalnız Claude Code'un hesap dosyasındaki bu üç alanı okur; giriş anahtarlarına ve Claude uygulamasının verilerine dokunmaz."
-                     : "Claude Code'un bu hesap için tuttuğu dosyadan alındı. Lanes yalnız e-posta, ad ve kuruluş alanlarını okur; giriş anahtarlarına ve Claude uygulamasının verilerine dokunmaz.")
+                     ? "Claude Code'a giriş yapılınca kendiliğinden dolar."
+                     : "Claude Code'un hesap dosyasından alındı.")
+                    .help("Lanes giriş anahtarlarına dokunmaz.")
             }
             Section {
                 let current = model.profile(withID: profile.id) ?? profile
                 if let wrong = model.identityMismatch(for: current) {
                     DSStatusRow(.error, title: Text("Beklenmeyen hesap: \(wrong)")) {
-                        Text("Bu hesabın Claude Code'u beklenen alan adlarından biriyle giriş yapmamış. Başka bir müşterinin ya da kişisel hesabın verisi bu hesaba karışabilir. Claude Code'da /logout ile çıkıp doğru adresle yeniden giriş yap.")
+                        Text("Başka bir hesabın verisi bu hesaba karışabilir. Claude Code'da /logout ile çıkıp doğru adresle giriş yap.")
                     }
                 } else if !current.expectedEmailDomains.isEmpty, model.claudeCodeAccounts[profile.id] != nil {
                     DSStatusRow(.ok, title: Text("Claude Code beklenen hesapla giriş yapmış"))
@@ -85,13 +86,13 @@ struct AccountIdentityTab: View {
             } header: {
                 Text("Kimlik Bekçisi")
             } footer: {
-                Text("Virgülle ayır. Bir alan adı alt alan adlarını da kapsar; @ içeren bir giriş yalnız o adresle eşleşir. Lanes, Claude Code bu hesapla başka bir adresle giriş yapmışsa kırmızı uyarı ve bildirim gösterir. Claude uygulamasının kendi girişini okuyamaz, yalnız Claude Code'unkini.")
+                Text("Virgülle ayır. Yalnız Claude Code'un girişi denetlenir, Claude uygulamasınınki değil.")
             }
             Section {
                 Button("Claude Ayarlarını Aç", action: openClaudeSettings)
                     .disabled(!model.isRunning(profile))
             } footer: {
-                Text("Claude'un ayarları bu hesabın kendi penceresinde açılır. Bunun için hesap açık olmalı.")
+                Text("Hesap açık olmalı.")
             }
             Section {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
@@ -103,7 +104,7 @@ struct AccountIdentityTab: View {
                         .focused($focusedField, equals: .note)
                 }
             } footer: {
-                Text("Yalnız hesapları birbirinden ayırman için, profiles.json dosyasında durur ve hiçbir yere gönderilmez.")
+                Text("Yalnız bu Mac'te durur, hiçbir yere gönderilmez.")
             }
             Section {
                 LabeledContent("Hesap türü", value: profile.accountClass.displayName)
@@ -199,8 +200,9 @@ struct AccountSecurityTab: View {
                 VStack(alignment: .leading, spacing: DS.Space.xs) {
                     if current.allowedFolders.isEmpty {
                         Text("Claude Code bu hesapla her klasörde açılabilir.")
+                    } else {
+                        Text("\"Klasörde Aç\" yalnız bu klasörlerde çalışır. Elle başlatılan claude komutu sınırlanmaz.")
                     }
-                    Text("Liste boş değilse Lanes, \"Klasörde Aç\" ile Claude Code'u yalnız bu klasörlerde ve alt klasörlerinde açar. Bir müşterinin hesabının başka projelere karışmaması için. Terminalde elle başlatılan claude komutunu sınırlamaz.")
                 }
             }
             Section {

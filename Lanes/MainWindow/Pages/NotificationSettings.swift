@@ -42,7 +42,7 @@ struct NotificationSettings: View {
             } header: {
                 Text("Bildirimler")
             } footer: {
-                Text("Bildirimlerde bağlantı, sohbet ya da hesabın içinden bir şey yer almaz. Yalnız hesabın adı ve olayın türü yazar.")
+                Text("Bildirimlerde yalnız hesabın adı ve olayın türü yazar.")
             }
             Section {
                 Picker("Bellek uyarısı", selection: $memoryAlert) {
@@ -55,7 +55,7 @@ struct NotificationSettings: View {
                     if value > 0 { Task { _ = await Notifier.requestPermission() } }
                 }
             } footer: {
-                Text("Açık hesapların Claude'ları birlikte bu kadar belleği geçince, en çok saatte bir bildirim gösterilir. Hesaplara göre günlük süre hatırlatması her hesabın Genel sekmesinde.")
+                Text("Açık Claude'ların toplam belleği bu sınırı geçince saatte en çok bir bildirim gösterilir.")
             }
         }
         .settingsForm()

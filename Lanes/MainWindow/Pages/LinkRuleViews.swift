@@ -50,7 +50,7 @@ struct SmartLinkRulesSection: View {
         } header: {
             Text("Akıllı kurallar")
         } footer: {
-            Text("Kurallar yukarıdan aşağı denenir; ilk uyan kural bağlantıyı alır. Hiçbiri uymazsa aşağıdaki tür kuralları geçerlidir. Kaynak uygulama, bağlantı geldiğinde önde olan uygulamadır. Açık bir odak filtresi hesap seçtiyse o önce gelir.")
+            Text("İlk uyan kural geçerlidir; hiçbiri uymazsa tür kuralları uygulanır. Açık bir odak filtresinin seçtiği hesap önce gelir.")
                 .font(DS.Typography.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -193,7 +193,7 @@ private struct LinkRuleEditor: View {
             } header: {
                 Text("Kaynak uygulama")
             } footer: {
-                caption("Bağlantıya tıkladığın uygulama. Hiçbiri eklenmezse her uygulamadan gelen bağlantıya uyar.")
+                caption("Hiçbiri eklenmezse her uygulamaya uyar.")
             }
             Section {
                 Toggle("Yalnız belli saatlerde", isOn: $usesWindow)
@@ -204,7 +204,7 @@ private struct LinkRuleEditor: View {
                 }
             } footer: {
                 if usesWindow {
-                    caption("Bitiş başlangıçtan önceyse gece yarısını geçer (22:00–02:00). Günler, aralığın başladığı gündür; hiçbiri seçilmezse her gün.")
+                    caption("Gün seçilmezse her gün uyar. 22:00–02:00 gibi bir aralık gece yarısını geçer.")
                 }
             }
         }
