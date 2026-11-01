@@ -30,6 +30,8 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsMagnification = true
+        // No white flash behind the page while it loads, in dark mode too.
+        webView.underPageBackgroundColor = .windowBackgroundColor
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1120, height: 780),
@@ -66,8 +68,13 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
         guard let window else { return }
         window.title = profile.name
         window.tab.title = profile.name
-        let badge = NSHostingView(rootView: MonogramView(profile: profile, size: 14))
-        badge.frame = NSRect(x: 0, y: 0, width: 16, height: 16)
+        let badge = NSHostingView(rootView: MonogramView(profile: profile, size: DS.Monogram.tiny))
+        // The tab bar lays accessories out with Auto Layout.
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            badge.widthAnchor.constraint(equalToConstant: DS.Monogram.tiny),
+            badge.heightAnchor.constraint(equalToConstant: DS.Monogram.tiny),
+        ])
         window.tab.accessoryView = badge
     }
 
@@ -149,7 +156,16 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
         panel.allowsMultipleSelection = parameters.allowsMultipleSelection
         panel.canChooseDirectories = parameters.allowsDirectories
         panel.canChooseFiles = true
-        return panel.runModal() == .OK ? panel.urls : nil
+        guard let window else {
+            return panel.runModal() == .OK ? panel.urls : nil
+        }
+        // A sheet on this account's window, so other tabs stay usable.
+        let response = await withCheckedContinuation { (continuation: CheckedContinuation<NSApplication.ModalResponse, Never>) in
+            panel.beginSheetModal(for: window) { result in
+                continuation.resume(returning: result)
+            }
+        }
+        return response == .OK ? panel.urls : nil
     }
 
     func webView(_ webView: WKWebView, decideMediaCapturePermissionsFor origin: WKSecurityOrigin, initiatedBy frame: WKFrameInfo, type: WKMediaCaptureType) async -> WKPermissionDecision {
@@ -160,7 +176,8 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo) async {
         let alert = NSAlert()
         alert.messageText = message
-        alert.runModal()
+        alert.informativeText = frame.securityOrigin.host
+        _ = await presentSheet(alert)
     }
 
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo) async -> Bool {
@@ -168,7 +185,19 @@ final class WebAccountWindowController: NSWindowController, NSWindowDelegate, WK
         alert.messageText = message
         alert.addButton(withTitle: String(localized: "Tamam"))
         alert.addButton(withTitle: String(localized: "Vazgeç"))
-        return alert.runModal() == .alertFirstButtonReturn
+        alert.informativeText = frame.securityOrigin.host
+        return await presentSheet(alert) == .alertFirstButtonReturn
+    }
+
+    /// Shows a page's alert as a sheet on this account's window, so it
+    /// blocks only this tab. Falls back to a modal alert without a window.
+    private func presentSheet(_ alert: NSAlert) async -> NSApplication.ModalResponse {
+        guard let window else { return alert.runModal() }
+        return await withCheckedContinuation { (continuation: CheckedContinuation<NSApplication.ModalResponse, Never>) in
+            alert.beginSheetModal(for: window) { response in
+                continuation.resume(returning: response)
+            }
+        }
     }
 
     // MARK: Downloads

@@ -2,18 +2,17 @@ import LanesCore
 import SwiftUI
 
 /// Faz 0 and Faz 0.5: the checks, each with its steps, a helper that does the
-/// work where Lanes can, and a place to record what happened. The report at
-/// the bottom is what the user pastes back into the project.
+/// work where Lanes can, and a place to record what happened. The report the
+/// toolbar copies is what the user pastes back into the project.
 struct ValidationPage: View {
     @Environment(AppModel.self) private var model
     @State private var copiedReport = false
+    /// Shows the checkmark on the toolbar button for a moment after a copy.
+    @State private var justCopied = false
 
     var body: some View {
         let validation = model.validation
-        HStack(spacing: 0) {
-            // The report button sits below the list, not in its bottom safe
-            // area inset: with the inset the list asks for its full height and
-            // the page grows taller than the window (856 pt at any size).
+        HSplitView {
             VStack(spacing: 0) {
                 List(selection: checkBinding) {
                     ForEach(ValidationPhase.allCases) { phase in
@@ -25,51 +24,75 @@ struct ValidationPage: View {
                             }
                         } header: {
                             Text("\(phase.title) · \(validation.completedCount(in: phase))/\(checks.count) deneme kaydedildi")
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                         }
                     }
                 }
-                // A list of checks next to the detail, not a second sidebar:
-                // no sidebar material, so the list, the footer and the page
-                // share the window background.
-                .listStyle(.inset)
-                .scrollContentBackground(.hidden)
-                Divider()
-                VStack(alignment: .leading, spacing: 6) {
-                    Button {
-                        validation.copyReport()
-                        copiedReport = true
-                    } label: {
-                        Label("Raporu Kopyala", systemImage: "doc.on.clipboard")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    Text(copiedReport
-                         ? String(localized: "Rapor panoya kopyalandı. Projedeki konuşmaya yapıştırman yeterli.")
-                         : String(localized: "Rapor sonuçları, sürüm bilgilerini ve kayıtları içerir. Kayıtlarda dosya yolları ve hesap adların da var. Ev klasörün ~ olarak yazılır."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                .listStyle(.sidebar)
+                // The note below the list, not in its safe area inset: with
+                // the inset the list asks for its full height and the page
+                // grows taller than the window. Both texts are laid out, so
+                // copying does not change the note's height.
+                ZStack(alignment: .topLeading) {
+                    Text(Self.copiedNote).hidden()
+                    Text(Self.reportNote).hidden()
+                    Text(copiedReport ? Self.copiedNote : Self.reportNote)
                 }
-                .padding(12)
+                .font(DS.Typography.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(DS.Space.m)
             }
-            .frame(minWidth: 220, idealWidth: 290, maxWidth: 290)
-            Divider()
-            ScrollView {
-                ForEach([validation.saveProblem, validation.fileProblem].compactMap { $0 }, id: \.self) { problem in
-                    Label(problem, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding([.horizontal, .top], 24)
-                        .frame(maxWidth: 720, alignment: .leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minWidth: DS.Metrics.paneListMin, idealWidth: 260, maxWidth: 300)
+
+            DSPage {
+                ForEach(problems, id: \.self) { problem in
+                    DSNoticeRow(kind: .warning, message: problem)
                 }
                 CheckDetail(check: ValidationCheck.check(validation.selectedCheck))
                     .id(validation.selectedCheck)
-                    .padding(24)
-                    .frame(maxWidth: 720, alignment: .leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(minWidth: DS.Metrics.paneContentMin, maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    validation.copyReport()
+                    copiedReport = true
+                    justCopied = true
+                } label: {
+                    Label("Raporu Kopyala", systemImage: justCopied ? "checkmark" : "doc.on.clipboard")
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .help("Raporu Kopyala")
             }
         }
+        .task(id: justCopied) {
+            guard justCopied else { return }
+            try? await Task.sleep(for: .seconds(1.5))
+            justCopied = false
+        }
+    }
+
+    private static var reportNote: String {
+        String(localized: "Rapor sonuçları, sürüm bilgilerini ve kayıtları içerir. Kayıtlarda dosya yolları ve hesap adların da var. Ev klasörün ~ olarak yazılır.")
+    }
+
+    private static var copiedNote: String {
+        String(localized: "Rapor panoya kopyalandı. Projedeki konuşmaya yapıştırman yeterli.")
+    }
+
+    /// The save and file problems, each once.
+    private var problems: [String] {
+        [model.validation.saveProblem, model.validation.fileProblem]
+            .compactMap { $0 }
+            .reduce(into: [String]()) { unique, problem in
+                if !unique.contains(problem) {
+                    unique.append(problem)
+                }
+            }
     }
 
     private var checkBinding: Binding<ValidationCheckID?> {
@@ -80,31 +103,60 @@ struct ValidationPage: View {
     }
 }
 
+/// A titled group on the Validation page: a section header over a soft
+/// card. Used instead of GroupBox by every check's steps, helper and result.
+struct ValidationCard<Content: View>: View {
+    private let title: LocalizedStringKey
+    private let content: Content
+
+    init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.headerToContent) {
+            DSSectionHeader(title)
+            DSCard {
+                content
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
 private struct CheckRow: View {
     let check: ValidationCheck
     let outcome: ValidationOutcome
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: DS.Space.s) {
             OutcomeIcon(outcome: outcome)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
                 Text(verbatim: "\(check.label). \(check.title)")
                     .lineLimit(2)
+                    .truncationMode(.tail)
                 Text(check.isDeferred ? String(localized: "\(check.mode.displayName) · Sonraya kalabilir") : check.mode.displayName)
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DS.Space.xxs)
     }
 }
 
+/// A check's outcome as a symbol in a fixed slot, so titles line up.
 struct OutcomeIcon: View {
     let outcome: ValidationOutcome
 
     var body: some View {
         Image(systemName: symbol)
+            .symbolRenderingMode(.hierarchical)
             .foregroundStyle(color)
+            .contentTransition(.symbolEffect(.replace))
+            .frame(width: DS.Metrics.statusIcon, height: DS.Metrics.statusIcon)
             .accessibilityLabel(Text(outcome.reportLabel))
     }
 
@@ -120,11 +172,11 @@ struct OutcomeIcon: View {
 
     private var color: Color {
         switch outcome {
-        case .notRun: return .secondary
-        case .passed: return .green
-        case .failed: return .red
-        case .partial: return .orange
-        case .skipped: return .gray
+        case .notRun: return DS.Palette.inactive
+        case .passed: return DS.Palette.success
+        case .failed: return DS.Palette.danger
+        case .partial: return DS.Palette.warning
+        case .skipped: return DS.Palette.inactive
         }
     }
 }
@@ -147,64 +199,72 @@ private struct CheckDetail: View {
     var body: some View {
         let validation = model.validation
         let result = validation.result(for: check.id)
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DS.Space.section) {
+            VStack(alignment: .leading, spacing: DS.Space.xs + 2) {
                 Text(verbatim: "\(check.phase.title) · Deneme \(check.label)")
-                    .font(.caption.weight(.semibold))
+                    .font(DS.Typography.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(check.title)
-                    .font(.title2.weight(.semibold))
+                    .font(DS.Typography.heroTitle)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(check.question)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            GroupBox("Adımlar") {
-                VStack(alignment: .leading, spacing: 6) {
+            ValidationCard("Adımlar") {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
                     ForEach(Array(check.steps.enumerated()), id: \.offset) { index, step in
-                        Text(verbatim: "\(index + 1). \(step)")
-                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                            Text(verbatim: "\(index + 1).")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                            Text(verbatim: step)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(4)
             }
 
             assistant
 
-            GroupBox("Sonuç") {
-                VStack(alignment: .leading, spacing: 10) {
+            ValidationCard("Sonuç") {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
                     // Five segments need about 510 pt, more than the page has
                     // in a default-sized window, so a narrow page gets a menu.
                     ViewThatFits(in: .horizontal) {
                         outcomePicker
                             .pickerStyle(.segmented)
+                            .fixedSize()
                         outcomePicker
                             .pickerStyle(.menu)
                             .fixedSize()
                     }
                     Text("Gördüklerin")
-                        .font(.caption)
+                        .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                     TextEditor(text: $notes)
                         .font(.body)
-                        .frame(minHeight: 70)
                         .scrollContentBackground(.hidden)
-                        .padding(6)
-                        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                        .frame(minHeight: 80, maxHeight: 200)
+                        .padding(DS.Space.s)
+                        .background(DS.Palette.codeFill, in: RoundedRectangle(cornerRadius: DS.Radius.inner, style: .continuous))
                         .onChange(of: notes) { _, newValue in
                             validation.setNotes(newValue, for: check.id)
                         }
                 }
-                .padding(4)
             }
 
             if !result.evidence.isEmpty {
-                GroupBox("Kayıtlar") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(result.evidence.joined(separator: "\n"))
-                            .font(.system(.caption, design: .monospaced))
+                ValidationCard("Kayıtlar") {
+                    VStack(alignment: .leading, spacing: DS.Space.s) {
+                        Text(verbatim: result.evidence.joined(separator: "\n"))
+                            .font(DS.Typography.path)
                             .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Button("Bu denemenin kayıtlarını sil") {
                             validation.clear(check.id)
@@ -212,7 +272,6 @@ private struct CheckDetail: View {
                         }
                         .controlSize(.small)
                     }
-                    .padding(4)
                 }
             }
         }

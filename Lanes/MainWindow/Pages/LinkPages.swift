@@ -14,31 +14,34 @@ struct AccountMapPage: View {
                     get: { isRouting },
                     set: { model.setLinkRouting($0) }
                 ))
-                Text("Açıkken başka uygulamalardan gelen claude:// bağlantıları, aşağıdaki kurallara göre seçilen hesabın Claude'unda açılır. Hesap kapalıysa önce açılır. Giriş, OAuth ve Lanes'in tanımadığı bağlantılar hiçbir zaman yönlendirilmez: Lanes onları bırakır ve varsayılanı birkaç dakikalığına Claude'a geri verir, sen girişi bitirebilesin diye.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            } footer: {
+                footerText("Açıkken başka uygulamalardan gelen claude:// bağlantıları, aşağıdaki kurallara göre seçilen hesabın Claude'unda açılır. Hesap kapalıysa önce açılır. Giriş, OAuth ve Lanes'in tanımadığı bağlantılar hiçbir zaman yönlendirilmez: Lanes onları bırakır ve varsayılanı birkaç dakikalığına Claude'a geri verir, sen girişi bitirebilesin diye.")
             }
             Section {
+                // Each picker is disabled on its own, so the label and the
+                // value both dim while routing is off and none can be opened.
                 Picker("Kural yoksa", selection: binding(nil)) {
                     targetOptions
                 }
+                .pickerStyle(.menu)
+                .disabled(!isRouting)
                 ForEach(LinkRules.LinkKind.allCases, id: \.self) { kind in
                     Picker(kind.title, selection: binding(kind)) {
                         Text("Genel kurala uy").tag(Optional<LinkRules.Target>.none)
                         targetOptions
                     }
+                    .pickerStyle(.menu)
+                    .disabled(!isRouting)
                 }
             } header: {
                 Text("Kurallar")
             } footer: {
-                Text("\"Öndeki hesap\", en son öne gelen hesabın Claude'udur. Hiçbiri öne gelmediyse bağlantı Claude uygulamasına gider.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                footerText("\"Öndeki hesap\", en son öne gelen hesabın Claude'udur. Hiçbiri öne gelmediyse bağlantı Claude uygulamasına gider.")
             }
-            .disabled(!isRouting)
+            .foregroundStyle(isRouting ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
         }
-        .formStyle(.grouped)
+        .libraryForm()
+        .animation(DS.Motion.standard, value: isRouting)
     }
 
     @ViewBuilder
@@ -47,6 +50,14 @@ struct AccountMapPage: View {
         ForEach(model.library.profiles) { profile in
             Text(profile.name).tag(Optional(LinkRules.Target.profile(profile.id)))
         }
+    }
+
+    private func footerText(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .font(DS.Typography.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// nil kind edits the fallback, which always has a value.
@@ -87,39 +98,47 @@ struct LinksPage: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        if model.receivedLinks.isEmpty {
-            ContentUnavailableView {
-                Label("Henüz bağlantı gelmedi", systemImage: Destination.links.symbol)
-            } description: {
-                Text(model.isLinkRoutingOn
-                     ? "Başka bir uygulamadan bir claude:// bağlantısı açıldığında burada türünü ve hangi hesaba gittiğini görürsün."
-                     : "Bağlantı yönlendirme kapalı. Hesap Haritası'ndan açabilirsin.")
+        // The table always exists; the empty state lies over it.
+        Table(model.receivedLinks) {
+            TableColumn("Saat") { link in
+                Text(link.receivedAt.formatted(date: .omitted, time: .standard))
+                    .monospacedDigit()
+                    .lineLimit(1)
             }
-        } else {
-            Table(model.receivedLinks) {
-                TableColumn("Saat") { link in
-                    Text(link.receivedAt.formatted(date: .omitted, time: .standard))
-                        .monospacedDigit()
-                }
-                .width(80)
-                TableColumn("Tür") { link in
-                    Text(link.kind)
-                }
-                TableColumn("Hesap") { link in
-                    if let id = link.target, let profile = model.profile(withID: id) {
-                        HStack(spacing: 6) {
-                            MonogramView(profile: profile, size: 16)
-                            Text(profile.name)
-                        }
-                    } else {
-                        Text("—").foregroundStyle(.secondary)
-                    }
-                }
-                TableColumn("Sonuç") { link in
-                    Text(link.outcome)
+            .width(min: 70, ideal: 90)
+            TableColumn("Tür") { link in
+                Text(link.kind)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(link.kind)
+            }
+            TableColumn("Hesap") { link in
+                if let id = link.target, let profile = model.profile(withID: id) {
+                    DSAccountLabel(profile: profile, size: DS.Monogram.tiny)
+                } else {
+                    Text("—")
                         .foregroundStyle(.secondary)
                 }
             }
+            TableColumn("Sonuç") { link in
+                Text(link.outcome)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(link.outcome)
+            }
+        }
+        .tableStyle(.inset)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .opacity(model.receivedLinks.isEmpty ? 0 : 1)
+        .dsEmptyState(model.receivedLinks.isEmpty) {
+            DSEmptyState(
+                "Henüz bağlantı gelmedi",
+                systemImage: Destination.links.symbol,
+                description: Text(model.isLinkRoutingOn
+                     ? "Başka bir uygulamadan bir claude:// bağlantısı açıldığında burada türünü ve hangi hesaba gittiğini görürsün."
+                     : "Bağlantı yönlendirme kapalı. Hesap Haritası'ndan açabilirsin.")
+            )
         }
     }
 }

@@ -18,6 +18,8 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     private let router: WindowRouter
     private let statusItem: NSStatusItem
     private var panel: CommandPanel?
+    /// Shared with the panel's SwiftUI view: list height cap and openings.
+    private let panelState: CommandPanelState
     /// When the panel closed because the user clicked the icon, that same click
     /// must not reopen it.
     private var lastClosed = Date.distantPast
@@ -66,6 +68,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         self.model = model
         self.router = router
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        self.panelState = CommandPanelState()
         super.init()
 
         if let button = statusItem.button {
@@ -179,10 +182,15 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             profile.color.nsColor.setFill()
             circle.fill()
             let font = NSFont.systemFont(ofSize: 10, weight: .bold)
-            let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.white]
+            let foreground: NSColor = profile.color.isLightSwatch ? NSColor.black.withAlphaComponent(0.78) : NSColor.white
+            let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: foreground]
             let text = NSAttributedString(string: profile.monogram, attributes: attributes)
             let textSize = text.size()
-            text.draw(at: NSPoint(x: rect.midX - textSize.width / 2, y: rect.midY - textSize.height / 2))
+            // Centre the capital letter, not the whole line box: the
+            // baseline sits half a cap height below the middle, and the
+            // drawing origin sits one descender below the baseline.
+            let baseline = rect.midY - font.capHeight / 2
+            text.draw(at: NSPoint(x: rect.midX - textSize.width / 2, y: baseline + font.descender))
             return true
         }
         image.isTemplate = false
@@ -262,6 +270,8 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let panel = self.panel ?? makePanel()
         self.panel = panel
         model.refreshInstances()
+        panelState.maxListHeight = maxListHeight()
+        panelState.presentation += 1
         position(panel)
         panel.makeKeyAndOrderFront(nil)
         lastShown = Date()
@@ -288,7 +298,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     }
 
     private func makePanel() -> CommandPanel {
-        let root = CommandPanelView(onClose: { [weak self] in self?.closePanel() })
+        let root = CommandPanelView(state: panelState, onClose: { [weak self] in self?.closePanel() })
             .environment(model)
             .environment(router)
         let hosting = NSHostingController(rootView: root)
@@ -299,16 +309,38 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         return panel
     }
 
+    /// Room the panel's pinned parts take (header, search, footer,
+    /// dividers), left out of the list's height cap.
+    private static let panelChromeHeight: CGFloat = 150
+
+    /// The screen the status item is on.
+    private var statusItemScreen: NSScreen? {
+        statusItem.button?.window?.screen ?? NSScreen.main
+    }
+
+    /// How tall the accounts and scenes list may get before it scrolls.
+    private func maxListHeight() -> CGFloat {
+        let visibleHeight = statusItemScreen?.visibleFrame.height ?? 800
+        return max(visibleHeight * DS.Panel.maxHeightFraction - Self.panelChromeHeight, DS.Monogram.panel * 3)
+    }
+
+    /// Puts the panel under the icon. The top edge stays anchored there
+    /// afterwards: CommandPanel keeps it when the SwiftUI content changes
+    /// height (a notice, a search, a wrapping line).
     private func position(_ panel: CommandPanel) {
         guard let button = statusItem.button, let buttonWindow = button.window else { return }
         let buttonFrame = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         let visible = (buttonWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
+        panel.anchoredTop = buttonFrame.minY - 6
+        panel.minimumBottom = visible.minY + 8
         panel.contentViewController?.view.layoutSubtreeIfNeeded()
-        let size = panel.contentViewController?.view.fittingSize ?? NSSize(width: 360, height: 400)
-        var x = buttonFrame.midX - size.width / 2
-        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
+        let size = panel.contentViewController?.view.fittingSize ?? panel.frame.size
+        let width = max(size.width, DS.Panel.width)
+        var x = buttonFrame.midX - width / 2
+        x = min(max(x, visible.minX + 8), visible.maxX - width - 8)
         let y = buttonFrame.minY - size.height - 6
-        panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
+        panel.setFrame(NSRect(x: x, y: y, width: width, height: size.height), display: true)
+        panel.invalidateShadow()
     }
 
     private func showContextMenu() {
@@ -463,6 +495,18 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         closePanel()
     }
+
+    /// The panel follows its SwiftUI content's height. Keep the top edge
+    /// under the icon (in case AppKit resized without going through
+    /// `setFrame(_:display:)`) and redraw the shadow for the new shape.
+    func windowDidResize(_ notification: Notification) {
+        guard let panel, (notification.object as? NSWindow) === panel else { return }
+        let anchored = panel.anchoredFrame(for: panel.frame)
+        if anchored.origin != panel.frame.origin {
+            panel.setFrameOrigin(anchored.origin)
+        }
+        panel.invalidateShadow()
+    }
 }
 
 #if compiler(>=6.4)
@@ -497,7 +541,7 @@ extension StatusItemController: @MainActor NSStatusItemExpandedInterfaceDelegate
 final class CommandPanel: NSPanel {
     init(content: NSViewController) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 400),
+            contentRect: NSRect(x: 0, y: 0, width: DS.Panel.width, height: DS.Panel.width),
             styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: true
@@ -517,6 +561,30 @@ final class CommandPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    /// Screen y of the panel's top edge, set each time it is positioned.
+    /// The content view controller resizes the window as the SwiftUI height
+    /// changes, and AppKit keeps the bottom edge; this keeps the top instead.
+    var anchoredTop: CGFloat?
+    /// Lowest screen y the bottom edge may reach.
+    var minimumBottom: CGFloat?
+
+    /// `rect` moved so its top sits at `anchoredTop`, and never below
+    /// `minimumBottom`.
+    func anchoredFrame(for rect: NSRect) -> NSRect {
+        var frame = rect
+        if let anchoredTop {
+            frame.origin.y = anchoredTop - frame.height
+        }
+        if let minimumBottom {
+            frame.origin.y = max(frame.origin.y, minimumBottom)
+        }
+        return frame
+    }
+
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(anchoredFrame(for: frameRect), display: flag)
+    }
 
     /// Escape closes the panel.
     var onCancel: (() -> Void)?

@@ -9,39 +9,49 @@ struct ScenesPage: View {
     @State private var isAdding = false
 
     var body: some View {
-        Group {
-            if model.library.scenes.isEmpty {
-                ContentUnavailableView {
-                    Label("Henüz sahne yok", systemImage: Destination.scenes.symbol)
-                } description: {
-                    Text("Sahne, birlikte açtığın hesapların kayıtlı listesi. Örneğin sabahları İş ve Müşteri hesaplarını tek tıkla açabilirsin.")
-                } actions: {
-                    Button("Sahne Oluştur") { isAdding = true }
-                        .buttonStyle(.borderedProminent)
-                }
-            } else {
-                Form {
-                    Section {
-                        ForEach(model.library.scenes) { scene in
-                            SceneRow(scene: scene) { editing = scene }
-                        }
-                    } footer: {
-                        Text("Hesaplar sırayla açılır, sondaki öne gelir. Bir sahneye kısayol vermek için Ayarlar > Kısayollar.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+        // One Form that always exists; the empty state lies over it, so the
+        // first or last scene animates in and out instead of swapping roots.
+        Form {
+            if !model.library.scenes.isEmpty {
+                Section {
+                    ForEach(model.library.scenes) { scene in
+                        SceneRow(scene: scene) { editing = scene }
                     }
-                    Section {
-                        Button {
-                            isAdding = true
-                        } label: {
-                            Label("Sahne Oluştur", systemImage: "plus")
-                        }
+                } footer: {
+                    VStack(alignment: .leading, spacing: DS.Space.xs) {
+                        Text("Hesaplar sırayla açılır, sondaki öne gelir. Bir sahneye kısayol vermek için Ayarlar > Kısayollar.")
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         Button("Kısayolları Ayarla…") {
                             router.showSettings(.shortcuts)
                         }
+                        .buttonStyle(.link)
                     }
+                    .font(DS.Typography.caption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .formStyle(.grouped)
+            }
+        }
+        .libraryForm()
+        .dsEmptyState(model.library.scenes.isEmpty) {
+            DSEmptyState(
+                "Henüz sahne yok",
+                systemImage: Destination.scenes.symbol,
+                description: Text("Sahne, birlikte açtığın hesapların kayıtlı listesi. Örneğin sabahları İş ve Müşteri hesaplarını tek tıkla açabilirsin.")
+            ) {
+                Button("Sahne Oluştur") { isAdding = true }
+            }
+        }
+        .animation(DS.Motion.standard, value: model.library.scenes.isEmpty)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isAdding = true
+                } label: {
+                    Label("Sahne Oluştur", systemImage: "plus")
+                }
+                .help("Sahne Oluştur")
+                .dsPrimaryAction()
             }
         }
         .sheet(isPresented: $isAdding) {
@@ -60,35 +70,49 @@ private struct SceneRow: View {
 
     var body: some View {
         let profiles = scene.profiles(in: model.library)
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+        HStack(alignment: .center, spacing: DS.Space.m) {
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
                     Text(scene.name)
-                        .font(.body.weight(.medium))
+                        .font(DS.Typography.rowTitle.weight(.medium))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .layoutPriority(1)
                     if let shortcut = model.shortcuts.shortcut(for: .scene(scene.id)) {
-                        Text(shortcut.description)
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                        DSShortcutHint(text: shortcut.description)
                     }
                 }
-                HStack(spacing: -4) {
-                    ForEach(profiles) { profile in
-                        MonogramView(profile: profile, size: 20, isRunning: model.isRunning(profile))
-                    }
+                if !profiles.isEmpty {
+                    SceneAvatarStrip(profiles: profiles)
                 }
                 Text(subtitle(profiles))
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(subtitle(profiles))
             }
-            Spacer()
-            Button("Düzenle", action: onEdit)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            DSIconButton("Düzenle", systemImage: "pencil", action: onEdit)
+
             Button("Aç") {
                 model.open(scene)
             }
-            .buttonStyle(.borderedProminent)
+            .dsPrimaryAction()
+            .controlSize(.small)
+            .fixedSize()
             .disabled(profiles.isEmpty)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DS.Space.xxs)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("Aç") {
+                model.open(scene)
+            }
+            .disabled(profiles.isEmpty)
+            Button("Düzenle", action: onEdit)
+        }
     }
 
     private func subtitle(_ profiles: [Profile]) -> String {
@@ -98,9 +122,41 @@ private struct SceneRow: View {
     }
 }
 
+/// Overlapping monograms, capped so a long scene never pushes the buttons
+/// out of the row; the rest shows as "+N".
+private struct SceneAvatarStrip: View {
+    @Environment(AppModel.self) private var model
+    let profiles: [Profile]
+
+    var body: some View {
+        let shown = Array(profiles.prefix(DS.Panel.maxStackedAvatars))
+        let extra = profiles.count - shown.count
+        HStack(spacing: -DS.Space.xs) {
+            ForEach(shown) { profile in
+                MonogramView(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
+            }
+            if extra > 0 {
+                Text(verbatim: "+\(extra)")
+                    .font(DS.Typography.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, DS.Space.s)
+                    .frame(height: DS.Monogram.small)
+                    .background(DS.Palette.hoverFill, in: Capsule())
+                    .padding(.leading, DS.Space.s)
+            }
+        }
+    }
+}
+
 /// Creates or edits a scene: its name, its accounts in order, and whether it
 /// opens with Lanes.
 private struct SceneEditor: View {
+    private enum Field: Hashable {
+        case name
+    }
+
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let scene: ProfileScene?
@@ -108,65 +164,77 @@ private struct SceneEditor: View {
     @State private var selected: [ProfileID] = []
     @State private var opensWhenLanesStarts = false
     @State private var isConfirmingRemoval = false
+    @FocusState private var focus: Field?
 
     var body: some View {
-        VStack(spacing: 0) {
-            Form {
-                Section {
-                    TextField("Ad", text: $name, prompt: Text("Örneğin İş"))
-                }
-                Section {
-                    ForEach(model.library.profiles) { profile in
-                        Toggle(isOn: binding(for: profile.id)) {
-                            HStack(spacing: 8) {
-                                MonogramView(profile: profile, size: 20)
-                                Text(profile.name)
-                                if let position = selected.firstIndex(of: profile.id) {
-                                    Text("\(position + 1).")
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+        Form {
+            Section {
+                TextField("Ad", text: $name, prompt: Text("Örneğin İş"))
+                    .multilineTextAlignment(.leading)
+                    .focused($focus, equals: .name)
+            }
+            Section {
+                ForEach(model.library.profiles) { profile in
+                    Toggle(isOn: binding(for: profile.id)) {
+                        HStack(spacing: DS.Space.s) {
+                            DSAccountLabel(profile: profile)
+                                .layoutPriority(1)
+                            Spacer(minLength: DS.Space.s)
+                            orderBadge(for: profile.id)
                         }
                     }
-                } header: {
-                    Text("Hesaplar")
-                } footer: {
-                    Text("Seçtiğin sırayla açılır.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
-                Section {
-                    Toggle("Lanes açılınca bu sahneyi aç", isOn: $opensWhenLanesStarts)
-                    Text("Ayarlar > Genel'de \"Oturum açıldığında Lanes'i başlat\" açıksa sahne her oturum açılışında da açılır.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if let scene {
-                    SceneLayoutSection(sceneID: scene.id)
-                }
+            } header: {
+                Text("Hesaplar")
+            } footer: {
+                Text("Seçtiğin sırayla açılır.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .formStyle(.grouped)
-            HStack {
-                if scene != nil {
-                    Button("Sahneyi Sil", role: .destructive) {
+            Section {
+                Toggle("Lanes açılınca bu sahneyi aç", isOn: $opensWhenLanesStarts)
+            } footer: {
+                Text("Ayarlar > Genel'de \"Oturum açıldığında Lanes'i başlat\" açıksa sahne her oturum açılışında da açılır.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let scene {
+                SceneLayoutSection(sceneID: scene.id)
+            }
+        }
+        .formStyle(.grouped)
+        .animation(DS.Motion.standard, value: selected)
+        // A new scene starts in the name field; an existing one opens with
+        // nothing focused, so its name is not selected under the cursor.
+        .defaultFocus($focus, scene == nil ? Field.name : nil)
+        .toolbar {
+            if scene != nil {
+                ToolbarItem(placement: .destructiveAction) {
+                    Button(role: .destructive) {
                         isConfirmingRemoval = true
+                    } label: {
+                        Text("Sahneyi Sil")
+                            .foregroundStyle(DS.Palette.danger)
                     }
                 }
-                Spacer()
-                Button("Vazgeç") { dismiss() }
+            }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Vazgeç", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
+            }
+            ToolbarItem(placement: .confirmationAction) {
                 Button(scene == nil ? "Oluştur" : "Kaydet") {
                     save()
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(selected.isEmpty)
+                .disabled(!canSave)
             }
-            .padding()
         }
-        .frame(width: 420, height: 600)
+        .presentationSizing(.form)
         .onAppear {
             if let scene {
                 name = scene.name
@@ -182,6 +250,33 @@ private struct SceneEditor: View {
         } message: {
             Text("Hesaplar silinmez, yalnız bu liste ve kısayolu gider.")
         }
+    }
+
+    /// A new scene needs a name; an edited one keeps its old name when the
+    /// field is left empty.
+    private var canSave: Bool {
+        guard !selected.isEmpty else { return false }
+        if scene == nil {
+            return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return true
+    }
+
+    /// The opening order ("1.", "2." …) in a slot as wide as "00.", so the
+    /// label does not move when a toggle flips.
+    private func orderBadge(for id: ProfileID) -> some View {
+        ZStack(alignment: .trailing) {
+            Text(verbatim: "00.")
+                .hidden()
+            if let position = selected.firstIndex(of: id) {
+                Text("\(position + 1).")
+                    .transition(.opacity)
+            }
+        }
+        .font(DS.Typography.shortcut)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .fixedSize()
     }
 
     private func binding(for id: ProfileID) -> Binding<Bool> {
@@ -223,29 +318,70 @@ private struct SceneLayoutSection: View {
     var body: some View {
         let scene = model.library.scene(withID: sceneID)
         let saved = scene?.windowFrames.count ?? 0
-        Section("Pencere yerleşimi") {
-            HStack {
+        Section {
+            HStack(spacing: DS.Space.s) {
                 Button("Şimdiki Yerleşimi Kaydet") {
                     result = model.saveLayout(of: sceneID)
                 }
-                if saved > 0 {
-                    Button("Yerleşimi Unut") {
-                        model.forgetLayout(of: sceneID)
-                        result = nil
-                    }
+                .fixedSize()
+                Button("Yerleşimi Unut") {
+                    model.forgetLayout(of: sceneID)
+                    result = nil
                 }
+                .fixedSize()
+                .disabled(saved == 0)
+                Spacer(minLength: 0)
             }
+            if let result, !result.isEmpty {
+                DSStatusRow(.info, title: Text(verbatim: result))
+                    .transition(.opacity)
+            }
+        } header: {
+            Text("Pencere yerleşimi")
+        } footer: {
             Text(saved > 0
                  ? String(localized: "\(saved) hesabın penceresinin yeri kayıtlı. Sahne açılınca pencereler oraya dizilir.")
                  : String(localized: "Sahnedeki hesapları aç, pencerelerini istediğin yere koy ve kaydet. Sahne açılınca pencereler oraya dizilir. Erişilebilirlik izni gerekir."))
-                .font(.caption)
+                .font(DS.Typography.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if let result, !result.isEmpty {
-                Text(result)
-                    .font(.caption.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .animation(DS.Motion.standard, value: result)
+    }
+}
+
+// MARK: - Library page layout
+
+extension View {
+    /// The library pages' grouped Form: the app's Form, centred at a
+    /// readable width in wide windows.
+    func libraryForm() -> some View {
+        modifier(LibraryFormLayout())
+    }
+}
+
+/// Grouped Form with side margins that keep its sections at
+/// `DS.Metrics.readableWidth` when the window is wide.
+struct LibraryFormLayout: ViewModifier {
+    @State private var width: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .dsForm()
+            .contentMargins(.horizontal, sideMargin, for: .scrollContent)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.width
+            } action: { newValue in
+                width = newValue
+            }
+    }
+
+    /// Nil (the Form's own inset) until the window is wide enough that the
+    /// centred column needs a wider margin than that, so a narrow window
+    /// never loses the default inset.
+    private var sideMargin: CGFloat? {
+        let margin = ((width - DS.Metrics.readableWidth) / 2).rounded(.down)
+        return margin > DS.Space.page ? margin : nil
     }
 }

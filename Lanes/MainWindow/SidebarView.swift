@@ -9,94 +9,118 @@ struct SidebarView: View {
     @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
+        let active = matching(model.library.activeProfiles)
+        let archived = matching(model.library.archivedProfiles)
         List(selection: selection) {
-            Section {
-                rows([.overview, .sessions, .usage])
-            }
-
-            Section {
-                ForEach(matching(model.library.activeProfiles)) { profile in
-                    NavigationLink(value: Destination.account(profile.id)) {
-                        SidebarAccountRow(profile: profile)
-                    }
-                    .contextMenu {
-                        Button(model.isRunning(profile) ? "Öne Getir" : "Aç") {
-                            model.open(profile)
-                        }
-                        Button("Claude Code'u Terminalde Aç") {
-                            model.openClaudeCode(profile)
-                        }
-                        Button("Hesabı Çoğalt") {
-                            if let copy = model.duplicateProfile(profile) {
-                                navigation.navigate(to: .account(copy.id))
-                            }
-                        }
-                        .help("Aynı ayarlarla yeni bir hesap ekler. Yeni hesap girişsiz ve boş klasörlerle başlar.")
-                        if !profile.isDefault {
-                            Button("Arşivle") {
-                                model.setArchived(profile, true)
-                            }
-                            .help("Hesabı listelerden ve ⌘1-9'dan kaldırır. Girişi ve verileri kalır, Arşiv bölümünden geri alabilirsin.")
-                        }
-                        Divider()
-                        Button("Hesabı Kaldır…", role: .destructive) {
-                            profilePendingRemoval = profile
-                        }
-                        .disabled(profile.isDefault)
-                    }
-                }
-                // Rows can only be dragged in the full list, not a filtered one.
-                .onMove(perform: query.isEmpty ? moveRows : nil)
-            } header: {
-                HStack {
-                    Text("Hesaplar")
-                    Spacer()
-                    Button {
-                        navigation.isAddingProfile = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Hesap ekle")
+            // While searching only the accounts are listed, so the result is
+            // not lost among the page rows.
+            if !isSearching {
+                Section {
+                    rows([.overview, .sessions, .usage])
                 }
             }
 
-            if !matching(model.library.archivedProfiles).isEmpty {
+            // While searching, an empty "Hesaplar" header is hidden too.
+            if !isSearching || !active.isEmpty {
+                Section("Hesaplar") {
+                    ForEach(active) { profile in
+                        DSAccountLabel(profile: profile, size: DS.Monogram.small, isRunning: model.isRunning(profile))
+                            .badge(shortcutBadge(for: profile))
+                            // An explicit tag: inside a movable ForEach the row
+                            // would otherwise be tagged with the profile's id,
+                            // which the Destination selection never matches.
+                            .tag(Destination.account(profile.id))
+                            .contextMenu {
+                                Button(model.isRunning(profile) ? "Öne Getir" : "Aç") {
+                                    model.open(profile)
+                                }
+                                Button("Claude Code'u Terminalde Aç") {
+                                    model.openClaudeCode(profile)
+                                }
+                                Button("Hesabı Çoğalt") {
+                                    if let copy = model.duplicateProfile(profile) {
+                                        navigation.navigate(to: .account(copy.id))
+                                    }
+                                }
+                                if !profile.isDefault {
+                                    Button("Arşivle") {
+                                        model.setArchived(profile, true)
+                                    }
+                                }
+                                Divider()
+                                Button("Hesabı Kaldır…", role: .destructive) {
+                                    profilePendingRemoval = profile
+                                }
+                                .disabled(profile.isDefault)
+                            }
+                    }
+                    // Rows can only be dragged in the full list, not a filtered one.
+                    .onMove(perform: query.isEmpty ? moveRows : nil)
+                }
+            }
+
+            if !archived.isEmpty {
                 Section("Arşiv") {
-                    ForEach(matching(model.library.archivedProfiles)) { profile in
-                        NavigationLink(value: Destination.account(profile.id)) {
-                            SidebarAccountRow(profile: profile)
-                                .opacity(0.6)
-                        }
-                        .contextMenu {
-                            Button("Arşivden Çıkar") {
-                                model.setArchived(profile, false)
+                    ForEach(archived) { profile in
+                        ArchivedAccountLabel(profile: profile, isRunning: model.isRunning(profile))
+                            .badge(shortcutBadge(for: profile))
+                            .tag(Destination.account(profile.id))
+                            .contextMenu {
+                                Button("Arşivden Çıkar") {
+                                    model.setArchived(profile, false)
+                                }
+                                Divider()
+                                Button("Hesabı Kaldır…", role: .destructive) {
+                                    profilePendingRemoval = profile
+                                }
                             }
-                            Divider()
-                            Button("Hesabı Kaldır…", role: .destructive) {
-                                profilePendingRemoval = profile
-                            }
-                        }
                     }
                 }
             }
 
-            if showsDeveloperPages {
-                Section("Yönlendirme") {
-                    rows([.accountMap, .links])
+            if !isSearching {
+                if showsDeveloperPages {
+                    Section("Yönlendirme") {
+                        rows([.accountMap, .links])
+                    }
+
+                    Section("Kitaplık") {
+                        rows([.toolbox, .scenes])
+                    }
                 }
 
-                Section("Kitaplık") {
-                    rows([.toolbox, .scenes])
+                Section("Sistem") {
+                    rows([.health, .maintenance, .privacy, .integrations, .validation, .settings])
                 }
-            }
-
-            Section("Sistem") {
-                rows([.health, .maintenance, .privacy, .integrations, .validation, .settings])
             }
         }
         .listStyle(.sidebar)
+        // The empty search result sits on the list itself, never over the
+        // search field.
+        .overlay {
+            if isSearching && active.isEmpty && archived.isEmpty {
+                ContentUnavailableView.search(text: trimmedQuery)
+            }
+        }
+        // Rows meet a hard edge under the search field and above the bottom
+        // "Hesap Ekle" bar instead of showing through behind either.
+        .scrollEdgeEffectStyle(.hard, for: .vertical)
         .searchable(text: $query, placement: .sidebar, prompt: Text("Hesap ara"))
+        // safeAreaBar (unlike safeAreaInset) gives the bottom edge a scroll
+        // edge effect, so rows do not show through the glass button.
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            Button {
+                navigation.isAddingProfile = true
+            } label: {
+                Label("Hesap Ekle", systemImage: "plus")
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+            .controlSize(.large)
+            .help("Hesap ekle")
+            .padding(DS.Space.m)
+        }
         .confirmationDialog(
             removalTitle,
             isPresented: Binding(
@@ -114,6 +138,21 @@ struct SidebarView: View {
         }
     }
 
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isSearching: Bool {
+        !trimmedQuery.isEmpty
+    }
+
+    /// "⌘N" as a list badge: the sidebar keeps it readable on a selected row
+    /// and never lets it push the name.
+    private func shortcutBadge(for profile: Profile) -> Text? {
+        guard let number = model.shortcutNumber(for: profile) else { return nil }
+        return Text("⌘\(number)")
+    }
+
     private func removalMessage(for profile: Profile) -> String {
         let folder = (model.paths.profileDirectory(for: profile.id).path as NSString).abbreviatingWithTildeInPath
         var message = String(localized: "Hesabın klasörü silinmez: \(folder). Hesabı yeniden eklersen boş bir klasörle başlar ve Claude'a yeniden giriş yapman gerekir.")
@@ -125,7 +164,7 @@ struct SidebarView: View {
 
     private var selection: Binding<Destination?> {
         Binding(
-            get: { navigation.selection },
+            get: { navigation.selection.displayed(showingDeveloperPages: showsDeveloperPages) },
             set: { if let destination = $0 { navigation.navigate(to: destination) } }
         )
     }
@@ -137,7 +176,7 @@ struct SidebarView: View {
     /// Accounts whose name, email or note holds the search text, ignoring
     /// case and accents with Turkish rules. All of them when it is empty.
     private func matching(_ profiles: [Profile]) -> [Profile] {
-        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = trimmedQuery
         guard !text.isEmpty else { return profiles }
         return profiles.filter { profile in
             SearchText.matches(text, in: [profile.name, profile.email ?? "", profile.note ?? ""])
@@ -152,28 +191,28 @@ struct SidebarView: View {
     /// The destinations the developer pages setting lets through.
     private func rows(_ destinations: [Destination]) -> some View {
         ForEach(destinations.filter { $0.isVisible(showingDeveloperPages: showsDeveloperPages) }, id: \.self) { destination in
-            NavigationLink(value: destination) {
-                Label(destination.title, systemImage: destination.symbol)
-            }
+            Label(destination.title, systemImage: destination.symbol)
+                .tag(destination)
         }
     }
 }
 
-private struct SidebarAccountRow: View {
-    @Environment(AppModel.self) private var model
+/// An archived account: the same Label geometry as the active rows, with a
+/// secondary title and a grey monogram instead of a dimmed row, so it still
+/// reads on the selection highlight.
+private struct ArchivedAccountLabel: View {
     let profile: Profile
+    let isRunning: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            MonogramView(profile: profile, size: 20, isRunning: model.isRunning(profile))
+        Label {
             Text(profile.name)
                 .lineLimit(1)
-            Spacer()
-            if let number = model.shortcutNumber(for: profile) {
-                Text("⌘\(number)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.tertiary)
-            }
+                .truncationMode(.tail)
+                .foregroundStyle(.secondary)
+        } icon: {
+            MonogramView(profile: profile, size: DS.Monogram.small, isRunning: isRunning)
+                .saturation(0)
         }
     }
 }
@@ -186,9 +225,15 @@ struct InspectorView: View {
         Form {
             if case let .account(id) = navigation.selection, let profile = model.profile(withID: id) {
                 Section("Bu hesap") {
-                    LabeledContent("Durum", value: model.isRunning(profile) ? String(localized: "Açık") : String(localized: "Kapalı"))
+                    LabeledContent("Durum") {
+                        DSStatusBadge(isRunning: model.isRunning(profile), font: DS.Typography.rowTitle)
+                    }
                     if let instance = model.instance(for: profile) {
-                        LabeledContent("İşlem numarası", value: String(instance.pid))
+                        LabeledContent("İşlem numarası") {
+                            Text(verbatim: String(instance.pid))
+                                .monospacedDigit()
+                                .textSelection(.enabled)
+                        }
                     }
                     LabeledContent("Mod", value: profile.mode.displayName)
                     LabeledContent("Tür", value: profile.accountClass.displayName)
@@ -200,19 +245,29 @@ struct InspectorView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(model.instances) { instance in
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DS.Space.xxs) {
                             Text(instanceTitle(instance))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                             Text(verbatim: "PID \(instance.pid)")
-                                .font(.caption.monospacedDigit())
+                                .font(DS.Typography.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
                         }
                     }
                 }
             }
             Section("Claude") {
-                LabeledContent("Sürüm", value: model.claude?.version ?? String(localized: "Bulunamadı"))
+                LabeledContent("Sürüm") {
+                    Text(model.claude?.version ?? String(localized: "Bulunamadı"))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .textSelection(.enabled)
+                }
                 if let claude = model.claude {
-                    LabeledContent("Konum", value: claude.url.deletingLastPathComponent().path)
+                    LabeledContent("Konum") {
+                        DSPathText(url: claude.url.deletingLastPathComponent())
+                    }
                 }
             }
         }

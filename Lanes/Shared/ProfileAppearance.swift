@@ -94,6 +94,9 @@ extension AccountClass {
 }
 
 /// A profile's coloured monogram, with a green dot while its Claude is open.
+/// The dot sits inside the monogram's bounds and is cut out of the swatch
+/// with a transparent ring, so it reads on any background (glass sidebar,
+/// selected row, panel) without an offset or a background-coloured stroke.
 struct MonogramView: View {
     let profile: Profile
     var size: CGFloat = 28
@@ -104,27 +107,42 @@ struct MonogramView: View {
             .fill(profile.color.swatch.gradient)
             .overlay {
                 Text(profile.monogram)
-                    .font(.system(size: size * 0.44, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(.system(size: DS.Monogram.fontSize(for: size), weight: .semibold, design: .rounded))
+                    .foregroundStyle(profile.color.onSwatch)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, size * 0.1)
             }
             .frame(width: size, height: size)
             .overlay(alignment: .bottomTrailing) {
                 if isRunning {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: max(8, size * 0.3), height: max(8, size * 0.3))
-                        .overlay(Circle().strokeBorder(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
-                        .offset(x: 2, y: 2)
+                    runningDot
                 }
             }
+            .compositingGroup()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(isRunning ? "\(profile.name), açık" : profile.name))
+    }
+
+    /// The green dot over a knock-out ring that clears the swatch beneath it.
+    private var runningDot: some View {
+        let dot = DS.Monogram.dotDiameter(for: size)
+        let ring = DS.Monogram.ringWidth(for: size)
+        return ZStack {
+            Circle()
+                .fill(Color.black)
+                .frame(width: dot + 2 * ring, height: dot + 2 * ring)
+                .blendMode(.destinationOut)
+            Circle()
+                .fill(DS.Palette.running)
+                .frame(width: dot, height: dot)
+        }
     }
 }
 
 /// The panel's background: Liquid Glass.
 struct PanelBackground: ViewModifier {
-    var cornerRadius: CGFloat
+    var cornerRadius: CGFloat = DS.Panel.radius
 
     func body(content: Content) -> some View {
         content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))

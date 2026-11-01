@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import UserNotifications
 
@@ -9,14 +10,39 @@ struct NotificationSettings: View {
 
     var body: some View {
         Form {
+            if status == .denied {
+                Section {
+                    LabeledContent {
+                        Button("Sistem Ayarları'nda Aç") {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .dsPrimaryAction()
+                        .fixedSize()
+                    } label: {
+                        Label {
+                            Text("macOS Lanes'in bildirimlerine izin vermiyor.")
+                                .fixedSize(horizontal: false, vertical: true)
+                        } icon: {
+                            Image(systemName: "bell.slash.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(DS.Palette.warning)
+                        }
+                    }
+                }
+            }
             Section {
                 ForEach(Notifier.Kind.switchable) { kind in
-                    Toggle(kind.title, isOn: binding(for: kind))
+                    Toggle(isOn: binding(for: kind)) {
+                        Text(kind.title)
+                            .lineLimit(2)
+                    }
                 }
+            } header: {
+                Text("Bildirimler")
             } footer: {
                 Text("Bildirimlerde bağlantı, sohbet ya da hesabın içinden bir şey yer almaz. Yalnız hesabın adı ve olayın türü yazar.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             Section {
                 Picker("Bellek uyarısı", selection: $memoryAlert) {
@@ -30,23 +56,21 @@ struct NotificationSettings: View {
                 }
             } footer: {
                 Text("Açık hesapların Claude'ları birlikte bu kadar belleği geçince, en çok saatte bir bildirim gösterilir. Hesaplara göre günlük süre hatırlatması her hesabın Genel sekmesinde.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if status == .denied {
-                Section {
-                    Text("macOS Lanes'in bildirimlerine izin vermiyor.")
-                    Button("Sistem Ayarları'nda Aç") {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
-                }
             }
         }
-        .formStyle(.grouped)
-        .task { status = await Notifier.authorizationStatus() }
+        .settingsForm()
+        .animation(DS.Motion.standard, value: status)
+        .task {
+            // First answer arrives after the pane has drawn; apply it without animation
+            // so the denied Section at the top does not slide the rows down on open.
+            let first = await Notifier.authorizationStatus()
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { status = first }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { status = await Notifier.authorizationStatus() }
+        }
     }
 
     private func binding(for kind: Notifier.Kind) -> Binding<Bool> {

@@ -11,17 +11,33 @@ struct SettingsPage: View {
         HStack(spacing: 0) {
             List(selection: paneBinding) {
                 ForEach(SettingsPane.visible(showingDeveloperPages: showsDeveloperPages)) { pane in
-                    Label(pane.title, systemImage: pane.symbol)
-                        .tag(pane)
+                    Label {
+                        Text(pane.title)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    } icon: {
+                        SettingsPaneIcon(pane: pane)
+                    }
+                    .tag(pane)
                 }
             }
-            // Like the Faz 0 checks: a pane list, not a second sidebar.
-            .listStyle(.inset)
-            .scrollContentBackground(.hidden)
-            .frame(width: 210)
-            Divider()
-            paneContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // A pane list like System Settings, not a second glass sidebar.
+            .listStyle(.sidebar)
+            .frame(
+                minWidth: DS.Metrics.paneListMin,
+                idealWidth: DS.Metrics.paneListIdeal,
+                maxWidth: DS.Metrics.paneListMax
+            )
+            // One layout slot for the cross-fade: the outgoing and incoming
+            // panes overlap in the ZStack instead of sitting side by side in
+            // the HStack while the outgoing one fades out.
+            ZStack {
+                paneContent
+                    .id(pane)
+                    .transition(.opacity)
+            }
+            .frame(minWidth: DS.Metrics.paneContentMin, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .animation(DS.Motion.standard, value: pane)
         }
     }
 
@@ -60,6 +76,74 @@ struct SettingsPage: View {
     }
 }
 
+// MARK: - Pane list icon
+
+/// System Settings-style icon: a white symbol on a small coloured badge.
+private struct SettingsPaneIcon: View {
+    let pane: SettingsPane
+
+    var body: some View {
+        Image(systemName: pane.symbol)
+            .resizable()
+            .scaledToFit()
+            .fontWeight(.semibold)
+            .foregroundStyle(.white)
+            .padding(DS.Space.xs)
+            .frame(width: DS.Monogram.small, height: DS.Monogram.small)
+            .background(
+                pane.badgeColor.gradient,
+                in: RoundedRectangle(cornerRadius: DS.Radius.small - 1, style: .continuous)
+            )
+            .accessibilityHidden(true)
+    }
+}
+
+private extension SettingsPane {
+    var badgeColor: Color {
+        switch self {
+        case .general: return .gray
+        case .menuBarAndDock: return .blue
+        case .tabs: return .indigo
+        case .windowBadges: return .cyan
+        case .shortcuts: return .purple
+        case .notifications: return .red
+        case .updates: return .green
+        case .advanced: return .orange
+        }
+    }
+}
+
+// MARK: - Shared pane form
+
+extension View {
+    /// Every settings pane: the app's grouped Form, kept to a readable width
+    /// and centred when the window is wide.
+    func settingsForm() -> some View {
+        modifier(SettingsFormModifier())
+    }
+}
+
+private struct SettingsFormModifier: ViewModifier {
+    @State private var width: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .dsForm()
+            .contentMargins(.horizontal, sideMargin, for: .scrollContent)
+            .onGeometryChange(for: CGFloat.self, of: { proxy in
+                proxy.size.width
+            }, action: { newWidth in
+                width = newWidth
+            })
+    }
+
+    private var sideMargin: CGFloat {
+        max(DS.Space.page, (width - DS.Metrics.readableWidth) / 2)
+    }
+}
+
+// MARK: - Panes
+
 private struct GeneralSettings: View {
     @Environment(AppModel.self) private var model
     @State private var launchesAtLogin = LoginItem.isEnabled
@@ -81,38 +165,60 @@ private struct GeneralSettings: View {
                         }
                     }
                 Toggle("Lanes açılınca son açık hesapları yeniden aç", isOn: $reopensLast)
-                Text("Örneğin Mac yeniden başladıktan sonra, Lanes kapanırken açık olan hesaplar sırayla açılır. Lanes açılınca açılan sahneler de ayrıca açılır.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let loginItemError {
-                    Text(loginItemError)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+            } header: {
+                Text("Lanes")
+            } footer: {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Örneğin Mac yeniden başladıktan sonra, Lanes kapanırken açık olan hesaplar sırayla açılır. Lanes açılınca açılan sahneler de ayrıca açılır.")
+                    if let loginItemError {
+                        Label {
+                            Text(loginItemError)
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(DS.Palette.danger)
+                        }
+                    }
                 }
+                .animation(DS.Motion.standard, value: loginItemError)
             }
-            Section("Odak") {
+            Section {
                 Toggle("Bir hesap öne gelince öteki hesapları gizle", isOn: $focusMode)
+            } header: {
+                Text("Odak")
+            } footer: {
                 Text("Ekranda yalnız öndeki hesabın Claude'u kalır, ötekiler Cmd-H ile gizlenir gibi gizlenir. Kapanmazlar; Dock'tan, Cmd-Tab'dan ya da Lanes'ten açınca geri gelirler. Sekmeli mod açıkken bu ayar kullanılmaz.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            Section("Claude") {
-                LabeledContent("Sürüm", value: model.claude?.version ?? String(localized: "Bulunamadı"))
-                if let claude = model.claude {
-                    PathRow(url: claude.url)
+            Section {
+                LabeledContent("Sürüm") {
+                    Text(model.claude?.version ?? String(localized: "Bulunamadı"))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
                 }
+                if let claude = model.claude {
+                    LabeledContent {
+                        DSRevealButton(url: claude.url)
+                    } label: {
+                        DSPathText(url: claude.url)
+                    }
+                }
+            } header: {
+                Text("Claude")
             }
-            Section("Bağlantılar") {
-                LabeledContent("claude:// bağlantılarını açan", value: handlerName)
+            Section {
+                LabeledContent("claude:// bağlantılarını açan") {
+                    Text(handlerName)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            } header: {
+                Text("Bağlantılar")
+            } footer: {
                 Text("Bağlantıların hangi hesapla açılacağını Hesap Haritası'ndan seçebilirsin. Yönlendirme kapalıyken bağlantıları her zaman Claude açar.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .formStyle(.grouped)
+        .settingsForm()
     }
 
     private var handlerName: String {
@@ -127,20 +233,22 @@ private struct MenuBarAndDockSettings: View {
 
     var body: some View {
         Form {
-            Section("Menü çubuğu") {
+            Section {
                 Toggle("Simgenin yanında açık hesap sayısını göster", isOn: $showsRunningCount)
+            } header: {
+                Text("Menü çubuğu")
+            } footer: {
                 Text("Sayı yalnız birden fazla hesap açıkken görünür.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-            Section("Dock") {
+            Section {
                 Toggle("Ana pencere açıkken Dock'ta ve Cmd-Tab'da göster", isOn: $showsDockIcon)
+            } header: {
+                Text("Dock")
+            } footer: {
                 Text("Pencere kapanınca Lanes yalnız menü çubuğunda kalır.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
+        .settingsForm()
     }
 }
 
@@ -149,35 +257,50 @@ private struct UpdateSettings: View {
 
     var body: some View {
         Form {
-            Section("Lanes") {
-                LabeledContent("Sürüm", value: version)
+            Section {
+                LabeledContent("Sürüm") {
+                    Text(version)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .textSelection(.enabled)
+                }
                 if model.updater.isAvailable {
                     Toggle("Güncellemeleri kendiliğinden denetle", isOn: Binding(
                         get: { model.updater.automaticallyChecks },
                         set: { model.updater.setAutomaticallyChecks($0) }
                     ))
-                    HStack {
+                    LabeledContent {
                         Button("Şimdi Denetle") {
                             model.updater.checkNow()
                         }
-                        if let lastCheck = model.updater.lastCheck {
-                            Text("Son denetim: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        .fixedSize()
+                    } label: {
+                        Text("Güncellemeler")
+                            .lineLimit(1)
+                        lastCheckLine
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
+                }
+            } header: {
+                Text("Lanes")
+            } footer: {
+                if model.updater.isAvailable {
                     Text("Lanes güncelleme olup olmadığını GitHub'daki sürüm listesinden öğrenir. Bu denetim Lanes'in yaptığı tek ağ isteği. Güncelleme yüklenmeden önce Lanes'in imzası denetlenir.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Bu derleme kendini güncellemez. Güncellemeler yalnız DMG ile dağıtılan sürümlerde açık.")
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .formStyle(.grouped)
+        .settingsForm()
+    }
+
+    /// Always present, so the row keeps its height before the first check.
+    private var lastCheckLine: Text {
+        if let lastCheck = model.updater.lastCheck {
+            return Text("Son denetim: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
+        }
+        return Text(verbatim: "—")
     }
 
     private var version: String {
@@ -196,47 +319,63 @@ private struct AdvancedSettings: View {
 
     var body: some View {
         Form {
-            Section("Geliştirme") {
+            Section {
                 Toggle("Faz 0 denemelerini göster", isOn: $showsDeveloperPages)
+            } header: {
+                Text("Geliştirme")
+            } footer: {
                 Text("Denemeleri yeniden yapmak için.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            Section("Lanes klasörleri") {
-                LabeledContent("Profiller") {
-                    PathRow(url: model.paths.root)
-                }
-                LabeledContent("Klonlar") {
-                    PathRow(url: model.paths.clonesDirectory)
-                }
-                LabeledContent("Tanılama") {
-                    PathRow(url: model.paths.diagnosticsDirectory)
-                }
+            Section {
+                folderRow("Profiller", url: model.paths.root)
+                folderRow("Klonlar", url: model.paths.clonesDirectory)
+                folderRow("Tanılama", url: model.paths.diagnosticsDirectory)
+            } header: {
+                Text("Lanes klasörleri")
             }
-            Section("Tanılama") {
-                HStack {
+            Section {
+                LabeledContent {
                     Button("Tanılama Bilgisini Hazırla") {
                         diagnosticsFile = model.prepareDiagnostics()
                         diagnosticsPrepared = true
                     }
-                    if diagnosticsPrepared {
-                        Text(diagnosticsFile == nil ? "Panoya kopyalandı, dosyaya yazılamadı." : "Panoya kopyalandı ve Tanılama klasörüne kaydedildi.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    .fixedSize()
+                } label: {
+                    Text("Tanılama")
+                        .lineLimit(1)
+                    diagnosticsLine
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+            } header: {
+                Text("Tanılama")
+            } footer: {
                 Text("Lanes'in ve Claude'un sürümünü, hesapları ve çalışan her Claude'un kullandığı klasörü içerir. Hesap adları yerine numaralar, ev klasörün yerine ~ yazar. Hesap klasörlerinin içi okunmaz. Bir sorunu bildirirken bu metni yapıştırabilirsin.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            Section("Lanes'in dokunmadıkları") {
-                Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            Section {
+                DSStatusRow(.info, title: Text("Lanes'in dokunmadıkları")) {
+                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
+                }
             }
         }
-        .formStyle(.grouped)
+        .settingsForm()
+    }
+
+    /// The result of the last "prepare", in a slot that is always present.
+    private var diagnosticsLine: Text {
+        guard diagnosticsPrepared else { return Text(verbatim: "—") }
+        return diagnosticsFile == nil
+            ? Text("Panoya kopyalandı, dosyaya yazılamadı.")
+            : Text("Panoya kopyalandı ve Tanılama klasörüne kaydedildi.")
+    }
+
+    /// Folder name with its path underneath, reveal button trailing.
+    private func folderRow(_ title: LocalizedStringKey, url: URL) -> some View {
+        LabeledContent {
+            DSRevealButton(url: url)
+        } label: {
+            Text(title)
+                .lineLimit(1)
+            DSPathText(url: url)
+        }
     }
 }

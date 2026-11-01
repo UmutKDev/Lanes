@@ -67,18 +67,23 @@ private struct InstanceFolders: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
             if model.instances.isEmpty {
                 Text("Şu an açık Claude yok.")
                     .foregroundStyle(.secondary)
             }
             ForEach(model.instances) { instance in
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
                     Text(instanceLabel(instance, model: model))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     Text(instance.userDataDirectory ?? String(localized: "Claude'un kendi klasörü"))
-                        .font(.system(.caption, design: .monospaced))
+                        .font(DS.Typography.path)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                         .textSelection(.enabled)
+                        .help(instance.userDataDirectory ?? "")
                 }
             }
         }
@@ -91,7 +96,7 @@ private struct StatusText: View {
     var body: some View {
         if let status {
             Text(status)
-                .font(.caption)
+                .font(DS.Typography.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -111,13 +116,10 @@ struct StaleCloneAssistant: View {
     var body: some View {
         let validation = model.validation
         let cloneExists = FileManager.default.fileExists(atPath: cloneURL.path)
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 LabeledContent("Deneme klonu") {
-                    Text(cloneURL.path)
-                        .textSelection(.enabled)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    DSPathText(url: cloneURL, font: DS.Typography.rowTitle)
                 }
                 if !cloneExists {
                     Text("Diskte deneme klonu yok. 3. denemeden bir klon oluştur ve bu denemeyi Claude'un bir sonraki güncellemesinden sonra yap.")
@@ -146,14 +148,12 @@ struct StaleCloneAssistant: View {
                           || needsInspection(cloneExists: cloneExists))
                 if needsInspection(cloneExists: cloneExists) {
                     Text("Kaydetmek için önce \"Klonu İncele\"ye bas. Her kayıt yeni bir inceleme ister.")
-                        .font(.caption)
+                        .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -235,8 +235,8 @@ struct CloneOutsideLanesAssistant: View {
 
     var body: some View {
         let cloneExists = FileManager.default.fileExists(atPath: cloneURL.path)
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 if !cloneExists {
                     Text("Diskte deneme klonu yok. Önce 3. denemeden bir klon oluştur.")
                         .foregroundStyle(.secondary)
@@ -256,13 +256,14 @@ struct CloneOutsideLanesAssistant: View {
                 }
                 InstanceFolders()
                 Text(handlerLine())
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
                     .textSelection(.enabled)
+                    .help(handlerLine())
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -332,21 +333,30 @@ struct NewAccountSignInAssistant: View {
     }
 
     var body: some View {
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 if !claudeOpensLinks {
-                    Text("claude:// bağlantılarını şu an \(LinkHandlerRegistry.currentHandler()?.lastPathComponent ?? String(localized: "hiçbir uygulama")) açıyor. Giriş bağlantısı Claude'a gitmezse bu deneme Claude'u değil o uygulamayı ölçer.")
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // Warning colour on the symbol only; the text stays primary.
+                    Label {
+                        Text("claude:// bağlantılarını şu an \(LinkHandlerRegistry.currentHandler()?.lastPathComponent ?? String(localized: "hiçbir uygulama")) açıyor. Giriş bağlantısı Claude'a gitmezse bu deneme Claude'u değil o uygulamayı ölçer.")
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: DSNoticeKind.warning.symbol)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(DSNoticeKind.warning.tint)
+                    }
                     Button("Claude'u Geri Yükle") {
                         Task { await restoreClaude() }
                     }
                     .disabled(model.claude == nil || isRestoring)
                 }
                 Text(handlerLine())
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
                     .textSelection(.enabled)
+                    .help(handlerLine())
                 ButtonRow {
                     Button("1. Başlangıcı Kaydet") {
                         start()
@@ -363,7 +373,7 @@ struct NewAccountSignInAssistant: View {
                         Text(method.displayName).tag(method)
                     }
                 }
-                .frame(maxWidth: 320)
+                .fixedSize()
                 Picker("Girişi başlattığın pencere", selection: $startedIn) {
                     Text("Seç").tag(Int32?.none)
                     ForEach(model.instances) { instance in
@@ -383,8 +393,6 @@ struct NewAccountSignInAssistant: View {
                 }
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -456,8 +464,8 @@ struct CrossAccountSignOutAssistant: View {
 
     var body: some View {
         let validation = model.validation
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 InstanceFolders()
                 ButtonRow {
                     Button("Durumu Kaydet") {
@@ -471,7 +479,7 @@ struct CrossAccountSignOutAssistant: View {
                     }
                 }
                 Text("Pencereleri Claude'un kendi menüsünden kapat. Lanes hiçbir Claude penceresini kendisi kapatmaz.")
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 YesNoRow(title: String(localized: "Ana hesapta değiştirdiğin hesap, ikinci hesabın kullandığı hesaptı"), answer: draftAnswer(validation, check, "sameAccount"))
@@ -482,8 +490,6 @@ struct CrossAccountSignOutAssistant: View {
                 .disabled(validation.draftAnswers[check]?["sameAccount"] == nil || validation.draftAnswers[check]?["stayedSignedIn"] == nil)
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -517,8 +523,8 @@ struct ClaudeCodeLoginAssistant: View {
     var body: some View {
         let validation = model.validation
         let candidates = model.library.profiles.filter { !$0.isDefault }
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 if candidates.isEmpty {
                     Text("Bu deneme için ana hesap dışında bir hesap gerekiyor.")
                         .foregroundStyle(.secondary)
@@ -553,8 +559,6 @@ struct ClaudeCodeLoginAssistant: View {
                 }
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -593,8 +597,8 @@ struct CoworkAssistant: View {
 
     var body: some View {
         let validation = model.validation
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 YesNoRow(title: String(localized: "İkinci hesapta Cowork çalıştı"), answer: draftAnswer(validation, check, "secondAccount"))
                 YesNoRow(title: String(localized: "İki hesapta aynı anda çalıştı"), answer: draftAnswer(validation, check, "bothAtOnce"))
                 Button("Sonucu Kaydet") {
@@ -603,8 +607,6 @@ struct CoworkAssistant: View {
                 .disabled(validation.draftAnswers[check]?["secondAccount"] == nil || validation.draftAnswers[check]?["bothAtOnce"] == nil)
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 
@@ -631,8 +633,8 @@ struct SessionRecordsAssistant: View {
 
     var body: some View {
         let validation = model.validation
-        GroupBox("Deneme") {
-            VStack(alignment: .leading, spacing: 12) {
+        ValidationCard("Deneme") {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
                 Picker("Hesap", selection: $selectedID) {
                     Text("Seç").tag(ProfileID?.none)
                     ForEach(model.library.profiles) { profile in
@@ -654,11 +656,11 @@ struct SessionRecordsAssistant: View {
                 }
                 if let folder {
                     Text(folder.evidenceLines.joined(separator: "\n"))
-                        .font(.system(.caption, design: .monospaced))
+                        .font(DS.Typography.path)
                         .textSelection(.enabled)
                 }
                 Text("Komutu oturumun başladığı proje klasöründe çalıştır. Claude Code oturumları o klasöre göre arıyor.")
-                    .font(.caption)
+                    .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 YesNoRow(title: String(localized: "Oturum kaldığı yerden sürdü"), answer: draftAnswer(validation, check, "resumed"))
@@ -668,8 +670,6 @@ struct SessionRecordsAssistant: View {
                 .disabled(validation.draftAnswers[check]?["resumed"] == nil)
                 StatusText(status: status)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
         }
     }
 

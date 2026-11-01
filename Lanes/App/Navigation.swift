@@ -84,6 +84,22 @@ enum Destination: Hashable {
         default: return true
         }
     }
+
+    /// The page the window actually shows for this selection. A hidden page
+    /// left in the history, or one the setting just hid, shows the overview.
+    /// The title, the sidebar highlight and the detail all use this value.
+    func displayed(showingDeveloperPages: Bool) -> Destination {
+        isVisible(showingDeveloperPages: showingDeveloperPages) ? self : .overview
+    }
+
+    /// Pages with their own list column (Settings panes, Validation checks)
+    /// need the width the inspector would take, so it stays closed there.
+    var allowsInspector: Bool {
+        switch self {
+        case .settings, .validation: return false
+        default: return true
+        }
+    }
 }
 
 enum SettingsPane: String, CaseIterable, Identifiable {

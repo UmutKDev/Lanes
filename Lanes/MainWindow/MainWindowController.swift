@@ -14,7 +14,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         hosting.sceneBridgingOptions = [.toolbars, .title]
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 680),
+            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -23,10 +23,17 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         window.title = "Lanes"
         window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 820, height: 520)
-        window.setContentSize(NSSize(width: 1040, height: 680))
-        window.center()
+        // The minimum size comes from the SwiftUI root's frame; this only
+        // mirrors the same tokens so AppKit never sizes the window below it.
+        window.contentMinSize = NSSize(width: DS.Metrics.windowMinWidth, height: DS.Metrics.windowMinHeight)
+        // Setting the content view controller sizes the window to the hosting
+        // view, so give it the first-launch size before restoring the saved
+        // frame. A saved frame wins; only a first launch is centred.
+        window.setContentSize(NSSize(width: 1100, height: 720))
         window.setFrameAutosaveName("LanesMainWindow")
+        if !window.setFrameUsingName("LanesMainWindow") {
+            window.center()
+        }
         super.init(window: window)
         window.delegate = self
     }
@@ -44,38 +51,67 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
 struct MainWindowView: View {
     @Environment(AppModel.self) private var model
     @Environment(NavigationModel.self) private var navigation
+    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         @Bindable var navigation = navigation
+        // One value for the detail, the title and the inspector, so a hidden
+        // page left in the history never shows one page under another's title.
+        let shown = navigation.selection.displayed(showingDeveloperPages: showsDeveloperPages)
         NavigationSplitView {
             SidebarView()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 320)
+                .navigationSplitViewColumnWidth(
+                    min: DS.Metrics.sidebarMin,
+                    ideal: DS.Metrics.sidebarIdeal,
+                    max: DS.Metrics.sidebarMax
+                )
         } detail: {
-            DetailView(destination: navigation.selection)
-                .navigationTitle(title)
+            DetailView(destination: shown)
+                .navigationSplitViewColumnWidth(min: DS.Metrics.detailMinWidth, ideal: 640)
+                .navigationTitle(title(for: shown))
         }
-        .inspector(isPresented: $navigation.showsInspector) {
+        .inspector(isPresented: inspectorBinding(allowed: shown.allowsInspector)) {
             InspectorView()
-                .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
+                .inspectorColumnWidth(
+                    min: DS.Metrics.inspectorMin,
+                    ideal: DS.Metrics.inspectorIdeal,
+                    max: DS.Metrics.inspectorMax
+                )
         }
         .toolbar {
-            toolbarContent
+            toolbarContent(inspectorAllowed: shown.allowsInspector)
         }
         .sheet(isPresented: $navigation.isAddingProfile) {
             AddProfileSheet()
         }
-        .frame(minWidth: 820, minHeight: 520)
+        .frame(minWidth: DS.Metrics.windowMinWidth, minHeight: DS.Metrics.windowMinHeight)
     }
 
-    private var title: String {
-        if case let .account(id) = navigation.selection, let profile = model.profile(withID: id) {
+    private func title(for destination: Destination) -> String {
+        if case let .account(id) = destination, let profile = model.profile(withID: id) {
             return profile.name
         }
-        return navigation.selection.title
+        return destination.title
     }
 
+    /// The inspector stays closed on pages with their own list column. The
+    /// user's choice is kept for the other pages.
+    private func inspectorBinding(allowed: Bool) -> Binding<Bool> {
+        Binding(
+            get: { allowed && navigation.showsInspector },
+            set: { newValue in
+                if allowed {
+                    navigation.showsInspector = newValue
+                }
+            }
+        )
+    }
+
+    /// The shell's own items only: history and the inspector toggle. Each
+    /// page adds its actions in its own `.toolbar`, so they come and go with
+    /// the page instead of one item changing its label and width.
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
+    private func toolbarContent(inspectorAllowed: Bool) -> some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
             Button {
                 navigation.goBack()
@@ -95,10 +131,6 @@ struct MainWindowView: View {
         }
 
         ToolbarItem(placement: .primaryAction) {
-            primaryAction
-        }
-
-        ToolbarItem(placement: .primaryAction) {
             Button {
                 navigation.showsInspector.toggle()
             } label: {
@@ -106,51 +138,31 @@ struct MainWindowView: View {
             }
             .help("Denetçiyi göster veya gizle")
             .keyboardShortcut("i", modifiers: [.command, .option])
-        }
-    }
-
-    /// One prominent action per page: open the account on its page,
-    /// otherwise add an account.
-    @ViewBuilder
-    private var primaryAction: some View {
-        if case let .account(id) = navigation.selection, let profile = model.profile(withID: id) {
-            Button {
-                model.open(profile)
-            } label: {
-                Label(model.isRunning(profile) ? "Öne Getir" : "Aç", systemImage: "arrow.up.forward.app")
-            }
-            .help(model.isRunning(profile) ? "Bu hesabın Claude penceresini öne getir" : "Bu hesapla Claude'u aç")
-        } else {
-            Button {
-                navigation.isAddingProfile = true
-            } label: {
-                Label("Hesap Ekle", systemImage: "plus")
-            }
-            .help("Yeni bir Claude hesabı ekle")
+            .disabled(!inspectorAllowed)
         }
     }
 }
 
 private struct DetailView: View {
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     let destination: Destination
 
     var body: some View {
-        let shown = destination.isVisible(showingDeveloperPages: showsDeveloperPages) ? destination : .overview
         // The overview shows the notice among its own banners. Other pages
         // show it too, so a warning appears where the button was pressed.
         // It floats over the page's bottom edge: anything that changes the
         // page's layout or safe area throws off the window's toolbar insets.
-        page(shown)
+        // Pages keep their last rows clear of it with a bottom margin
+        // (DSPage and dsForm reserve DS.Metrics.noticeClearance).
+        page(destination)
             .overlay(alignment: .bottom) {
-                PageNoticeBar(isHidden: shown == .overview)
+                PageNoticeBar(isHidden: destination == .overview)
             }
     }
 
     @ViewBuilder
     private func page(_ destination: Destination) -> some View {
-        // A hidden page left in the history, or one the setting just hid,
-        // shows the overview instead.
+        // MainWindowView passes the page actually shown: a hidden page left
+        // in the history, or one the setting just hid, arrives as the overview.
         switch destination {
         case .overview:
             OverviewPage()
@@ -185,19 +197,23 @@ private struct DetailView: View {
     }
 }
 
-/// The app's latest notice, above any page but the overview.
+/// The app's latest notice, above any page but the overview: one floating
+/// glass row that slides up from the bottom edge.
 private struct PageNoticeBar: View {
     @Environment(AppModel.self) private var model
     let isHidden: Bool
 
     var body: some View {
-        if !isHidden, let notice = model.notice {
-            NoticeRow(notice: notice) { model.notice = nil }
-                .padding(12)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .shadow(radius: 6, y: 2)
-                .padding(16)
-                .frame(maxWidth: 640)
+        ZStack(alignment: .bottom) {
+            if !isHidden, let notice = model.notice {
+                DSNoticeRow(notice: notice, isFloating: true) {
+                    model.notice = nil
+                }
+                .frame(maxWidth: 560)
+                .padding(DS.Space.l)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(DS.Motion.notice, value: model.notice?.id)
     }
 }

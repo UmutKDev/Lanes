@@ -5,37 +5,59 @@ import SwiftUI
 /// What the user wrote down about an account. Lanes reads nothing from
 /// Claude to fill it.
 struct AccountIdentityTab: View {
+    private enum Field: Hashable {
+        case email
+        case note
+    }
+
     @Environment(AppModel.self) private var model
     let profile: Profile
     @State private var email = ""
     @State private var note = ""
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         Form {
             Section {
                 TextField("E-posta", text: $email, prompt: Text("ornek@alan.com"))
+                    .focused($focusedField, equals: .email)
                     .onSubmit(commit)
-                TextField("Not", text: $note, prompt: Text("Örneğin hangi iş için"), axis: .vertical)
-                    .lineLimit(2...5)
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    Text("Not")
+                    TextField("Not", text: $note, prompt: Text("Örneğin hangi iş için"), axis: .vertical)
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .lineLimit(2...5)
+                        .focused($focusedField, equals: .note)
+                }
+            } footer: {
                 Text("Yalnız hesapları birbirinden ayırman için. Lanes bunları Claude'dan okumaz ve hiçbir yere göndermez, profiles.json dosyasında durur.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             Section {
                 LabeledContent("Hesap türü", value: profile.accountClass.displayName)
                 LabeledContent("Eklendiği tarih", value: profile.createdAt.formatted(date: .abbreviated, time: .omitted))
                 LabeledContent("Kimlik") {
-                    Text(profile.id.rawValue)
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
+                    HStack(spacing: DS.Space.xs) {
+                        Text(verbatim: profile.id.rawValue)
+                            .monospaced()
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(profile.id.rawValue)
+                        DSCopyButton(text: profile.id.rawValue)
+                    }
                 }
             }
         }
-        .formStyle(.grouped)
+        .accountForm()
         .onAppear {
             email = profile.email ?? ""
             note = profile.note ?? ""
+        }
+        .onChange(of: focusedField) { oldValue, newValue in
+            if oldValue != nil, oldValue != newValue {
+                commit()
+            }
         }
         .onDisappear(perform: commit)
     }
@@ -60,34 +82,29 @@ struct AccountSecurityTab: View {
     var body: some View {
         let current = model.profile(withID: profile.id) ?? profile
         Form {
-            Section("Claude Code klasörleri") {
-                if current.allowedFolders.isEmpty {
-                    Text("Claude Code bu hesapla her klasörde açılabilir.")
-                        .foregroundStyle(.secondary)
-                }
+            Section {
                 ForEach(current.allowedFolders, id: \.self) { folder in
-                    HStack {
-                        Image(systemName: "folder")
-                        Text((folder as NSString).abbreviatingWithTildeInPath)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer()
-                        Button {
+                    AccountFolderRow(url: URL(fileURLWithPath: folder, isDirectory: false)) {
+                        DSIconButton("Listeden çıkar", systemImage: "minus.circle.fill", role: .destructive) {
                             setFolders(current.allowedFolders.filter { $0 != folder })
-                        } label: {
-                            Image(systemName: "minus.circle")
                         }
-                        .buttonStyle(.borderless)
-                        .help("Listeden çıkar")
                     }
                 }
-                Button("Klasör Ekle…", action: addFolder)
-                Text("Liste boş değilse Lanes, \"Klasörde Aç\" ile Claude Code'u yalnız bu klasörlerde ve alt klasörlerinde açar. Bir müşterinin hesabının başka projelere karışmaması için. Terminalde elle başlatılan claude komutunu sınırlamaz.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Button(action: addFolder) {
+                    Label("Klasör Ekle…", systemImage: "plus")
+                }
+                .buttonStyle(.borderless)
+            } header: {
+                Text("Claude Code klasörleri")
+            } footer: {
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    if current.allowedFolders.isEmpty {
+                        Text("Claude Code bu hesapla her klasörde açılabilir.")
+                    }
+                    Text("Liste boş değilse Lanes, \"Klasörde Aç\" ile Claude Code'u yalnız bu klasörlerde ve alt klasörlerinde açar. Bir müşterinin hesabının başka projelere karışmaması için. Terminalde elle başlatılan claude komutunu sınırlamaz.")
+                }
             }
-            Section("Bağlantılar") {
+            Section {
                 let kinds = model.linkRules.byKind.filter { $0.value == .profile(profile.id) }.map(\.key)
                 if kinds.isEmpty && model.linkRules.fallback != .profile(profile.id) {
                     Text("Hesap Haritası'nda bu hesaba yönlenen bağlantı yok.")
@@ -95,28 +112,31 @@ struct AccountSecurityTab: View {
                 } else {
                     ForEach(kinds.sorted { $0.rawValue < $1.rawValue }, id: \.self) { kind in
                         Label(kind.title, systemImage: "link")
+                            .lineLimit(1)
                     }
                     if model.linkRules.fallback == .profile(profile.id) {
                         Label("Kurala uymayan bütün bağlantılar", systemImage: "arrow.triangle.branch")
+                            .lineLimit(1)
                     }
                 }
+            } header: {
+                Text("Bağlantılar")
+            } footer: {
                 Text("Giriş ve OAuth bağlantıları hiçbir zaman yönlendirilmez.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
+        .accountForm()
     }
 
     private func addFolder() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = true
-        panel.prompt = String(localized: "İzin Ver")
-        guard panel.runModal() == .OK, let current = model.profile(withID: profile.id) else { return }
+        let urls = ClaudeCodeFolderPicker.chooseFolders(
+            prompt: String(localized: "İzin Ver"),
+            message: nil,
+            allowsMultipleSelection: true
+        )
+        guard !urls.isEmpty, let current = model.profile(withID: profile.id) else { return }
         var folders = current.allowedFolders
-        for url in panel.urls where !folders.contains(url.path) {
+        for url in urls where !folders.contains(url.path) {
             folders.append(url.path)
         }
         setFolders(folders)
