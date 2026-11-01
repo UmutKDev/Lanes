@@ -268,9 +268,10 @@ private struct AccountTile: View {
         DS.Metrics.tileMinHeight - DS.Space.card * 2
     }
 
+    /// The note, or the account's email when there is no note.
     private var note: String? {
-        guard let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return nil }
-        return note
+        if let note = profile.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty { return note }
+        return model.email(for: profile)
     }
 }
 

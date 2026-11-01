@@ -15,7 +15,7 @@ struct PrivacyPage: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
-                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Sohbetlerini, Claude'un ayar dosyalarını ve hesap klasörlerinin içini de açmaz. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
+                    Text("Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Sohbetlerini ve hesap klasörlerinin içini de açmaz; tek istisna aşağıda yazan Claude Code hesap adıdır. Giriş her zaman Claude'un kendi penceresinde ya da claude komutunda olur.")
                         .font(DS.Typography.rowTitle)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -48,6 +48,11 @@ struct PrivacyPage: View {
                     systemImage: "doc.text",
                     title: "Claude Code oturum dosyalarının adı ve tarihi",
                     detail: "Oturumlar ve Kullanım sayfaları için, her hesabın Claude Code klasöründeki projects altında. Dosyaların içi, yani sohbetler, hiç açılmaz."
+                )
+                PrivacyItem(
+                    systemImage: "person.text.rectangle",
+                    title: "Claude Code'un giriş yaptığı hesap",
+                    detail: "Hesabın Kimlik sekmesinde ve aramada göstermek için. Her hesabın Claude Code klasöründeki .claude.json dosyasından (Claude uygulamasının kendi hesabında ~/.claude.json) yalnız oauthAccount altındaki e-posta, ad ve kuruluş adı okunur. Giriş anahtarları bu dosyada değil, Anahtar Zinciri'nde durur ve okunmaz. Dosyanın geri kalanına ve Claude uygulamasının verilerine bakılmaz. Okunan değerler saklanmaz, her seferinde dosyadan yeniden okunur."
                 )
                 PrivacyItem(
                     systemImage: "internaldrive",

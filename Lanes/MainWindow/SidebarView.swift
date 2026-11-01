@@ -179,7 +179,7 @@ struct SidebarView: View {
         let text = trimmedQuery
         guard !text.isEmpty else { return profiles }
         return profiles.filter { profile in
-            SearchText.matches(text, in: [profile.name, profile.email ?? "", profile.note ?? ""])
+            SearchText.matches(text, in: [profile.name, model.email(for: profile) ?? "", profile.note ?? ""])
         }
     }
 

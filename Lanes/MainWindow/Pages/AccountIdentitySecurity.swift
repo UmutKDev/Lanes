@@ -19,17 +19,51 @@ struct AccountIdentityTab: View {
     var body: some View {
         Form {
             Section {
-                // Label above a full-width field, like the note. The prompt
-                // says the field is optional instead of showing a sample
-                // address, which read as the account's real email.
-                VStack(alignment: .leading, spacing: DS.Space.s) {
-                    Text("E-posta")
-                    TextField("E-posta", text: $email, prompt: Text("Bu hesapla giriş yaptığın adres (isteğe bağlı)"))
-                        .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
-                        .focused($focusedField, equals: .email)
-                        .onSubmit(commit)
+                if let account = model.claudeCodeAccounts[profile.id] {
+                    LabeledContent("E-posta") {
+                        Text(verbatim: account.email)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(account.email)
+                    }
+                    if let name = account.displayName {
+                        LabeledContent("Ad") {
+                            Text(verbatim: name)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    if let organization = account.organizationName {
+                        LabeledContent("Kuruluş") {
+                            Text(verbatim: organization)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .textSelection(.enabled)
+                        }
+                    }
+                } else {
+                    // Nothing to read yet: the user may type it. The prompt
+                    // says it is optional instead of showing a sample address,
+                    // which read as the account's real email.
+                    VStack(alignment: .leading, spacing: DS.Space.s) {
+                        Text("E-posta")
+                        TextField("E-posta", text: $email, prompt: Text("Bu hesapla giriş yaptığın adres (isteğe bağlı)"))
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .focused($focusedField, equals: .email)
+                            .onSubmit(commit)
+                    }
                 }
+            } header: {
+                Text("Claude hesabı")
+            } footer: {
+                Text(model.claudeCodeAccounts[profile.id] == nil
+                     ? "Bu hesapla Claude Code'a giriş yapıldığında e-posta, ad ve kuruluş kendiliğinden buraya gelir. Lanes yalnız Claude Code'un hesap dosyasındaki bu üç alanı okur; giriş anahtarlarına ve Claude uygulamasının verilerine dokunmaz."
+                     : "Claude Code'un bu hesap için tuttuğu dosyadan alındı. Lanes yalnız e-posta, ad ve kuruluş alanlarını okur; giriş anahtarlarına ve Claude uygulamasının verilerine dokunmaz.")
+            }
+            Section {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
                     Text("Not")
                     TextField("Not", text: $note, prompt: Text("Örneğin hangi iş için"), axis: .vertical)
@@ -39,7 +73,7 @@ struct AccountIdentityTab: View {
                         .focused($focusedField, equals: .note)
                 }
             } footer: {
-                Text("Yalnız hesapları birbirinden ayırman için. Lanes bunları Claude'dan okumaz ve hiçbir yere göndermez, profiles.json dosyasında durur.")
+                Text("Yalnız hesapları birbirinden ayırman için, profiles.json dosyasında durur ve hiçbir yere gönderilmez.")
             }
             Section {
                 LabeledContent("Hesap türü", value: profile.accountClass.displayName)
@@ -59,6 +93,7 @@ struct AccountIdentityTab: View {
         }
         .accountForm()
         .onAppear {
+            model.refreshClaudeCodeAccounts()
             email = profile.email ?? ""
             note = profile.note ?? ""
         }
