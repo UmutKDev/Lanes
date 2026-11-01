@@ -57,6 +57,9 @@ final class ClaudeCodeDoneNotices {
         } catch {
             Log.app.error("Installing the Claude Code hook failed: \(error.localizedDescription, privacy: .public)")
         }
+        // Watches the folder anew each time: one deleted from outside and
+        // made again here is another folder, which the old watch misses.
+        stopWatching()
         startWatching()
     }
 
