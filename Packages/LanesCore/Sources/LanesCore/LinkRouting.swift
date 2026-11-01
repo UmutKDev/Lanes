@@ -86,6 +86,9 @@ public struct LinkRule: Identifiable, Hashable, Codable, Sendable {
     /// Nil means at any time.
     public var window: LinkTimeWindow?
     public var target: LinkRules.Target
+    /// Kinds a newer Lanes wrote that this one does not know. Kept so a
+    /// save does not lose them; a rule with only these never matches.
+    public var unknownKinds: [String] = []
 
     public init(
         id: UUID = UUID(),
@@ -109,15 +112,17 @@ public struct LinkRule: Identifiable, Hashable, Codable, Sendable {
         case id, name, isEnabled, kinds, sourceApps, window, target
     }
 
-    /// Unknown kinds (from a newer Lanes) are dropped; a rule whose kinds
-    /// were all unknown is kept off rather than widened to every link.
+    /// Unknown kinds (from a newer Lanes) are kept aside and written back;
+    /// a rule whose kinds are all unknown never matches, rather than
+    /// widening to every link.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = (try? container.decode(UUID.self, forKey: .id)) ?? UUID()
         name = (try? container.decode(String.self, forKey: .name)) ?? ""
         let rawKinds = (try? container.decode([String].self, forKey: .kinds)) ?? []
         kinds = Set(rawKinds.compactMap(LinkRules.LinkKind.init(rawValue:)))
-        isEnabled = ((try? container.decode(Bool.self, forKey: .isEnabled)) ?? true) && (rawKinds.isEmpty || !kinds.isEmpty)
+        unknownKinds = rawKinds.filter { LinkRules.LinkKind(rawValue: $0) == nil }
+        isEnabled = (try? container.decode(Bool.self, forKey: .isEnabled)) ?? true
         sourceApps = (try? container.decode([LinkSourceApp].self, forKey: .sourceApps)) ?? []
         window = try? container.decode(LinkTimeWindow.self, forKey: .window)
         target = try container.decode(LinkRules.Target.self, forKey: .target)
@@ -128,7 +133,7 @@ public struct LinkRule: Identifiable, Hashable, Codable, Sendable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(isEnabled, forKey: .isEnabled)
-        try container.encode(kinds.map(\.rawValue).sorted(), forKey: .kinds)
+        try container.encode(kinds.map(\.rawValue).sorted() + unknownKinds, forKey: .kinds)
         try container.encode(sourceApps, forKey: .sourceApps)
         try container.encodeIfPresent(window, forKey: .window)
         try container.encode(target, forKey: .target)
@@ -136,6 +141,7 @@ public struct LinkRule: Identifiable, Hashable, Codable, Sendable {
 
     public func matches(kind: LinkRules.LinkKind, sourceApp: String?, at date: Date, calendar: Calendar = .current) -> Bool {
         guard isEnabled else { return false }
+        if kinds.isEmpty, !unknownKinds.isEmpty { return false }
         if !kinds.isEmpty, !kinds.contains(kind) { return false }
         if !sourceApps.isEmpty {
             guard let sourceApp, sourceApps.contains(where: { $0.bundleIdentifier == sourceApp }) else { return false }
@@ -163,9 +169,10 @@ public enum LinkReason: Equatable, Sendable {
 
 extension LinkRules {
     /// The account a link goes to and why. The first enabled rule that
-    /// matches and names an existing, unarchived account wins; then the
-    /// kind's rule, then the general one. A rule naming an account that is
-    /// gone falls through to the next.
+    /// matches and names an existing account wins; a smart rule naming an
+    /// account that is gone is skipped. Then the kind's rule, else the
+    /// general one; when the account they name is gone, the front account,
+    /// else the default one, as before smart rules.
     public func decide(
         route: ClaudeLink.Route,
         sourceApp: String?,
@@ -175,41 +182,31 @@ extension LinkRules {
         library: ProfileLibrary
     ) -> (profile: Profile?, reason: LinkReason) {
         let kind = LinkKind(route)
-        func usable(_ id: ProfileID) -> Profile? {
-            guard let profile = library.profile(withID: id), !profile.isArchived else { return nil }
-            return profile
-        }
-        func resolve(_ target: Target, reason: LinkReason) -> (Profile?, LinkReason)? {
-            switch target {
-            case let .profile(id):
-                return usable(id).map { ($0, reason) }
-            case .frontmost:
-                return nil
-            }
-        }
         for rule in rules where rule.matches(kind: kind, sourceApp: sourceApp, at: now, calendar: calendar) {
             switch rule.target {
             case let .profile(id):
-                if let profile = usable(id) { return (profile, .rule(name: rule.name)) }
+                if let profile = library.profile(withID: id) { return (profile, .rule(name: rule.name)) }
             case .frontmost:
                 return frontOrDefault(frontmost: frontmost, library: library, reason: .rule(name: rule.name))
             }
         }
-        if let target = byKind[kind] {
-            if let found = resolve(target, reason: .kind(kind)) { return found }
-            if target == .frontmost { return frontOrDefault(frontmost: frontmost, library: library, reason: .kind(kind)) }
+        let reason: LinkReason? = byKind[kind] != nil ? .kind(kind) : (fallback == .frontmost ? nil : .fallback)
+        switch target(for: kind) {
+        case let .profile(id):
+            if let profile = library.profile(withID: id) { return (profile, reason ?? .fallback) }
+            return frontOrDefault(frontmost: frontmost, library: library, reason: nil)
+        case .frontmost:
+            return frontOrDefault(frontmost: frontmost, library: library, reason: reason)
         }
-        if let found = resolve(fallback, reason: .fallback) { return found }
-        return frontOrDefault(frontmost: frontmost, library: library, reason: nil)
     }
 
-    /// The front account, else the default one. `reason` is kept when the
-    /// front account is used because a rule asked for it.
+    /// The front account, else the default one. A rule's `reason` is
+    /// kept either way, so the log never says no rule matched when one did.
     private func frontOrDefault(frontmost: ProfileID?, library: ProfileLibrary, reason: LinkReason?) -> (profile: Profile?, reason: LinkReason) {
         if let id = frontmost, let profile = library.profile(withID: id) {
             return (profile, reason ?? .frontmost)
         }
-        return (library.defaultProfile, .defaultAccount)
+        return (library.defaultProfile, reason ?? .defaultAccount)
     }
 }
 

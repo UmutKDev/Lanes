@@ -149,8 +149,9 @@ private struct LinkRuleEditor: View {
                 TextField("Ad", text: $name, prompt: Text("Örneğin Mesai"))
                 Picker("Hesap", selection: $target) {
                     Text("Öndeki hesap").tag(LinkRules.Target.frontmost)
-                    ForEach(model.library.activeProfiles) { profile in
-                        Text(profile.name).tag(LinkRules.Target.profile(profile.id))
+                    ForEach(model.library.profiles) { profile in
+                        Text(profile.isArchived ? String(localized: "\(profile.name) (arşivde)") : profile.name)
+                            .tag(LinkRules.Target.profile(profile.id))
                     }
                 }
             }

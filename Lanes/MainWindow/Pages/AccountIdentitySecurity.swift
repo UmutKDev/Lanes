@@ -173,10 +173,15 @@ struct AccountSecurityTab: View {
             }
             Section {
                 let kinds = model.linkRules.byKind.filter { $0.value == .profile(profile.id) }.map(\.key)
-                if kinds.isEmpty && model.linkRules.fallback != .profile(profile.id) {
+                let smartRules = model.linkRules.rules.filter { $0.target == .profile(profile.id) }
+                if kinds.isEmpty && smartRules.isEmpty && model.linkRules.fallback != .profile(profile.id) {
                     Text("Hesap Haritası'nda bu hesaba yönlenen bağlantı yok.")
                         .foregroundStyle(.secondary)
                 } else {
+                    ForEach(smartRules) { rule in
+                        Label(rule.isEnabled ? rule.name : String(localized: "\(rule.name) (kapalı)"), systemImage: "wand.and.stars")
+                            .lineLimit(1)
+                    }
                     ForEach(kinds.sorted { $0.rawValue < $1.rawValue }, id: \.self) { kind in
                         Label(kind.title, systemImage: "link")
                             .lineLimit(1)

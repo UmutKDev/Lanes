@@ -164,11 +164,12 @@ struct LinkHandlerAssistant: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if !model.receivedLinks.isEmpty {
+                let recentLinks = model.receivedLinks.filter { $0.receivedAt >= model.launchedAt }
+                if !recentLinks.isEmpty {
                     Divider()
                     Text("Lanes'e gelen bağlantılar")
                         .font(DS.Typography.caption.weight(.semibold))
-                    ForEach(model.receivedLinks.prefix(5)) { link in
+                    ForEach(recentLinks.prefix(5)) { link in
                         Text(verbatim: "\(link.kind) · \(link.outcome)")
                             .font(DS.Typography.path)
                             .lineLimit(1)

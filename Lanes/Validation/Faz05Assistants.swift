@@ -434,7 +434,7 @@ struct NewAccountSignInAssistant: View {
             isSameWindow ? "Giriş başlatıldığı pencerede tamamlandı." : "Giriş başka bir pencerede tamamlandı ya da tamamlanmadı.",
             handlerLine(),
         ]
-        if let link = model.receivedLinks.first {
+        if let link = model.receivedLinks.first(where: { $0.receivedAt >= model.launchedAt }) {
             lines.append("Lanes'e gelen son bağlantı: \(link.kind) · \(link.outcome)")
         }
         let validation = model.validation

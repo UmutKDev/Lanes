@@ -41,6 +41,12 @@ final class AppModel {
     /// this go there" still has an answer tomorrow.
     private(set) var receivedLinks: [ReceivedLink] = []
     @ObservationIgnored private var linkLog = LinkLog()
+    /// The last app in front that was neither Lanes nor Claude, for when
+    /// a link arrives after Lanes itself came forward.
+    @ObservationIgnored private var lastExternalFrontApp: LinkSourceApp?
+    /// When Lanes started, so checks can tell this run's links from older
+    /// ones in the 30-day log.
+    let launchedAt = Date()
     /// True when there was no profiles file yet, so Lanes greets the user.
     private(set) var isFirstLaunch = false
     var notice: Notice? {
@@ -231,6 +237,9 @@ final class AppModel {
                     self.refreshInstances()
                 }
                 self.frontChanged(to: self.instances.first(where: { $0.pid == pid })?.profileID)
+                if let app, let source = self.externalApp(app) {
+                    self.lastExternalFrontApp = source
+                }
                 guard pid != ProcessInfo.processInfo.processIdentifier else { return }
                 self.hideOtherAccountsIfFocusing(front: pid)
                 if let id = self.instances.first(where: { $0.pid == pid })?.profileID {
@@ -2018,13 +2027,13 @@ final class AppModel {
         try? await LinkHandlerRegistry.setHandler(claude.url)
     }
 
-    func receive(_ url: URL) {
+    func receive(_ url: URL, senderPID: pid_t? = nil) {
         // A link that launches Lanes arrives before start() has looked for
         // Claude.
         if claude == nil {
             claude = ClaudeInstallation.find(paths: paths)
         }
-        let source = linkSourceApp()
+        let source = linkSourceApp(senderPID: senderPID)
         let link = ClaudeLink(url: url)
         let outcome: String
         switch ClaudeLink.handling(for: url) {
@@ -2165,15 +2174,27 @@ final class AppModel {
         }
     }
 
-    /// The app the link was clicked in: the app in front when it arrived,
-    /// unless that is Lanes or a Claude window, which do not count as a
-    /// source. Only its identifier and name are kept.
-    private func linkSourceApp() -> LinkSourceApp? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
+    /// The app the link was clicked in: the app that sent the open
+    /// request, else the app in front, else the last app other than Lanes
+    /// and Claude that was in front. Lanes and Claude windows never count.
+    /// Only the app's identifier and name are kept.
+    private func linkSourceApp(senderPID: pid_t?) -> LinkSourceApp? {
+        let sender = senderPID.flatMap { NSRunningApplication(processIdentifier: $0) }
+        for app in [sender, NSWorkspace.shared.frontmostApplication].compactMap({ $0 }) {
+            if let source = externalApp(app) { return source }
+        }
+        return lastExternalFrontApp
+    }
+
+    /// An app that can be a link's source: a regular app that is neither
+    /// Lanes nor a Claude window.
+    private func externalApp(_ app: NSRunningApplication) -> LinkSourceApp? {
+        guard app.activationPolicy == .regular,
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
               !instances.contains(where: { $0.pid == app.processIdentifier }),
               let bundleID = app.bundleIdentifier,
-              bundleID != ClaudeInstallation.bundleIdentifier else { return nil }
+              bundleID != ClaudeInstallation.bundleIdentifier,
+              bundleID != Bundle.main.bundleIdentifier else { return nil }
         return LinkSourceApp(bundleIdentifier: bundleID, name: app.localizedName ?? bundleID)
     }
 

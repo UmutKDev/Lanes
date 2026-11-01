@@ -64,7 +64,26 @@ final class LinkRoutingTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(LinkRules.self, from: Data(old.utf8)).rules, [])
         let future = #"{"name": "Yeni", "kinds": ["future"], "target": {"frontmost": {}}}"#
         let rule = try JSONDecoder().decode(LinkRule.self, from: Data(future.utf8))
-        XCTAssertFalse(rule.isEnabled, "A rule whose kinds are all unknown stays off")
+        XCTAssertFalse(rule.matches(kind: .newChat, sourceApp: nil, at: date(2, 10), calendar: calendar), "A rule whose kinds are all unknown never matches")
+        let again = try JSONDecoder().decode(LinkRule.self, from: JSONEncoder().encode(rule))
+        XCTAssertEqual(again.unknownKinds, ["future"], "Unknown kinds survive a save")
+        // A rule this Lanes cannot read drops only itself.
+        let mixed = #"{"fallback": {"frontmost": {}}, "byKind": {}, "rules": [{"name": "Bozuk", "target": {"future": {}}}, {"name": "İyi", "target": {"frontmost": {}}}]}"#
+        XCTAssertEqual(try JSONDecoder().decode(LinkRules.self, from: Data(mixed.utf8)).rules.map(\.name), ["İyi"])
+    }
+
+    func testMatchedFrontmostRuleKeepsItsReasonWithoutAFrontAccount() {
+        let rules = LinkRules(rules: [LinkRule(name: "Her şey", target: .frontmost)])
+        let decision = rules.decide(route: .newChat(prompt: nil), sourceApp: nil, now: date(2, 10), calendar: calendar, frontmost: nil, library: library)
+        XCTAssertEqual(decision.profile?.name, "Ana hesap")
+        XCTAssertEqual(decision.reason, .rule(name: "Her şey"))
+    }
+
+    func testKindRuleForGoneAccountFallsBackToFront() {
+        let rules = LinkRules(fallback: .profile(ProfileID(rawValue: "main")), byKind: [.code: .profile(ProfileID(rawValue: "gone"))])
+        let decision = rules.decide(route: .newCodeSession, sourceApp: nil, now: date(2, 10), calendar: calendar, frontmost: ProfileID(rawValue: "work"), library: library)
+        XCTAssertEqual(decision.profile?.name, "İş")
+        XCTAssertEqual(decision.reason, .frontmost)
     }
 
     func testLogKeepsThirtyDays() throws {

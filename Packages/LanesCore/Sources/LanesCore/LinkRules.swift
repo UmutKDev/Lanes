@@ -48,7 +48,8 @@ public struct LinkRules: Codable, Equatable, Sendable {
             if let kind = LinkKind(rawValue: key) { byKind[kind] = value }
         }
         self.byKind = byKind
-        rules = (try? container.decode([LinkRule].self, forKey: .rules)) ?? []
+        // One by one, so a rule this Lanes cannot read drops only itself.
+        rules = ((try? container.decode([LossyLinkRule].self, forKey: .rules)) ?? []).compactMap(\.rule)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -87,5 +88,14 @@ public struct LinkRules: Codable, Equatable, Sendable {
             if case let .profile(id) = rule.target { return profiles.contains(id) }
             return true
         }
+    }
+}
+
+/// Decodes a rule, or nil when it cannot be read, without failing the list.
+private struct LossyLinkRule: Decodable {
+    let rule: LinkRule?
+
+    init(from decoder: Decoder) throws {
+        rule = try? LinkRule(from: decoder)
     }
 }
