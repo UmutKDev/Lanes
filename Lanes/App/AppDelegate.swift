@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         CodeSignature.readInBackground()
         model.start()
         IntentBridge.model = model
+        LanesFocusFilter.restore(into: model)
         let statusItemController = StatusItemController(model: model, router: router)
         self.statusItemController = statusItemController
         router.statusItemController = statusItemController

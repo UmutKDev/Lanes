@@ -212,10 +212,10 @@ private struct SceneEditor: View {
                     DatePicker("Saat", selection: $scheduleTime, displayedComponents: .hourAndMinute)
                     WeekdayPicker(selection: $weekdays)
                 }
-                Picker("Bu ekran bağlanınca aç", selection: $display) {
-                    Text("Hiçbiri").tag(SceneDisplay?.none)
+                Picker("Bu ekran bağlanınca aç", selection: displayIdentifier) {
+                    Text("Hiçbiri").tag(String?.none)
                     ForEach(displayChoices, id: \.identifier) { choice in
-                        Text(choice.name).tag(Optional(choice))
+                        Text(choice.name).tag(Optional(choice.identifier))
                     }
                 }
             } header: {
@@ -269,7 +269,7 @@ private struct SceneEditor: View {
                 if let schedule = scene.schedule {
                     opensOnSchedule = true
                     weekdays = schedule.weekdays
-                    scheduleTime = Calendar.current.date(byAdding: .minute, value: schedule.minuteOfDay, to: Calendar.current.startOfDay(for: Date())) ?? scheduleTime
+                    scheduleTime = Calendar.current.date(bySettingHour: schedule.minuteOfDay / 60, minute: schedule.minuteOfDay % 60, second: 0, of: Date()) ?? scheduleTime
                 }
                 display = scene.display
             }
@@ -292,6 +292,16 @@ private struct SceneEditor: View {
             choices.append(display)
         }
         return choices
+    }
+
+    /// Chosen by identifier, so a display whose name changed still matches.
+    private var displayIdentifier: Binding<String?> {
+        Binding(
+            get: { display?.identifier },
+            set: { identifier in
+                display = identifier.flatMap { id in displayChoices.first { $0.identifier == id } }
+            }
+        )
     }
 
     private var schedule: SceneSchedule? {
@@ -364,27 +374,33 @@ private struct WeekdayPicker: View {
     @Binding var selection: Set<Int>
 
     var body: some View {
-        let calendar = Calendar.current
-        let symbols = calendar.veryShortWeekdaySymbols
         // Calendar weekdays: 1 = Sunday. Shown from Monday.
         let order = [2, 3, 4, 5, 6, 7, 1]
         LabeledContent("Günler") {
             HStack(spacing: DS.Space.xxs) {
                 ForEach(order, id: \.self) { day in
-                    let isOn = selection.contains(day)
-                    Button {
-                        if isOn { selection.remove(day) } else { selection.insert(day) }
-                    } label: {
-                        Text(symbols[day - 1])
-                            .frame(minWidth: 18)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(isOn ? .accentColor : nil)
-                    .controlSize(.small)
-                    .accessibilityAddTraits(isOn ? .isSelected : [])
-                    .help(calendar.weekdaySymbols[day - 1])
+                    dayButton(day)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func dayButton(_ day: Int) -> some View {
+        let calendar = Calendar.current
+        let isOn = selection.contains(day)
+        let button = Button {
+            if isOn { selection.remove(day) } else { selection.insert(day) }
+        } label: {
+            Text(calendar.shortWeekdaySymbols[day - 1])
+        }
+        .controlSize(.small)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+        .help(calendar.weekdaySymbols[day - 1])
+        if isOn {
+            button.buttonStyle(.borderedProminent)
+        } else {
+            button.buttonStyle(.bordered)
         }
     }
 }

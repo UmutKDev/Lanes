@@ -188,7 +188,13 @@ struct CommandPanelView: View {
                 ForEach(matchingProfiles) { profile in
                     AccountCardView(profile: profile, onClose: onClose)
                 }
-                if matchingProfiles.isEmpty {
+                if matchingProfiles.isEmpty && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Odak filtresi bu türdeki hesapları gizliyor.")
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DS.Space.s)
+                } else if matchingProfiles.isEmpty {
                     Text("\"\(query)\" ile eşleşen hesap yok.")
                         .font(DS.Typography.caption)
                         .foregroundStyle(.secondary)

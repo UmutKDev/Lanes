@@ -148,15 +148,34 @@ public struct SceneSchedule: Hashable, Codable, Sendable {
     public func occurrence(on day: Date, calendar: Calendar = .current) -> Date? {
         let weekday = calendar.component(.weekday, from: day)
         guard weekdays.isEmpty || weekdays.contains(weekday) else { return nil }
-        return calendar.date(byAdding: .minute, value: minuteOfDay, to: calendar.startOfDay(for: day))
+        // By wall clock, so a daylight saving day still opens at 09:00.
+        return calendar.date(bySettingHour: minuteOfDay / 60, minute: minuteOfDay % 60, second: 0, of: day)
     }
 
     /// Whether the scene should open now: today's time has come, at most
     /// `lateWindow` ago, and the scene has not opened since.
+    /// Yesterday's time counts too, so 23:30 still opens on a wake at 00:30.
     public func isDue(now: Date, lastOpened: Date?, calendar: Calendar = .current) -> Bool {
-        guard let time = occurrence(on: now, calendar: calendar), now >= time,
-              now.timeIntervalSince(time) <= SceneSchedule.lateWindow else { return false }
-        return (lastOpened ?? .distantPast) < time
+        let days = [now, calendar.date(byAdding: .day, value: -1, to: now)].compactMap { $0 }
+        return days.contains { day in
+            guard let time = occurrence(on: day, calendar: calendar), now >= time,
+                  now.timeIntervalSince(time) <= SceneSchedule.lateWindow else { return false }
+            return (lastOpened ?? .distantPast) < time
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case minuteOfDay, weekdays
+    }
+
+    /// Read through the clamping initializer, so a hand-edited file cannot
+    /// move the time to another day.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            minuteOfDay: try container.decode(Int.self, forKey: .minuteOfDay),
+            weekdays: (try? container.decode(Set<Int>.self, forKey: .weekdays)) ?? []
+        )
     }
 }
 

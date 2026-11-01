@@ -273,8 +273,26 @@ struct LanesFocusFilter: SetFocusFilterIntent {
         )
     }
 
+    /// A Focus that was already on when Lanes started is applied without
+    /// opening its scene; macOS does not call perform() again for it.
+    @MainActor
+    static func restore(into model: AppModel) {
+        Task {
+            guard let filter = try? await LanesFocusFilter.current else { return }
+            model.applyFocus(
+                linkProfileID: filter.linkAccount.map { ProfileID(rawValue: $0.id) },
+                accountClass: filter.accountClass?.accountClass,
+                scene: nil
+            )
+        }
+    }
+
     @MainActor
     func perform() async throws -> some IntentResult {
+        // macOS may start Lanes to deliver the filter; give it a moment.
+        for _ in 0..<20 where IntentBridge.model == nil {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
         guard let model = IntentBridge.model else { throw LanesIntentError.notRunning }
         model.applyFocus(
             linkProfileID: linkAccount.map { ProfileID(rawValue: $0.id) },

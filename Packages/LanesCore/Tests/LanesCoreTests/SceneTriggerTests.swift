@@ -28,6 +28,19 @@ final class SceneTriggerTests: XCTestCase {
         XCTAssertFalse(nine.isDue(now: date(2, 11, 1), lastOpened: nil, calendar: calendar))
     }
 
+    func testLateWindowCrossesMidnight() {
+        let late = SceneSchedule(minuteOfDay: 23 * 60 + 30)
+        XCTAssertTrue(late.isDue(now: date(3, 0, 30), lastOpened: nil, calendar: calendar))
+        XCTAssertFalse(late.isDue(now: date(3, 0, 30), lastOpened: date(2, 23, 31), calendar: calendar))
+    }
+
+    func testDecodingClamps() throws {
+        let json = Data(#"{"minuteOfDay": 99999, "weekdays": [0, 2]}"#.utf8)
+        let schedule = try JSONDecoder().decode(SceneSchedule.self, from: json)
+        XCTAssertEqual(schedule.minuteOfDay, 1439)
+        XCTAssertEqual(schedule.weekdays, [2])
+    }
+
     func testWeekdaysAreRespected() {
         // Monday (2) to Friday (6).
         let weekdays = SceneSchedule(minuteOfDay: 9 * 60, weekdays: [2, 3, 4, 5, 6])

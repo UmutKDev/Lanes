@@ -327,9 +327,20 @@ final class AppModel {
     private static let sceneScheduleKey = "sceneScheduleLastOpened"
 
     /// Opens scenes whose time has come. Runs with the resource timer.
+    private func markScheduleSeen(_ id: SceneID, at date: Date = Date()) {
+        var lastOpened = (UserDefaults.standard.dictionary(forKey: Self.sceneScheduleKey) as? [String: Double]) ?? [:]
+        lastOpened[id.rawValue] = date.timeIntervalSinceReferenceDate
+        UserDefaults.standard.set(lastOpened, forKey: Self.sceneScheduleKey)
+    }
+
     private func openScheduledScenes(now: Date) {
         var lastOpened = (UserDefaults.standard.dictionary(forKey: Self.sceneScheduleKey) as? [String: Double]) ?? [:]
+        let scheduled = Set(library.scenes.filter { $0.schedule != nil }.map(\.id.rawValue))
         var changed = false
+        if lastOpened.keys.contains(where: { !scheduled.contains($0) }) {
+            lastOpened = lastOpened.filter { scheduled.contains($0.key) }
+            changed = true
+        }
         for scene in library.scenes {
             guard let schedule = scene.schedule else { continue }
             let last = lastOpened[scene.id.rawValue].map(Date.init(timeIntervalSinceReferenceDate:))
@@ -1492,6 +1503,11 @@ final class AppModel {
     }
 
     func updateScene(_ scene: ProfileScene) {
+        // A new or changed time first applies to its next occurrence, so
+        // saving 09:00 at 10:30 does not open the scene at once.
+        if let schedule = scene.schedule, library.scene(withID: scene.id)?.schedule != schedule {
+            markScheduleSeen(scene.id)
+        }
         do {
             try library.updateScene(scene)
             save()
@@ -1826,7 +1842,9 @@ final class AppModel {
     /// to its stand-in.
     private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
         let kind = Self.kindName(link)
-        let focusTarget = focusSettings?.linkProfileID.flatMap { library.profile(withID: $0) }
+        let focusTarget = focusSettings?.linkProfileID
+            .flatMap { library.profile(withID: $0) }
+            .flatMap { $0.isArchived ? nil : $0 }
         guard let chosen = focusTarget ?? linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
             // No Lanes account has been in front: the link goes to Claude.app.
             if let claude {
