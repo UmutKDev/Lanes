@@ -88,9 +88,25 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         observeFrontApplication()
     }
 
+    /// The app icon's three tilted panes, as a template image for the menu
+    /// bar: the back two fainter, the front one solid.
     private static let lanesIcon: NSImage? = {
-        let image = NSImage(systemSymbolName: "square.stack.3d.up.fill", accessibilityDescription: "Lanes")
-        image?.isTemplate = true
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
+            let scale = rect.width / 16
+            guard let context = NSGraphicsContext.current?.cgContext else { return false }
+            context.scaleBy(x: scale, y: scale)
+            context.translateBy(x: 8, y: 8)
+            context.rotate(by: -14 * .pi / 180)
+            context.translateBy(x: -8, y: -8)
+            let panes: [(CGFloat, CGFloat, CGFloat)] = [(4.5, 2, 0.45), (3.5, 5.5, 0.7), (2.5, 9, 1)]
+            for (x, y, alpha) in panes {
+                NSColor.black.withAlphaComponent(alpha).setFill()
+                NSBezierPath(roundedRect: NSRect(x: x, y: y, width: 9, height: 5), xRadius: 1.5, yRadius: 1.5).fill()
+            }
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "Lanes"
         return image
     }()
 

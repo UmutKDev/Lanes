@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<!-- Lanes app icon: three glass account panes, the front one in use. -->
+<defs>
+<clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+<filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+<linearGradient id="paperTile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBFBFD"/><stop offset="1" stop-color="#D9DDE6"/></linearGradient>
+<linearGradient id="gBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7DB4FF" stop-opacity=".95"/><stop offset="1" stop-color="#2563EB" stop-opacity=".9"/></linearGradient>
+<linearGradient id="gPurple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D8B4FE" stop-opacity=".9"/><stop offset="1" stop-color="#9333EA" stop-opacity=".85"/></linearGradient>
+<linearGradient id="gOrange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FED7AA" stop-opacity=".9"/><stop offset="1" stop-color="#EA580C" stop-opacity=".85"/></linearGradient>
+<linearGradient id="glassRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".5" stop-color="#fff" stop-opacity=".15"/><stop offset="1" stop-color="#fff" stop-opacity=".5"/></linearGradient>
+</defs>
+    <rect x="100" y="112" width="824" height="824" rx="185" fill="#000" opacity=".22" filter="url(#soft)"/>
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#paperTile)"/>
+    <g clip-path="url(#tile)">
+      <g transform="rotate(-14 512 512)">
+        <rect x="300" y="236" width="470" height="300" rx="64" fill="url(#gOrange)"/>
+        <rect x="300" y="236" width="470" height="300" rx="64" fill="none" stroke="url(#glassRim)" stroke-width="5"/>
+        <rect x="262" y="372" width="470" height="300" rx="64" fill="#000" opacity=".12" filter="url(#soft)"/>
+        <rect x="262" y="362" width="470" height="300" rx="64" fill="url(#gPurple)"/>
+        <rect x="262" y="362" width="470" height="300" rx="64" fill="none" stroke="url(#glassRim)" stroke-width="5"/>
+        <rect x="224" y="498" width="470" height="300" rx="64" fill="#000" opacity=".14" filter="url(#soft)"/>
+        <rect x="224" y="488" width="470" height="300" rx="64" fill="url(#gBlue)"/>
+        <rect x="224" y="488" width="470" height="300" rx="64" fill="none" stroke="url(#glassRim)" stroke-width="5"/>
+        <rect x="282" y="548" width="150" height="22" rx="11" fill="#fff" opacity=".9"/>
+      </g>
+    </g>
+    <rect x="101.5" y="101.5" width="821" height="821" rx="184" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3"/>
+  </svg>
