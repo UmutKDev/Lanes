@@ -135,7 +135,9 @@ final class ClaudeCodeDoneNotices {
 enum TerminalFocus {
     /// Until then, a "reopen" from macOS belongs to a Claude Code
     /// notification click and does not show Lanes's window.
-    static var ignoreReopenUntil = Date.distantPast
+    /// Set from the notification callback, which may run off the main
+    /// thread; a stale read only shows the window once.
+    nonisolated(unsafe) static var ignoreReopenUntil = Date.distantPast
 
     static func show(tty: String?, terminalProgram: String?) {
         let bundleID = ClaudeCodeHooks.terminalBundleIdentifier(for: terminalProgram) ?? "com.apple.Terminal"
