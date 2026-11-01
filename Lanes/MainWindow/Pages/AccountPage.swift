@@ -362,7 +362,10 @@ private struct AccountGeneralTab: View {
     }
 
     private func lastUsedText(isRunning: Bool) -> String? {
-        guard !isRunning, let last = model.lastUsedAt[profile.id] else { return nil }
+        // Said in words while open: a dash read as "never used". The row
+        // stays, so the form never shifts on launch or quit.
+        if isRunning { return String(localized: "Şu an açık") }
+        guard let last = model.lastUsedAt[profile.id] else { return nil }
         return AccountCardView.relative(last)
     }
 

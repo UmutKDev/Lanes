@@ -88,7 +88,10 @@ enum DS {
 
     /// Layout metrics shared across windows.
     enum Metrics {
-        static let windowMinWidth: CGFloat = 900
+        /// Sidebar + the account page's tab bar (its six segments need about
+        /// 520 pt) + the inspector, so opening the inspector never squeezes
+        /// the sidebar to a sliver or pushes the inspector off the window.
+        static let windowMinWidth: CGFloat = 980
         static let windowMinHeight: CGFloat = 580
         static let sidebarMin: CGFloat = 200
         static let sidebarIdeal: CGFloat = 230
@@ -105,6 +108,8 @@ enum DS {
         /// Bottom scroll margin so the floating notice never covers content.
         static let noticeClearance: CGFloat = 80
         static let tileMinWidth: CGFloat = 260
+        /// Width the overview budgets per tile when it sizes its column.
+        static let tileIdealWidth: CGFloat = 340
         static let tileMinHeight: CGFloat = 128
         static let iconButton: CGFloat = 28
         static let statusIcon: CGFloat = 18
