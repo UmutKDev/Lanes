@@ -790,6 +790,14 @@ final class AppModel {
         Task { await openAndWait(profile) }
     }
 
+    /// The panel, the Dock menu, a hotkey and Spotlight open accounts with
+    /// no Lanes window on screen, where a notice would go unseen until the
+    /// next time one opens. A notification says it there instead.
+    private func notifyIfNoWindow(_ message: String) {
+        guard !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeKey }) else { return }
+        Notifier.post(.launchFailed, body: message, force: true)
+    }
+
     func openAndWait(_ profile: Profile) async {
         // A removed account is not opened, even from a list made before.
         guard self.profile(withID: profile.id) != nil, !launchesInProgress.contains(profile.id) else { return }
@@ -801,7 +809,9 @@ final class AppModel {
         }
         activationWarningID = nil
         guard let claude else {
-            notice = Notice(kind: .error, message: String(localized: "Claude bulunamadı. Claude'u Uygulamalar klasörüne kurduktan sonra yeniden dene."))
+            let message = String(localized: "Claude bulunamadı. Claude'u Uygulamalar klasörüne kurduktan sonra yeniden dene.")
+            notice = Notice(kind: .error, message: message)
+            notifyIfNoWindow(message)
             return
         }
         refreshInstances()
@@ -836,7 +846,9 @@ final class AppModel {
                 Log.instances.info("Launched \(plan.applicationURL.lastPathComponent == "Claude.app" ? "Claude" : "a clone", privacy: .public) with \(plan.arguments.isEmpty ? "Claude's own folder" : "its own folder", privacy: .public)")
             } catch {
                 Log.instances.error("Launch failed: \(error.localizedDescription)")
-                notice = Notice(kind: .error, message: String(localized: "\(profile.name) açılamadı: \(error.localizedDescription)"))
+                let message = String(localized: "\(profile.name) açılamadı: \(error.localizedDescription)")
+                notice = Notice(kind: .error, message: message)
+                notifyIfNoWindow(message)
             }
         }
         try? await Task.sleep(nanoseconds: 700_000_000)
