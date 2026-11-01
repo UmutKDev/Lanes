@@ -188,9 +188,35 @@ private struct GeneralSettings: View {
     @AppStorage(Preferences.Key.reopensLastAccounts) private var reopensLast = false
     @AppStorage(Preferences.Key.accountFrameEnabled) private var accountFrame = false
     @AppStorage(Preferences.Key.clipboardGuardEnabled) private var clipboardGuard = false
+    @State private var language = AppLanguage.current
+    @State private var languageChanged = false
 
     var body: some View {
         Form {
+            Section {
+                Picker("Dil", selection: Binding(
+                    get: { language },
+                    set: { picked in
+                        language = picked
+                        picked.apply()
+                        languageChanged = true
+                    }
+                )) {
+                    ForEach(AppLanguage.allCases) { option in
+                        Text(verbatim: option.title).tag(option)
+                    }
+                }
+                if languageChanged {
+                    LabeledContent {
+                        Button("Yeniden Başlat") { AppLanguage.relaunch() }
+                    } label: {
+                        Text("Lanes yeniden açılınca geçerli olur.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Dil")
+            }
             Section {
                 LoginItemToggle(title: "Oturum açıldığında Lanes'i başlat", error: $loginItemError)
                 Toggle("Lanes açılınca son açık hesapları yeniden aç", isOn: $reopensLast)

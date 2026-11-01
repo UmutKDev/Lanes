@@ -45,10 +45,10 @@ public struct ClaudeCodeSessionFolder: Equatable, Sendable {
 
     /// Lines for the check's log.
     public var evidenceLines: [String] {
-        var lines = ["\(projects.count) proje klasörü, \(sessionCount) oturum dosyası."]
-        lines.append(contentsOf: projects.map { "\($0.folderName): \($0.sessionCount) oturum" })
+        var lines = [L("\(projects.count) proje klasörü, \(sessionCount) oturum dosyası.", "\(projects.count) project folders, \(sessionCount) session files.")]
+        lines.append(contentsOf: projects.map { L("\($0.folderName): \($0.sessionCount) oturum", "\($0.folderName): \($0.sessionCount) sessions") })
         if let newestSession {
-            lines.append("En yeni oturum: \(newestSession.id) (\(newestSession.projectFolderName))")
+            lines.append(L("En yeni oturum: \(newestSession.id) (\(newestSession.projectFolderName))", "Newest session: \(newestSession.id) (\(newestSession.projectFolderName))"))
         }
         return lines
     }

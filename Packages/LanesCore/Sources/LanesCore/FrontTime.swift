@@ -67,7 +67,7 @@ public struct FrontTimeLog: Codable, Equatable, Sendable {
                 ? "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\""
                 : text
         }
-        var lines = ["Gün,Hesap,Dakika"]
+        var lines = [L("Gün,Hesap,Dakika", "Day,Account,Minutes")]
         let today = calendar.startOfDay(for: now)
         for offset in (0..<max(count, 0)).reversed() {
             guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }
@@ -83,8 +83,10 @@ public struct FrontTimeLog: Codable, Equatable, Sendable {
     /// "1 sa 25 dk", "12 dk", "1 dk'dan az".
     public static func describe(seconds: Double) -> String {
         let minutes = Int(seconds / 60)
-        if minutes < 1 { return seconds > 0 ? "1 dk'dan az" : "0 dk" }
+        if minutes < 1 { return seconds > 0 ? L("1 dk'dan az", "Less than 1 min") : L("0 dk", "0 min") }
         let hours = minutes / 60
-        return hours > 0 ? "\(hours) sa \(minutes % 60) dk" : "\(minutes) dk"
+        return hours > 0
+            ? L("\(hours) sa \(minutes % 60) dk", "\(hours) h \(minutes % 60) min")
+            : L("\(minutes) dk", "\(minutes) min")
     }
 }

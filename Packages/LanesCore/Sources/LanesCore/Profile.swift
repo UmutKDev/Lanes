@@ -196,7 +196,7 @@ extension Profile {
             return nil
         }
 
-        let name = try read(String.self, .name) ?? "Adsız hesap"
+        let name = try read(String.self, .name) ?? L("Adsız hesap", "Untitled Account")
         id = try container.decode(ProfileID.self, forKey: AnyCodingKey(Field.id.rawValue))
         self.name = name
         monogram = try read(String.self, .monogram) ?? Profile.defaultMonogram(for: name)

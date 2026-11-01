@@ -9,7 +9,7 @@ enum CommandLineTool {
     enum State: Equatable {
         case notInstalled
         case installed
-        /// Lanes wrote it, but an older version.
+        /// Lanes wrote it, but an older version or in another language.
         case outdated
         /// Another program's `lanes` is there; Lanes leaves it alone.
         case foreign
@@ -35,7 +35,7 @@ enum CommandLineTool {
         }
         let folder = installURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try LanesCLI.script.write(to: installURL, atomically: true, encoding: .utf8)
+        try LanesCLI.script().write(to: installURL, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: installURL.path)
     }
 
@@ -44,7 +44,8 @@ enum CommandLineTool {
         try FileManager.default.removeItem(at: installURL)
     }
 
-    /// A script left by an older Lanes is brought up to date at launch.
+    /// A script left by an older Lanes, or written in the language Lanes
+    /// ran in before, is brought up to date at launch.
     static func updateIfOutdated() {
         guard state() == .outdated else { return }
         try? install()

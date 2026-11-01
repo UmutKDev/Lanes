@@ -153,8 +153,10 @@ public struct Timesheet: Equatable, Sendable {
         guard minutes > 0 else { return "—" }
         let hours = minutes / 60
         let rest = minutes % 60
-        if hours == 0 { return "\(rest) dk" }
-        return rest == 0 ? "\(hours) sa" : "\(hours) sa \(rest < 10 ? "0" : "")\(rest) dk"
+        if hours == 0 { return L("\(rest) dk", "\(rest) min") }
+        if rest == 0 { return L("\(hours) sa", "\(hours) h") }
+        let padded = (rest < 10 ? "0" : "") + String(rest)
+        return L("\(hours) sa \(padded) dk", "\(hours) h \(padded) min")
     }
 
     /// One row per account and per project, minutes per day:
@@ -176,10 +178,10 @@ public struct Timesheet: Equatable, Sendable {
             let days = seconds.map(minutes)
             return (cells + days.map(String.init) + [String(days.reduce(0, +))]).joined(separator: ",")
         }
-        let header = ["Hesap", "Proje", "Tür"] + days.map { FrontTimeLog.dayKey($0, calendar: calendar) } + ["Toplam (dk)"]
+        let header = [L("Hesap", "Account"), L("Proje", "Project"), L("Tür", "Kind")] + days.map { FrontTimeLog.dayKey($0, calendar: calendar) } + [L("Toplam (dk)", "Total (min)")]
         var lines = [header.joined(separator: ",")]
         for account in usedAccounts {
-            lines.append(row([field(account.name), "", "Claude önde"], account.front))
+            lines.append(row([field(account.name), "", L("Claude önde", "Claude in front")], account.front))
             for project in account.projects where project.total >= 60 {
                 lines.append(row([field(account.name), field(project.name), "Claude Code"], project.seconds))
             }

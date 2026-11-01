@@ -298,7 +298,7 @@ public struct TeamPack: Codable, Equatable, Sendable {
             if components.user != nil || components.password != nil {
                 components.user = nil
                 components.password = nil
-                names.append("url (kullanıcı:parola)")
+                names.append(L("url (kullanıcı:parola)", "url (user:password)"))
                 changed = true
             }
             if let items = components.queryItems, !items.isEmpty, items.contains(where: { !($0.value ?? "").isEmpty }) {
