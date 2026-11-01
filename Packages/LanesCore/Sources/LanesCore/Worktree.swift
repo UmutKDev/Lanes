@@ -18,10 +18,12 @@ public enum WorktreePlan {
               !name.contains(".."), !name.contains("//"), !name.contains("@{"), name != "@" else { return false }
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./")
         return name.unicodeScalars.allSatisfy { allowed.contains($0) }
-            && !name.split(separator: "/").contains { $0.hasPrefix(".") }
+            && name != "HEAD"
+            && !name.split(separator: "/").contains { $0.hasPrefix(".") || $0.hasSuffix(".lock") }
     }
 
-    /// `feature/login` becomes `feature-login`.
+    /// `feature/login` becomes `feature-login`. Two branches can share a
+    /// folder name (`feature-login`); the sheet says so before git runs.
     public static func folderName(forBranch branch: String) -> String {
         branch.replacingOccurrences(of: "/", with: "-")
     }

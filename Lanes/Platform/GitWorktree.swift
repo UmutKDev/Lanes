@@ -23,10 +23,12 @@ enum GitWorktree {
         }
     }
 
-    /// A folder is a repository when it holds `.git` (a folder, or a file
-    /// in a worktree or submodule).
-    static func isRepository(_ folder: URL) -> Bool {
-        FileManager.default.fileExists(atPath: folder.appendingPathComponent(".git").path)
+    /// The main checkout of a repository: its `.git` is a folder. A
+    /// worktree or a submodule has a `.git` file instead and is left out,
+    /// so worktrees are never made inside `<repo>.worktrees`.
+    static func isMainCheckout(_ folder: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: folder.appendingPathComponent(".git").path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
 
     /// Makes the worktree and returns its folder. A branch that already
@@ -38,7 +40,7 @@ enum GitWorktree {
         guard !FileManager.default.fileExists(atPath: folder.path) else {
             throw Failure.folderExists(folder.path)
         }
-        try FileManager.default.createDirectory(at: WorktreePlan.worktreesFolder(forRepository: repository), withIntermediateDirectories: true)
+        // git makes the worktree's parent folders itself.
         let exists = await ShellRunner.run(git, ["-C", repository.path, "rev-parse", "--verify", "--quiet", "refs/heads/" + branch]).status == 0
         let arguments = exists
             ? ["-C", repository.path, "worktree", "add", "--", folder.path, branch]

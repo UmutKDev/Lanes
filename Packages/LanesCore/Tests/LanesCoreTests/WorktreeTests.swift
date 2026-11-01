@@ -13,6 +13,8 @@ final class WorktreeTests: XCTestCase {
         XCTAssertFalse(WorktreePlan.isValidBranchName("a/.hidden"))
         XCTAssertFalse(WorktreePlan.isValidBranchName("ünlü"))
         XCTAssertFalse(WorktreePlan.isValidBranchName("a@{b"))
+        XCTAssertFalse(WorktreePlan.isValidBranchName("a.lock/b"))
+        XCTAssertFalse(WorktreePlan.isValidBranchName("HEAD"))
     }
 
     func testFolderSitsNextToTheRepository() {

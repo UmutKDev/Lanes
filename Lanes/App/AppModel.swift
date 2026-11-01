@@ -1213,17 +1213,19 @@ final class AppModel {
 
     /// Opens Claude Code in Terminal, in `folder`, else in the account's
     /// default project folder, else in the home folder.
-    func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) {
+    /// Returns whether Terminal opened.
+    @discardableResult
+    func openClaudeCode(_ profile: Profile, in chosen: URL? = nil) -> Bool {
         let folder = chosen ?? defaultProjectFolder(for: profile)
         if let folder {
             guard FileManager.default.fileExists(atPath: folder.path) else {
                 forgetRecentFolder(folder.path, for: profile)
                 notice = Notice(kind: .warning, message: String(localized: "\(folder.lastPathComponent) klasörü artık yok, listeden çıkarıldı."))
-                return
+                return false
             }
             guard profile.allowsFolder(folder.path) else {
                 notice = Notice(kind: .warning, message: String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(folder.lastPathComponent) bunlardan biri değil. Hesabın Güvenlik sekmesinden değiştirebilirsin."))
-                return
+                return false
             }
         }
         do {
@@ -1234,8 +1236,10 @@ final class AppModel {
                 recentFolders[profile.id] = recent
                 saveRecentFolders()
             }
+            return true
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Terminal açılamadı: \(error.localizedDescription)"))
+            return false
         }
     }
 
@@ -1250,7 +1254,9 @@ final class AppModel {
         do {
             let made = try await GitWorktree.add(repository: repository, branch: branch)
             Log.app.info("Made a git worktree for Claude Code")
-            openClaudeCode(profile, in: made)
+            guard openClaudeCode(profile, in: made) else {
+                return String(localized: "Worktree \(made.path) klasöründe oluşturuldu ama Terminal açılamadı. Projeler'den o klasörde açabilirsin.")
+            }
             return nil
         } catch {
             return error.localizedDescription
