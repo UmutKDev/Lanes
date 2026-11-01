@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
         model.reopenLastAccountsIfWanted()
-        Task { await model.webAccounts.restore(from: model.library.profiles) }
+        Task { await LegacyWebData.removeOnce() }
     }
 
     /// Registers the shortcuts again whenever they, the accounts or the

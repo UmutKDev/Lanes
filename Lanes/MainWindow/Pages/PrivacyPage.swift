@@ -122,16 +122,6 @@ struct PrivacyPage: View {
 
             Section {
                 PrivacyItem(
-                    systemImage: "globe",
-                    title: "claude.ai, Lanes'in kendi penceresinde",
-                    detail: "\"Lanes içinde\" çalışan her hesap claude.ai'yi Lanes'in bir sekmesinde açar. Giriş, çerezler ve claude.ai'nin sakladığı her şey o hesaba ayrılmış bir WebKit deposunda durur. Lanes bu depoyu okumaz, başka yere taşımaz. Hesabı kaldırınca ya da \"Girişi Sil\" deyince depo silinir. Başka sitelere giden bağlantılar varsayılan tarayıcında açılır, indirilenler İndirilenler klasörüne gider."
-                )
-            } header: {
-                PrivacySectionHeader(title: "Lanes içinde açılan hesaplar", systemImage: "tray")
-            }
-
-            Section {
-                PrivacyItem(
                     systemImage: "arrow.down.circle",
                     title: "lanes:// adresleri ve Kestirmeler eylemleri",
                     detail: "Yalnız bir hesabı ya da sahneyi açar, bir sayfayı gösterir. Hiçbiri bir şeyi silmez, kapatmaz ya da ayar değiştirmez. Kestirmeler'e hesapların ve sahnelerin yalnız adı verilir."
