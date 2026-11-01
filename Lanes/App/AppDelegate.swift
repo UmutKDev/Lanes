@@ -85,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Clicking Lanes in Finder or Launchpad while it runs opens the window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard Date() >= TerminalFocus.ignoreReopenUntil else { return false }
         router.showMainWindow()
         return false
     }

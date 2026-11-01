@@ -133,6 +133,10 @@ final class ClaudeCodeDoneNotices {
 /// where the app lets Lanes find it by tty (Terminal and iTerm2).
 @MainActor
 enum TerminalFocus {
+    /// Until then, a "reopen" from macOS belongs to a Claude Code
+    /// notification click and does not show Lanes's window.
+    static var ignoreReopenUntil = Date.distantPast
+
     static func show(tty: String?, terminalProgram: String?) {
         let bundleID = ClaudeCodeHooks.terminalBundleIdentifier(for: terminalProgram) ?? "com.apple.Terminal"
         if let tty, let source = script(bundleID: bundleID, tty: tty) {

@@ -153,7 +153,10 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
             // A click on the notification itself brings Lanes forward
             // first; the terminal comes after it, so it ends up in front.
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 300_000_000)
+                // macOS also sends Lanes "reopen" for a click on the
+                // notification itself, which would show Lanes's window.
+                TerminalFocus.ignoreReopenUntil = Date().addingTimeInterval(2)
+                try? await Task.sleep(nanoseconds: 500_000_000)
                 TerminalFocus.show(tty: tty, terminalProgram: program)
             }
         }
