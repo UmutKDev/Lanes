@@ -156,6 +156,8 @@ final class AppModel {
     /// Claude Code time per account, project and day, for Zaman Çizelgesi.
     private(set) var projectTime: ProjectTimeLog = AppModel.loadProjectTime()
     @ObservationIgnored private var projectTimeDirty = false
+    /// The last write per account and project, for Zaman Çizelgesi.
+    @ObservationIgnored private var projectLastWrite: [ProfileID: [String: Date]] = [:]
     /// The account in front now and since when, not yet in frontTime.
     @ObservationIgnored private var currentFront: (id: ProfileID, since: Date)?
     /// True while time in front is paused because nobody touched the Mac.
@@ -313,9 +315,14 @@ final class AppModel {
         sampleResources()
         activityWatcher.onWrite = { [weak self] id, write in
             guard let self else { return }
-            let previous = claudeCodeWrites[id].map { (date: $0.date, folderName: $0.projectFolderName) }
-            if projectTime.recordWrite(id, folderName: write.projectFolderName, at: write.date, previous: previous) {
+            // Per project, so two sessions of one account in two projects
+            // each keep their own stretch of work.
+            let last = projectLastWrite[id]?[write.projectFolderName]
+            if let last, projectTime.recordWrite(id, folderName: write.projectFolderName, at: write.date, previous: (date: last, folderName: write.projectFolderName)) {
                 projectTimeDirty = true
+            }
+            if (last ?? .distantPast) < write.date {
+                projectLastWrite[id, default: [:]][write.projectFolderName] = write.date
             }
             claudeCodeWrites[id] = write
             claudeCodeWriteCount += 1
@@ -2249,8 +2256,17 @@ final class AppModel {
         let sender = senderPID.flatMap { NSRunningApplication(processIdentifier: $0) }
         for app in [sender, NSWorkspace.shared.frontmostApplication].compactMap({ $0 }) {
             if let source = externalApp(app) { return source }
+            // A link from a Claude window has no outside source.
+            if isClaude(app) { return nil }
         }
-        return lastExternalFrontApp
+        // Only Lanes itself was in the way: the app before it counts.
+        return NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
+            ? lastExternalFrontApp : nil
+    }
+
+    private func isClaude(_ app: NSRunningApplication) -> Bool {
+        app.bundleIdentifier == ClaudeInstallation.bundleIdentifier
+            || instances.contains(where: { $0.pid == app.processIdentifier })
     }
 
     /// An app that can be a link's source: a regular app that is neither

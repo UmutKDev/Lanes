@@ -289,7 +289,7 @@ private struct LinkRuleEditor: View {
 
     private func save() {
         let window = usesWindow ? LinkTimeWindow(startMinute: Self.minute(of: start), endMinute: Self.minute(of: end), weekdays: weekdays) : nil
-        let edited = LinkRule(
+        var edited = LinkRule(
             id: rule?.id ?? UUID(),
             name: name.trimmingCharacters(in: .whitespaces),
             isEnabled: rule?.isEnabled ?? true,
@@ -298,6 +298,8 @@ private struct LinkRuleEditor: View {
             window: window,
             target: target
         )
+        // Kinds a newer Lanes wrote stay, so the rule does not widen.
+        edited.unknownKinds = rule?.unknownKinds ?? []
         var rules = model.linkRules
         if let index = rules.rules.firstIndex(where: { $0.id == edited.id }) {
             rules.rules[index] = edited

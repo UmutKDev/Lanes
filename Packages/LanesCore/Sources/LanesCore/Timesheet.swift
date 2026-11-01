@@ -153,8 +153,8 @@ public struct Timesheet: Equatable, Sendable {
     }
 
     /// One row per account and per project, minutes per day:
-    /// `Hesap,Proje,Tür,<7 days>,Toplam`. Hours are not rounded per day,
-    /// so the total matches the sum.
+    /// `Hesap,Proje,Tür,<7 days>,Toplam`. Each day is rounded to the
+    /// minute and the total is the sum of those, so the columns add up.
     public func csv(calendar: Calendar = .current) -> String {
         func field(_ text: String) -> String {
             var text = text
@@ -164,15 +164,19 @@ public struct Timesheet: Equatable, Sendable {
                 ? "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\""
                 : text
         }
-        func minutes(_ seconds: Double) -> String {
-            String(Int((seconds / 60).rounded()))
+        func minutes(_ seconds: Double) -> Int {
+            Int((seconds / 60).rounded())
+        }
+        func row(_ cells: [String], _ seconds: [Double]) -> String {
+            let days = seconds.map(minutes)
+            return (cells + days.map(String.init) + [String(days.reduce(0, +))]).joined(separator: ",")
         }
         let header = ["Hesap", "Proje", "Tür"] + days.map { FrontTimeLog.dayKey($0, calendar: calendar) } + ["Toplam (dk)"]
         var lines = [header.joined(separator: ",")]
         for account in usedAccounts {
-            lines.append(([field(account.name), "", "Claude önde"] + account.front.map(minutes) + [minutes(account.frontTotal)]).joined(separator: ","))
+            lines.append(row([field(account.name), "", "Claude önde"], account.front))
             for project in account.projects where project.total >= 60 {
-                lines.append(([field(account.name), field(project.name), "Claude Code"] + project.seconds.map(minutes) + [minutes(project.total)]).joined(separator: ","))
+                lines.append(row([field(account.name), field(project.name), "Claude Code"], project.seconds))
             }
         }
         return lines.joined(separator: "\n") + "\n"
