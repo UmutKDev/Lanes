@@ -116,6 +116,15 @@ final class AppModel {
     @ObservationIgnored private var lastActiveAt: [ProfileID: Date] = [:]
     @ObservationIgnored private let sampler = ResourceSampler()
     @ObservationIgnored private let activityWatcher = ClaudeCodeActivityWatcher()
+    @ObservationIgnored private let displayWatcher = DisplayWatcher()
+    /// What the Lanes Focus filter of the active Focus asks for. nil while
+    /// no Focus with a Lanes filter is on.
+    private(set) var focusSettings: FocusSettings?
+
+    struct FocusSettings: Equatable {
+        var linkProfileID: ProfileID?
+        var accountClass: AccountClass?
+    }
     /// When each account's Claude Code last wrote a session file, and in
     /// which project. Dates and folder names only.
     @ObservationIgnored private var claudeCodeWrites: [ProfileID: ClaudeCodeActivityWatcher.Write] = [:]
@@ -289,6 +298,61 @@ final class AppModel {
         }
         watchClaudeCodeActivity()
         seedClaudeCodeActivity()
+        displayWatcher.onConnect = { [weak self] displays in
+            self?.openScenes(for: displays)
+        }
+        displayWatcher.start()
+    }
+
+    // MARK: Focus and scene triggers
+
+    /// Applies the Lanes Focus filter. Called with no values when the
+    /// Focus turns off.
+    func applyFocus(linkProfileID: ProfileID?, accountClass: AccountClass?, scene sceneID: SceneID?) {
+        let settings = FocusSettings(linkProfileID: linkProfileID, accountClass: accountClass)
+        focusSettings = settings == FocusSettings() ? nil : settings
+        Log.app.info("Focus filter \(self.focusSettings == nil ? "cleared" : "applied", privacy: .public)")
+        if let sceneID, let scene = library.scene(withID: sceneID) {
+            Task { await openAndWait(scene) }
+        }
+    }
+
+    /// The accounts the menu bar panel lists while a Focus filter asks for
+    /// one kind only.
+    func isShownUnderFocus(_ profile: Profile) -> Bool {
+        guard let kind = focusSettings?.accountClass else { return true }
+        return profile.isDefault || profile.accountClass == kind
+    }
+
+    private static let sceneScheduleKey = "sceneScheduleLastOpened"
+
+    /// Opens scenes whose time has come. Runs with the resource timer.
+    private func openScheduledScenes(now: Date) {
+        var lastOpened = (UserDefaults.standard.dictionary(forKey: Self.sceneScheduleKey) as? [String: Double]) ?? [:]
+        var changed = false
+        for scene in library.scenes {
+            guard let schedule = scene.schedule else { continue }
+            let last = lastOpened[scene.id.rawValue].map(Date.init(timeIntervalSinceReferenceDate:))
+            guard schedule.isDue(now: now, lastOpened: last) else { continue }
+            lastOpened[scene.id.rawValue] = now.timeIntervalSinceReferenceDate
+            changed = true
+            Log.app.info("Opening a scheduled scene")
+            notice = Notice(kind: .info, message: String(localized: "\(scene.name) sahnesi zamanı geldiği için açılıyor."))
+            Task { await openAndWait(scene) }
+        }
+        if changed {
+            UserDefaults.standard.set(lastOpened, forKey: Self.sceneScheduleKey)
+        }
+    }
+
+    private func openScenes(for displays: [DisplayWatcher.Display]) {
+        let identifiers = Set(displays.map(\.identifier))
+        for scene in library.scenes {
+            guard let display = scene.display, identifiers.contains(display.identifier) else { continue }
+            Log.app.info("Opening a scene for a connected display")
+            notice = Notice(kind: .info, message: String(localized: "\(display.name) bağlandı, \(scene.name) sahnesi açılıyor."))
+            Task { await openAndWait(scene) }
+        }
     }
 
     // MARK: Claude Code activity
@@ -393,6 +457,7 @@ final class AppModel {
 
         let now = Date()
         expireLimits(now: now)
+        openScheduledScenes(now: now)
         checkDailyLimits(now: now)
         checkMemory(now: now)
         let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -1761,7 +1826,8 @@ final class AppModel {
     /// to its stand-in.
     private func deliver(_ link: ClaudeLink, route: ClaudeLink.Route) async {
         let kind = Self.kindName(link)
-        guard let chosen = linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
+        let focusTarget = focusSettings?.linkProfileID.flatMap { library.profile(withID: $0) }
+        guard let chosen = focusTarget ?? linkRules.profile(for: route, frontmost: lastFrontProfileID, library: library) else {
             // No Lanes account has been in front: the link goes to Claude.app.
             if let claude {
                 NSWorkspace.shared.open([link.url], withApplicationAt: claude.url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)

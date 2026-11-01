@@ -219,6 +219,72 @@ struct WorkingClaudeCodeIntent: AppIntent {
     }
 }
 
+enum AccountClassChoice: String, AppEnum {
+    case personal, employer, client
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Hesap türü"
+    static let caseDisplayRepresentations: [AccountClassChoice: DisplayRepresentation] = [
+        .personal: "Kişisel",
+        .employer: "İşveren",
+        .client: "Müşteri",
+    ]
+
+    var name: String {
+        switch self {
+        case .personal: return String(localized: "Kişisel")
+        case .employer: return String(localized: "İşveren")
+        case .client: return String(localized: "Müşteri")
+        }
+    }
+
+    var accountClass: AccountClass {
+        switch self {
+        case .personal: return .personal
+        case .employer: return .employer
+        case .client: return .client
+        }
+    }
+}
+
+/// Lanes's Focus filter: while a Focus is on, links go to the chosen
+/// account, the menu bar panel lists one kind of account, and a scene can
+/// open when the Focus starts.
+struct LanesFocusFilter: SetFocusFilterIntent {
+    static let title: LocalizedStringResource = "Lanes"
+    static let description = IntentDescription("Odak açıkken bağlantıların gideceği hesabı ve panelde görünen hesap türünü seçer, istersen bir sahne açar.")
+
+    @Parameter(title: "Bağlantıların gideceği hesap")
+    var linkAccount: AccountEntity?
+
+    @Parameter(title: "Panelde yalnız bu tür")
+    var accountClass: AccountClassChoice?
+
+    @Parameter(title: "Odak açılınca açılacak sahne")
+    var scene: SceneEntity?
+
+    var displayRepresentation: DisplayRepresentation {
+        var parts: [String] = []
+        if let linkAccount { parts.append(String(localized: "Bağlantılar: \(linkAccount.name)")) }
+        if let accountClass { parts.append(String(localized: "Panel: \(accountClass.name)")) }
+        if let scene { parts.append(String(localized: "Sahne: \(scene.name)")) }
+        return DisplayRepresentation(
+            title: "Lanes",
+            subtitle: parts.isEmpty ? nil : LocalizedStringResource(stringLiteral: parts.joined(separator: " · "))
+        )
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        guard let model = IntentBridge.model else { throw LanesIntentError.notRunning }
+        model.applyFocus(
+            linkProfileID: linkAccount.map { ProfileID(rawValue: $0.id) },
+            accountClass: accountClass?.accountClass,
+            scene: scene.map { SceneID(rawValue: $0.id) }
+        )
+        return .result()
+    }
+}
+
 struct LanesShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(

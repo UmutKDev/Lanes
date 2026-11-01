@@ -205,7 +205,8 @@ struct CommandPanelView: View {
     /// case and accents with Turkish rules.
     private var matchingProfiles: [Profile] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let profiles = sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles
+        let profiles = (sortsByRecent ? model.profilesByRecentUse : model.library.activeProfiles)
+            .filter(model.isShownUnderFocus)
         guard !text.isEmpty else { return profiles }
         return profiles.filter { profile in
             SearchText.matches(text, in: [profile.name, model.email(for: profile) ?? "", profile.note ?? ""])
