@@ -51,7 +51,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("lanes komut satırı aracı")
             } footer: {
-                Text("Terminalde lanes claude yazınca Claude Code, bulunduğun klasörün hesabıyla başlar, Lanes'in açtığı terminallerin dışında da. Klasörün hesabı, klasörde ya da üstünde duran bir .lanes dosyasından ya da hesabın Claude Code sekmesindeki bağlı klasörlerden bulunur. Araç ~/.local/bin/lanes dosyasına kurulur; Claude Code'un kurulumu bu klasörü PATH'e ekler. Araç yalnız hesap adlarını ve klasör yollarını tutan bir listeyi okur.")
+                Text("Terminalde lanes claude yazınca Claude Code, bulunduğun klasörün hesabıyla başlar, Lanes'in açtığı terminallerin dışında da. Hesap, bu klasördeki ya da üst klasörlerinden birindeki .lanes dosyasından, yoksa hesabın Claude Code sekmesindeki bağlı klasörlerden bulunur. Araç hangi hesabı kullandığını her seferinde yazar. Araç ~/.local/bin/lanes dosyasına kurulur. Terminal \"command not found\" derse bu klasörü PATH'e ekle: echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zshrc. Araç yalnız hesap adlarını ve klasör yollarını tutan bir listeyi okur.")
             }
 
             Section {

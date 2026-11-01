@@ -1246,6 +1246,7 @@ final class AppModel {
     /// again.
     func removeProfile(_ profile: Profile) {
         guard !profile.isDefault else { return }
+        Notifier.cancel(identifier: Self.restNotificationID(profile.id))
         do {
             try library.remove(profile.id)
             save()
@@ -1291,8 +1292,6 @@ final class AppModel {
         save()
     }
 
-    /// Puts an account in the archive or takes it out. An archived account
-    /// keeps its sign-in and data; it only leaves the lists and ⌘1-9.
     // MARK: Limit Nöbeti
 
     /// Marks the account as having hit its Claude limit until `date`, or
@@ -1302,18 +1301,26 @@ final class AppModel {
         guard var updated = self.profile(withID: profile.id) else { return }
         updated.limitedUntil = date
         updateProfile(updated)
-        let identifier = "limit-\(profile.id.rawValue)"
+        let identifier = Self.restNotificationID(profile.id)
         Notifier.cancel(identifier: identifier)
         guard let date else {
             notice = Notice(kind: .info, message: String(localized: "\(profile.name) yeniden kullanımda."))
             return
         }
-        Notifier.schedule(.limitReset, identifier: identifier, body: String(localized: "\(profile.name) yeniden kullanılabilir."), at: date)
+        let name = profile.name
+        Task {
+            // Asked here, like the other reminders, so the first rest
+            // reminder is not silently dropped.
+            if await Notifier.authorizationStatus() == .notDetermined {
+                _ = await Notifier.requestPermission()
+            }
+            Notifier.schedule(.limitReset, identifier: identifier, body: String(localized: "\(name) yeniden kullanılabilir."), at: date)
+        }
         let time = date.formatted(date: Calendar.current.isDateInToday(date) ? .omitted : .abbreviated, time: .shortened)
         if let standIn = LimitWatch.standIn(for: updated, in: library, now: Date()) {
             notice = Notice(kind: .info, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor. Bağlantılar bu sürede \(standIn.name) hesabına gidecek."))
         } else {
-            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor, ama aynı türde boşta başka hesap yok. Bağlantılar yine bu hesaba gider."))
+            notice = Notice(kind: .warning, message: String(localized: "\(profile.name) \(time) saatine kadar dinleniyor, ama aynı türde dinlenmeyen başka hesap yok. Bağlantılar yine bu hesaba gider."))
         }
     }
 
@@ -1342,18 +1349,42 @@ final class AppModel {
         LimitWatch.standIn(for: profile, in: library, now: Date())
     }
 
+    static func restNotificationID(_ id: ProfileID) -> String {
+        "limit-\(id.rawValue)"
+    }
+
+    /// Ends a rest without a notice, for an account leaving the lists.
+    private func cancelRest(of profile: Profile) {
+        Notifier.cancel(identifier: Self.restNotificationID(profile.id))
+        guard var updated = self.profile(withID: profile.id), updated.limitedUntil != nil else { return }
+        updated.limitedUntil = nil
+        try? library.update(updated)
+    }
+
     /// Clears rests whose time has passed, so the lists stop showing them.
+    /// Only the date changes, so this skips updateProfile's clone checks.
     private func expireLimits(now: Date) {
+        var changed = false
         for profile in library.profiles {
             if let until = profile.limitedUntil, until <= now {
                 var updated = profile
                 updated.limitedUntil = nil
-                updateProfile(updated)
+                if (try? library.update(updated)) != nil {
+                    changed = true
+                }
             }
+        }
+        if changed {
+            save()
         }
     }
 
+    /// Puts an account in the archive or takes it out. An archived account
+    /// keeps its sign-in and data; it only leaves the lists and ⌘1-9.
     func setArchived(_ profile: Profile, _ archived: Bool) {
+        if archived {
+            cancelRest(of: profile)
+        }
         do {
             try library.setArchived(profile.id, archived)
             save()

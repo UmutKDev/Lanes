@@ -9,7 +9,7 @@ public enum LanesCLI {
     /// The file a project folder names its account in.
     public static let folderFileName = ".lanes"
     /// Bumped whenever the script changes, so Lanes rewrites an older copy.
-    public static let version = 1
+    public static let version = 2
 
     /// One line per fact, tab separated:
     /// `A id number name configDir` (configDir "-" for Claude's own),
@@ -75,17 +75,27 @@ public enum LanesCLI {
         TAB=$(printf '\t')
 
         die() { printf 'lanes: %s\n' "$1" >&2; exit "${2:-1}"; }
+        # Text from a folder's .lanes file is shown without control
+        # characters, so a file in a cloned repository cannot drive the
+        # terminal.
+        plain() { printf '%s' "$1" | tr -d '[:cntrl:]'; }
 
-        [ -f "$MAP" ] || die "Hesap haritası yok. Lanes'i bir kez aç." 2
+        need_map() {
+            [ -f "$MAP" ] || die "Hesap haritası yok. Lanes'i bir kez aç." 2
+        }
 
         # Prints "id<TAB>name<TAB>configDir" for a name, ID or list number.
+        # With "strict" as the second argument a list number does not count,
+        # which is how .lanes files are read: numbers change with the order.
         find_account() {
             want=$1
             lower_want=$(printf '%s' "$want" | tr '[:upper:]' '[:lower:]')
             while IFS="$TAB" read -r kind id number name config; do
                 [ "$kind" = "A" ] || continue
                 lower_name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
-                if [ "$id" = "$want" ] || [ "$number" = "$want" ] || [ "$lower_name" = "$lower_want" ]; then
+                by_number=0
+                [ "$2" != "strict" ] && [ "$number" = "$want" ] && by_number=1
+                if [ "$id" = "$want" ] || [ "$by_number" = 1 ] || [ "$lower_name" = "$lower_want" ]; then
                     printf '%s\t%s\t%s\n' "$id" "$name" "$config"
                     return 0
                 fi
@@ -103,35 +113,43 @@ public enum LanesCLI {
             return 1
         }
 
+        HERE_P=$(pwd -P)
+        HERE_L=$(pwd -L 2>/dev/null || pwd)
+
+        # Whether the current folder is $1 or inside it, by its real path or
+        # by the path it was reached through.
+        inside() {
+            [ "$1" = "/" ] && return 0
+            case "$HERE_P/" in "$1"/*) return 0 ;; esac
+            case "$HERE_L/" in "$1"/*) return 0 ;; esac
+            return 1
+        }
+
         # Sets FOUND ("id<TAB>name<TAB>config") and REASON for the current folder.
         resolve_here() {
             FOUND=""
             REASON=""
-            dir=$(pwd -P)
+            dir=$HERE_P
             while :; do
-                if [ -f "$dir/\#(folderFileName)" ]; then
-                    IFS= read -r want < "$dir/\#(folderFileName)" || true
-                    want=$(printf '%s' "$want" | tr -d '\r')
-                    FOUND=$(find_account "$want") || die "$dir/\#(folderFileName) dosyasındaki \"$want\" hesabı Lanes'te yok."
-                    REASON="$dir/\#(folderFileName)"
+                file="$dir/\#(folderFileName)"
+                if [ -f "$file" ] && [ ! -L "$file" ]; then
+                    IFS= read -r want < "$file" || true
+                    want=$(plain "$want")
+                    FOUND=$(find_account "$want" strict) || die "$file dosyasındaki \"$want\" hesabı Lanes'te yok."
+                    REASON="$file"
                     return 0
                 fi
                 [ "$dir" = "/" ] && break
                 dir=$(dirname "$dir")
             done
-            here=$(pwd -P)
             best=""
             best_id=""
             while IFS="$TAB" read -r kind id folder rest; do
                 [ "$kind" = "L" ] || continue
-                case "$here/" in
-                    "$folder"/*)
-                        if [ ${#folder} -gt ${#best} ]; then
-                            best=$folder
-                            best_id=$id
-                        fi
-                        ;;
-                esac
+                if inside "$folder" && [ ${#folder} -gt ${#best} ]; then
+                    best=$folder
+                    best_id=$id
+                fi
             done < "$MAP"
             if [ -n "$best_id" ]; then
                 FOUND=$(account_by_id "$best_id") || return 1
@@ -143,23 +161,21 @@ public enum LanesCLI {
 
         # Whether the account may run Claude Code here (Güvenlik sekmesi).
         allowed_here() {
-            id=$1
-            here=$(pwd -P)
             any=0
             while IFS="$TAB" read -r kind pid folder rest; do
-                [ "$kind" = "P" ] && [ "$pid" = "$id" ] || continue
+                [ "$kind" = "P" ] && [ "$pid" = "$1" ] || continue
                 any=1
-                case "$here/" in
-                    "$folder"/*) return 0 ;;
-                esac
+                inside "$folder" && return 0
             done < "$MAP"
             [ "$any" = 0 ]
         }
 
         list_accounts() {
             while IFS="$TAB" read -r kind id number name config; do
-                [ "$kind" = "A" ] && printf '%s\t%s\n' "$number" "$name"
+                [ "$kind" = "A" ] || continue
+                printf '%s\t%s\n' "$number" "$name"
             done < "$MAP"
+            return 0
         }
 
         ACCOUNT=""
@@ -173,6 +189,7 @@ public enum LanesCLI {
         [ $# -gt 0 ] && shift
 
         pick() {
+            need_map
             if [ -n "$ACCOUNT" ]; then
                 FOUND=$(find_account "$ACCOUNT") || die "\"$ACCOUNT\" adında bir hesap yok. Hesaplar için: lanes list"
                 REASON="-a $ACCOUNT"
@@ -196,20 +213,27 @@ public enum LanesCLI {
                     export CLAUDE_CONFIG_DIR="$CONFIG"
                 fi
                 command -v claude >/dev/null 2>&1 || die "Claude Code bulunamadı. Lanes'in Kurulum sayfasından kurabilirsin."
+                printf 'lanes: %s hesabıyla (%s)\n' "$(plain "$NAME")" "$(plain "$REASON")" >&2
                 exec claude "$@"
                 ;;
             which)
                 pick
-                printf '%s (%s)\n' "$NAME" "$REASON"
+                printf '%s (%s)\n' "$(plain "$NAME")" "$(plain "$REASON")"
                 ;;
             use)
+                need_map
                 [ -n "$1" ] || die "Bir hesap adı yaz: lanes use HESAP"
                 FOUND=$(find_account "$1") || die "\"$1\" adında bir hesap yok. Hesaplar için: lanes list"
+                ID=$(printf '%s' "$FOUND" | cut -f1)
                 NAME=$(printf '%s' "$FOUND" | cut -f2)
-                printf '%s\n' "$NAME" > "\#(folderFileName)" || die "\#(folderFileName) yazılamadı."
+                [ -L "\#(folderFileName)" ] && die "\#(folderFileName) bir kısayol (symlink); Lanes onun gösterdiği dosyaya yazmaz. Önce sil."
+                # The ID stays right when the account is renamed; the name
+                # on the next line is only for people reading the file.
+                printf '%s\n# %s\n' "$ID" "$NAME" > "\#(folderFileName)" || die "\#(folderFileName) yazılamadı."
                 printf 'Bu klasör artık %s hesabında. (%s/\#(folderFileName))\n' "$NAME" "$(pwd)"
                 ;;
             list)
+                need_map
                 list_accounts
                 ;;
             open)

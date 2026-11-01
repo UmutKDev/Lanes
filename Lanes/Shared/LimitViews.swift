@@ -8,15 +8,16 @@ struct LimitMenu: View {
     let profile: Profile
 
     var body: some View {
+        let resting = profile.isResting(at: Date())
         if !profile.isDefault {
-            Menu(profile.limitedUntil == nil ? "Limite Takıldı" : "Dinlenme") {
-                if profile.limitedUntil != nil {
+            Menu(resting ? "Dinlenme" : "Limite Takıldı") {
+                if resting {
                     Button("Dinlenmeyi Bitir") {
                         model.setLimited(profile, until: nil)
                     }
                     Divider()
                 }
-                Section(profile.limitedUntil == nil ? "Ne kadar dinlensin?" : "Yeniden ayarla") {
+                Section(resting ? "Yeniden ayarla" : "Ne kadar dinlensin?") {
                     ForEach(LimitWatch.presetHours, id: \.self) { hours in
                         Button(hours == 24 ? String(localized: "1 gün") : String(localized: "\(hours) saat")) {
                             model.setLimited(profile, until: LimitWatch.until(hours: hours, from: Date()))
@@ -35,7 +36,7 @@ struct RestingIcon: View {
     let profile: Profile
 
     var body: some View {
-        if let until = profile.limitedUntil {
+        if let until = profile.limitedUntil, until > Date() {
             Image(systemName: "moon.zzz.fill")
                 .font(.caption)
                 .foregroundStyle(.secondary)
