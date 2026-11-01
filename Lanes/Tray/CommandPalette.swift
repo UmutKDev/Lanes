@@ -162,7 +162,9 @@ final class PaletteController: NSObject, NSWindowDelegate {
         var folders: [URL] = []
         let candidates = [profile.defaultProjectFolder].compactMap { $0 } + profile.linkedFolders
             + model.recentClaudeCodeFolders(for: profile).map(\.path) + sessionFolders
-        for path in candidates where !seen.contains(path) {
+        // Folders the account may not open Claude Code in are left out,
+        // so a pick never ends in a warning nobody sees.
+        for path in candidates where !seen.contains(path) && profile.allowsFolder(path) {
             seen.insert(path)
             var isDirectory: ObjCBool = false
             if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue {
