@@ -1239,6 +1239,24 @@ final class AppModel {
         }
     }
 
+    /// "Worktree Fırlatıcı": makes a worktree of `repository` on `branch`
+    /// and starts Claude Code there with `profile`. Returns an error text
+    /// for the sheet, or nil when Terminal opened.
+    func launchWorktree(repository: URL, branch: String, with profile: Profile) async -> String? {
+        let folder = WorktreePlan.folder(forRepository: repository, branch: branch)
+        guard profile.allowsFolder(folder.path) else {
+            return String(localized: "\(profile.name) hesabı için Claude Code yalnız izin verilen klasörlerde açılır. \(WorktreePlan.worktreesFolder(forRepository: repository).path) bunlardan biri değil. Hesabın Güvenlik sekmesinden ekleyebilirsin.")
+        }
+        do {
+            let made = try await GitWorktree.add(repository: repository, branch: branch)
+            Log.app.info("Made a git worktree for Claude Code")
+            openClaudeCode(profile, in: made)
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     /// The account's default project folder, when it still exists and the
     /// account may use it. A missing one is skipped quietly, so Terminal
     /// still opens, in the home folder.

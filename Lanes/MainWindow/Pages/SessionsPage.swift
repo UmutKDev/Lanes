@@ -201,6 +201,7 @@ private enum SessionScan {
 private struct ProjectRowView: View {
     @Environment(AppModel.self) private var model
     let row: SessionsPage.ProjectRow
+    @State private var isMakingWorktree = false
 
     var body: some View {
         let profiles = row.project.uses.compactMap { model.profile(withID: $0.profileID) }
@@ -253,6 +254,11 @@ private struct ProjectRowView: View {
         .padding(.vertical, DS.Space.xxs)
         .contextMenu {
             menuItems(profiles)
+        }
+        .sheet(isPresented: $isMakingWorktree) {
+            if let path = row.path {
+                WorktreeSheet(repository: URL(fileURLWithPath: path, isDirectory: true), suggestedProfileID: profiles.first?.id)
+            }
         }
     }
 
@@ -325,6 +331,12 @@ private struct ProjectRowView: View {
                         }
                     }
                 }
+            }
+        }
+        if let path = row.path, GitWorktree.isRepository(URL(fileURLWithPath: path, isDirectory: true)) {
+            Divider()
+            Button("Yeni Worktree'de Başlat…") {
+                isMakingWorktree = true
             }
         }
         if let path = row.path {
@@ -425,6 +437,89 @@ private struct SessionRow: View {
             }
             Button("Kimliği Kopyala") {
                 SystemActions.copy(row.session.id)
+            }
+        }
+    }
+}
+
+/// "Worktree Fırlatıcı": a branch name and an account, then git makes the
+/// worktree next to the repository and Claude Code starts in it.
+private struct WorktreeSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    let repository: URL
+    let suggestedProfileID: ProfileID?
+    @State private var branch = ""
+    @State private var profileID: ProfileID?
+    @State private var error: String?
+    @State private var isWorking = false
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Depo", value: repository.lastPathComponent)
+                TextField("Dal", text: $branch, prompt: Text("feature/giris"))
+                    .font(DS.Typography.code)
+                Picker("Hesap", selection: $profileID) {
+                    ForEach(model.library.activeProfiles) { profile in
+                        Text(profile.name).tag(Optional(profile.id))
+                    }
+                }
+            } footer: {
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    if WorktreePlan.isValidBranchName(branch) {
+                        Text("Klasör: \(WorktreePlan.folder(forRepository: repository, branch: branch).path)")
+                            .textSelection(.enabled)
+                    }
+                    Text("Dal yoksa deponun şu anki commit'inden oluşturulur, varsa o dal açılır. Worktree'yi işin bitince git worktree remove ile kaldırabilirsin.")
+                    if let error {
+                        Text(error)
+                            .foregroundStyle(DS.Palette.warning)
+                    }
+                }
+                .font(DS.Typography.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .formStyle(.grouped)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Vazgeç", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Oluştur ve Başlat") {
+                    start()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(isWorking || !WorktreePlan.isValidBranchName(branch) || selectedProfile == nil)
+            }
+        }
+        .presentationSizing(.form)
+        .onAppear {
+            let profile = suggestedProfileID.flatMap(model.profile(withID:)) ?? model.library.activeProfiles.first
+            profileID = profile?.id
+            branch = WorktreePlan.suggestedBranch(accountName: profile?.name ?? "", date: Date())
+        }
+    }
+
+    private var selectedProfile: Profile? {
+        profileID.flatMap(model.profile(withID:))
+    }
+
+    private func start() {
+        guard let profile = selectedProfile else { return }
+        isWorking = true
+        error = nil
+        Task {
+            let failure = await model.launchWorktree(repository: repository, branch: branch, with: profile)
+            isWorking = false
+            if let failure {
+                error = failure
+            } else {
+                dismiss()
             }
         }
     }
