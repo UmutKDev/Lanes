@@ -1383,7 +1383,7 @@ final class AppModel {
             }
         }
         do {
-            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile))
+            try SystemActions.openClaudeCodeInTerminal(for: profile, paths: paths, in: folder, arguments: Toolbox(paths: paths).mcpArguments(for: profile.id) + doneNotices.arguments(for: profile))
             if let folder = chosen {
                 var recent = recentFolders[profile.id] ?? RecentFolders()
                 recent.use(folder.path)
@@ -1558,7 +1558,7 @@ final class AppModel {
                 for: profile,
                 paths: paths,
                 in: folder.map { URL(fileURLWithPath: $0, isDirectory: true) },
-                arguments: resumeArguments + Toolbox(paths: paths).mcpArguments() + doneNotices.arguments(for: profile)
+                arguments: resumeArguments + Toolbox(paths: paths).mcpArguments(for: profile.id) + doneNotices.arguments(for: profile)
             )
             Log.app.info("Resumed a Claude Code session")
         } catch {

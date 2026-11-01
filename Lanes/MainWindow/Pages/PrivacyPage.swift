@@ -129,7 +129,7 @@ struct PrivacyPage: View {
                 PrivacyItem(
                     systemImage: "wrench.and.screwdriver",
                     title: "Araç Kutusu",
-                    detail: "Toolbox klasöründe paylaşılan CLAUDE.md, komutlar, ajanlar, beceriler ve mcp.json. Paylaştığın hesabın Claude Code klasörüne yalnız bir bağlantı (symlink) eklenir. Hesabın kendi dosyaları okunmaz, değiştirilmez."
+                    detail: "Toolbox klasöründe paylaşılan CLAUDE.md, komutlar, ajanlar, beceriler ve mcp.json. Paylaştığın hesabın Claude Code klasörüne yalnız bir bağlantı (symlink) eklenir. Hesabın kendi dosyaları okunmaz, değiştirilmez. MCP Stüdyosu'nda bir hesap için kapattığın sunucular mcp-accounts.json dosyasında durur; o hesaba yalnız açık sunucuları içeren, yalnız senin okuyabildiğin bir kopya MCP klasörüne yazılır. Ekip Paketi yalnız seçtiğin dosyaya yazılır; ortam değişkenlerinin ve başlıkların değerleri pakete girmez."
                 )
                 PrivacyItem(
                     systemImage: "bell.badge",
