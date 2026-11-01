@@ -961,12 +961,12 @@ final class AppModel {
     /// so it shows whatever the notification settings say.
     private func warnAboutIdentityMismatches() {
         var current: [ProfileID: String] = [:]
-        for profile in library.profiles {
+        for profile in library.profiles where !profile.isArchived {
             if let email = identityMismatch(for: profile) { current[profile.id] = email }
         }
-        for (id, email) in current where reportedMismatches[id] != email {
+        for id in current.keys where reportedMismatches[id] != current[id] {
             guard let profile = profile(withID: id) else { continue }
-            Notifier.post(.identityMismatch, body: String(localized: "\(profile.name) hesabının Claude Code'u \(email) ile giriş yapmış. Bu hesap için beklenen: \(profile.expectedEmailDomains.joined(separator: ", "))."), force: true)
+            Notifier.post(.identityMismatch, body: String(localized: "\(profile.name) hesabının Claude Code'u beklenmeyen bir hesapla giriş yapmış. Ayrıntılar hesabın Kimlik sekmesinde."), force: true)
         }
         reportedMismatches = current
     }
