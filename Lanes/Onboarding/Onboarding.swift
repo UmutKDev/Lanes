@@ -978,8 +978,10 @@ private struct TerminalStage: View {
                 }
                 HStack(spacing: 6) {
                     Text(verbatim: prompt).foregroundStyle(Color.white.opacity(0.45))
-                    Text(verbatim: typed).foregroundStyle(Color.white.opacity(0.92))
-                        + Text(verbatim: cursorOn ? "▍" : " ").foregroundStyle(Color.white.opacity(0.7))
+                    HStack(spacing: 0) {
+                        Text(verbatim: typed).foregroundStyle(Color.white.opacity(0.92))
+                        Text(verbatim: cursorOn ? "▍" : " ").foregroundStyle(Color.white.opacity(0.7))
+                    }
                 }
                 Spacer(minLength: 0)
             }
