@@ -2,7 +2,7 @@
 import PackageDescription
 
 // LanesCore holds the logic that does not need AppKit: profiles, launch plans,
-// process argument parsing, claude:// link rules and the Faz 0 report model.
+// process argument parsing, claude:// link rules and the diagnostics report.
 // It builds on Linux too, so its tests run in any CI runner.
 let package = Package(
     name: "LanesCore",

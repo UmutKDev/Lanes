@@ -6,7 +6,6 @@ struct SidebarView: View {
     @Environment(NavigationModel.self) private var navigation
     @State private var profilePendingRemoval: Profile?
     @State private var query = ""
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
 
     var body: some View {
         let active = matching(model.library.activeProfiles)
@@ -98,7 +97,7 @@ struct SidebarView: View {
                     }
 
                     Section("Sistem") {
-                        rows([.setup, .health, .maintenance, .privacy, .integrations, .validation, .settings])
+                        rows([.setup, .health, .maintenance, .privacy, .integrations, .settings])
                     }
                 }
             }
@@ -190,20 +189,19 @@ struct SidebarView: View {
 
     private var selection: Binding<Destination?> {
         Binding(
-            get: { navigation.selection.displayed(showingDeveloperPages: showsDeveloperPages) },
+            get: { navigation.selection },
             set: { if let destination = $0 { navigation.navigate(to: destination) } }
         )
     }
 
     private func scrollIntoView(_ destination: Destination, with proxy: ScrollViewProxy) {
-        let shown = destination.displayed(showingDeveloperPages: showsDeveloperPages)
         // A nil anchor scrolls the least amount, so a row already in view
         // never moves under the pointer.
         withAnimation(DS.Motion.standard) {
-            if case let .account(id) = shown {
+            if case let .account(id) = destination {
                 proxy.scrollTo(id, anchor: nil)
             } else {
-                proxy.scrollTo(shown, anchor: nil)
+                proxy.scrollTo(destination, anchor: nil)
             }
         }
     }
@@ -227,9 +225,8 @@ struct SidebarView: View {
         return String(localized: "\(profile.name) Lanes'ten kaldırılsın mı?")
     }
 
-    /// The destinations the developer pages setting lets through.
     private func rows(_ destinations: [Destination]) -> some View {
-        ForEach(destinations.filter { $0.isVisible(showingDeveloperPages: showsDeveloperPages) }, id: \.self) { destination in
+        ForEach(destinations, id: \.self) { destination in
             Label(destination.title, systemImage: destination.symbol)
                 // Kurulum counts what is still missing; a zero badge is hidden.
                 .badge(destination == .setup ? model.unfinishedSetupCount : 0)

@@ -11,7 +11,7 @@ options:
   groupSortPosition: top
 settings:
   base:
-    MARKETING_VERSION: "0.2.0"
+    MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
 packages:
   LanesCore:
@@ -53,8 +53,8 @@ targets:
         # Updates are checked by default instead of asking on the second launch.
         SUEnableAutomaticChecks: true
         NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Bağlantı yönlendirme açıksa claude:// bağlantılarını da seçilen hesabın Claude'una iletir, \"Claude Ayarlarını Aç\" düğmesi de ayarlar bağlantısını gönderir. Giriş bağlantılarını hiçbir zaman iletmez. Bitti Haberi bildiriminde \"Terminale Git\"e basınca da Terminal ya da iTerm2'de o oturumun sekmesini seçer."
-        # Declared so Faz 0 can test taking over claude:// links. Lanes hands
-        # the default back to Claude on launch unless link routing is on.
+        # Declared for link routing, which takes over claude:// links. Lanes
+        # hands the default back to Claude on launch unless it is on.
         CFBundleURLTypes:
           - CFBundleURLName: com.umutkdev.Lanes.claude
             CFBundleURLSchemes: [claude]
@@ -98,8 +98,9 @@ targets:
           - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
         script: |
           # Writes LanesGitCommit and LanesGitTreeDirty into the built Info.plist
-          # for the Faz 0 report. Never fails the build: without git or a
-          # repository the keys are left out and the report says "bilinmiyor".
+          # for the diagnostics report and the release check. Never fails the
+          # build: without git or a repository the keys are left out and the
+          # report says "bilinmiyor".
           plist="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
           buddy=/usr/libexec/PlistBuddy
           [ -f "$plist" ] || exit 0

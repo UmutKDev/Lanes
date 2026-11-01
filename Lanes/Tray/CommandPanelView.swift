@@ -19,7 +19,6 @@ final class CommandPanelState {
 struct CommandPanelView: View {
     @Environment(AppModel.self) private var model
     @Environment(WindowRouter.self) private var router
-    @AppStorage(Preferences.Key.showsDeveloperPages) private var showsDeveloperPages = Preferences.developerPagesDefault
     var state: CommandPanelState
     var onClose: () -> Void
     @State private var query = ""
@@ -290,12 +289,6 @@ struct CommandPanelView: View {
 
     private var moreMenu: some View {
         Menu {
-            if showsDeveloperPages {
-                Button("Faz 0 Doğrulama") {
-                    router.showMainWindow(.validation)
-                }
-                Divider()
-            }
             Toggle("Son kullanılan hesap üstte", isOn: $sortsByRecent)
             Divider()
             if !model.library.archivedProfiles.isEmpty {

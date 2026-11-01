@@ -30,7 +30,7 @@ public struct ProfilePaths: Sendable, Equatable {
         root.appendingPathComponent("profiles.json", isDirectory: false)
     }
 
-    /// Validation reports, logs and other files Lanes writes about itself.
+    /// Diagnostics reports, logs and other files Lanes writes about itself.
     public var diagnosticsDirectory: URL {
         root.appendingPathComponent("Diagnostics", isDirectory: true)
     }
@@ -81,12 +81,12 @@ public struct ProfilePaths: Sendable, Equatable {
     /// Where Lanes keeps clones of Claude.app, one folder per profile named
     /// after its ID. Inside Lanes's own folder rather than ~/Applications, so
     /// Spotlight and Launchpad don't offer a clone that would open without
-    /// its account's folder (Faz 0.5.2).
+    /// its account's folder.
     public var clonesDirectory: URL {
         root.appendingPathComponent("Clones", isDirectory: true)
     }
 
-    /// Where the Faz 0 builds put clones. Still recognised as clones, so an
+    /// Where early builds of Lanes put clones. Still recognised as clones, so an
     /// old one is never mistaken for Claude itself.
     public var legacyClonesDirectory: URL {
         home
@@ -125,7 +125,7 @@ public struct ProfilePaths: Sendable, Equatable {
     }
 
     /// The profile a clone bundle belongs to, read from its folder's name.
-    /// Nil for a bundle outside the clones folder, such as a Faz 0 clone.
+    /// Nil for a bundle outside the clones folder, such as an old build's clone.
     public func profileID(forCloneBundle path: String) -> ProfileID? {
         let base = InstanceMatcher.normalize(clonesDirectory.path) + "/"
         let normalized = InstanceMatcher.normalize(path)

@@ -4,16 +4,18 @@ Lanes, birden fazla Claude hesabını aynı Mac'te yan yana kullanmanı sağlaya
 
 Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydını okumaz, saklamaz, başka yere taşımaz. Giriş her zaman Claude'un kendi penceresinde ya da `claude` komutunda olur.
 
-## Durum
+## Özellikler
 
-Bu ilk sürüm şunları içeriyor:
+- **Hesap başına ayrı Claude:** Her hesap kendi klasörüyle ayrı bir Claude penceresinde açılır. İstersen hesabın Claude kopyası kendi rengini ve simgesini taşır.
+- **Menü çubuğu paneli ve ana pencere:** Bütün hesaplar tek bakışta, bir tıkla açılır ya da öne gelir. Öndeki Claude'un hesabı menü çubuğu simgesinde görünür.
+- **Claude Code hesap başına:** Claude Code'u o hesapla Terminalde, istersen seçtiğin klasörde ya da yeni bir worktree'de başlatma. Oturumlar ve projeler hesap hesap listelenir, bir oturum başka bir hesapla sürdürülebilir. Claude Code bitince ya da onay isteyince bildirim gelir.
+- **Bağlantı yönlendirme:** `claude://` bağlantıları saat, gün ve kaynak uygulamaya göre kurduğun kurallarla seçilen hesabın Claude'una gider. Giriş bağlantıları hiçbir zaman yönlendirilmez.
+- **Günlük kolaylıklar:** Her uygulamada çalışan kısayollar (yeni bir izin istemez), Komut Paleti, birkaç hesabı tek tıkla açan sahneler, hesap ve proje başına Zaman Çizelgesi.
+- **Kurulum ve Sağlık:** Eksik olanı uygulamanın içinden tamamlama (Claude uygulaması, Claude Code ve izinler) ve her şeyin yerinde olup olmadığını gösteren Sağlık sayfası. Lanes sen bir düğmeye basmadan hiçbir şey kurmaz.
+- **Başlarken turu:** İlk açılışta kurulumu, izinleri ve ilk hesabı adım adım gösterir.
+- **Türkçe ve English:** Lanes Türkçe ve İngilizce kullanılabilir. Dil Ayarlar'dan değiştirilir.
 
-- Uygulamanın iskeleti: menü çubuğu paneli, ana pencere, hesap ekleme, hesabı kendi klasörüyle açma ve Claude Code'u o hesapla Terminalde, istersen seçtiğin klasörde başlatma.
-- Günlük kolaylıklar: panel ve her hesap için her uygulamada çalışan kısayollar (yeni bir izin istemez), öndeki Claude'un hesabını gösteren menü çubuğu simgesi, birkaç hesabı tek tıkla açan sahneler ve her şeyin yerinde olup olmadığını gösteren Sağlık sayfası.
-- Kurulum sayfası: eksik olanı uygulamanın içinden tamamlama. Claude uygulamasını indirme bağlantısı, düğmeye basınca Claude Code'u resmî kurulum betiğiyle kurma ve Otomasyon, Erişilebilirlik ve bildirim izinlerini isteme. Lanes sen bir düğmeye basmadan hiçbir şey kurmaz.
-- Faz 0 doğrulama ekranı: Lanes'in nasıl çalışacağını belirleyen dokuz kısa deneme ve Claude'un davranışını ölçen sekiz Faz 0.5 denemesi. Ayrıntılar [docs/faz0.md](docs/faz0.md) dosyasında.
-
-Denemek için: [docs/test-kilavuzu.md](docs/test-kilavuzu.md)
+Kurulum ve kullanım için: [docs/kullanim-kilavuzu.md](docs/kullanim-kilavuzu.md)
 
 ## Derleme
 
@@ -30,7 +32,7 @@ Kendi ekip kimliğinle imzalamak için `Config/Local.xcconfig.example` dosyasın
 
 ## Sürüm
 
-Test edenlere giden DMG'yi tek komut hazırlar:
+Kullanıcılara giden DMG'yi tek komut hazırlar:
 
 ```sh
 LANES_TEAM_ID=ABCDE12345 make release
@@ -45,7 +47,7 @@ Bir Mac'te bir kez hazırlanması gerekenler:
 - Onay taraması için kaydedilmiş giriş bilgisi: `xcrun notarytool store-credentials lanes-notary`. Başka bir ad için `LANES_NOTARY_PROFILE` kullanılır.
 - Sparkle'ın güncelleme anahtarı. Sparkle'ın `generate_keys` aracı gizli anahtarı Anahtar Zinciri'ne yazar ve açık anahtarı gösterir. Açık anahtar `Config/Release.xcconfig` dosyasında `LANES_SPARKLE_PUBLIC_KEY` olarak durur.
 
-Komut DMG'nin yanında Sparkle'ın güncelleme kaydını (`appcast.xml`) da hazırlar. Güncelleme penceresindeki sürüm notu, bir önceki sürüm etiketinden bu yana yapılan commit'lerin başlıklarından oluşur. Komut ayrıca GitHub'da yayınlama komutunu yazdırır. `LANES_PUBLISH=1` ile sürümü `gh` üzerinden kendisi yayınlar. Lanes güncellemeleri bu deponun GitHub Releases sayfasındaki son sürümden öğrenir. Debug derlemeleri hiç güncelleme denetlemez.
+Komut DMG'nin yanında Sparkle'ın güncelleme kaydını (`appcast.xml`) da hazırlar. Güncelleme penceresindeki ve GitHub'daki sürüm notu `docs/release-notes/<sürüm>.md` dosyasından gelir. Bu dosya yoksa not, bir önceki sürüm etiketinden bu yana yapılan commit'lerin başlıklarından oluşur. Komut ayrıca GitHub'da yayınlama komutunu yazdırır. `LANES_PUBLISH=1` ile sürümü `gh` üzerinden kendisi yayınlar. Lanes güncellemeleri bu deponun GitHub Releases sayfasındaki son sürümden öğrenir. Debug derlemeleri hiç güncelleme denetlemez.
 
 Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişiklikte Release'i Xcode 27 ile imzasız derler.
 
@@ -53,11 +55,10 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 
 | Klasör | İçerik |
 | ------ | ------ |
-| `Packages/LanesCore` | AppKit'e bağlı olmayan mantık: profiller, açılış planı, işlem argümanları, `claude://` bağlantı kuralları ve Faz 0 raporu. Linux'ta da derlenir ve test edilir. |
-| `Lanes/App` | Uygulamanın girişi, ortak durum ve pencere yönlendirmesi. |
+| `Packages/LanesCore` | AppKit'e bağlı olmayan mantık: profiller, açılış planı, işlem argümanları, `claude://` bağlantı kuralları ve tanılama raporu. Linux'ta da derlenir ve test edilir. |
+| `Lanes/App` | Uygulamanın girişi, ortak durum, pencere yönlendirmesi ve eski deneme sürümlerinden kalanları bir kez temizleyen kod. |
 | `Lanes/Tray` | Menü çubuğu simgesi ve paneli. |
 | `Lanes/MainWindow` | Ana pencere: kenar çubuğu, hesap sayfası, ayarlar. |
-| `Lanes/Validation` | Faz 0 ve Faz 0.5 doğrulama ekranı. |
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
 | `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
@@ -69,8 +70,8 @@ Testler: `make core-test`
 
 Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizlilik sayfasında tek listede duruyor. Kısaca:
 
-- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı, öndeki uygulamanın süreç numarası. Bir hesap açıldıktan sonra ve Faz 0 denemelerinde, o hesabın klasörünün yalnız değişme saati. Sağlık sayfasında Otomasyon izninin durumu (izin sorulmadan), `claude` komutunun yeri ve Profiles altındaki klasörlerin adları. Kurulum sayfasında ayrıca `claude` komutunun sürümü ve Erişilebilirlik ile bildirim izinlerinin durumu.
-- **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine Claude yazar, Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için Claude Code klasörüne bağlantı ekler), Terminal komut dosyaları, Faz 0 sonuçları ve her hesabın klonu (`Clones/<hesap kimliği>/`). Hesapların adı ve kısa bir açıklaması Spotlight dizinine yazılır. Eski sürümlerin Faz 0 klonları `~/Applications/Lanes Profiles` altında kalmış olabilir, Sağlık sayfası onları Çöp Sepeti'ne taşıyabilir.
+- **Baktıkları:** Çalışan Claude'ların komut satırı (ortam değişkenleri atılır), Claude'un yeri ve sürümü, `claude://` bağlantılarını hangi uygulamanın açtığı, öndeki uygulamanın süreç numarası. Bir hesap açıldıktan sonra, o hesabın klasörünün yalnız değişme saati. Sağlık sayfasında Otomasyon izninin durumu (izin sorulmadan), `claude` komutunun yeri ve Profiles altındaki klasörlerin adları. Kurulum sayfasında ayrıca `claude` komutunun sürümü ve Erişilebilirlik ile bildirim izinlerinin durumu.
+- **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine Claude yazar, Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için Claude Code klasörüne bağlantı ekler), Terminal komut dosyaları, tanılama raporu ve her hesabın klonu (`Clones/<hesap kimliği>/`). Hesapların adı ve kısa bir açıklaması Spotlight dizinine yazılır. Eski sürümlerden kalan Claude kopyaları `~/Applications/Lanes Profiles` altında durabilir, Sağlık sayfası onları Çöp Sepeti'ne taşıyabilir. Deneme sürümlerinin deneme klonunu ve sonuç dosyalarını Lanes ilk açılışta bir kez kaldırır, klonu Çöp Sepeti'ne taşır.
 - **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
 - **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu, yönlendirme açıkken kurala göre seçilen hesaba `claude://` bağlantıları (giriş bağlantıları asla), Kimlik sekmesindeki "Claude Ayarlarını Aç" düğmesiyle o hesabın Claude'una ayarlar bağlantısı ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Kurulum sayfasında "Kur" düğmesine basınca Lanes Claude Code'un resmî kurulum betiğini claude.ai'dan indirip çalıştırır. Bunun dışında Lanes'in yaptığı tek ağ isteği güncelleme denetimi.
 - **Dokunmadıkları:** Giriş bilgileri, çerezler, Anahtar Zinciri, sohbetler, Claude'un ayar dosyaları ve hesap klasörlerinin içi.

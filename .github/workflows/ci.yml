@@ -21,6 +21,14 @@ jobs:
     container: swift:6.2-noble
     steps:
       - uses: actions/checkout@v5
+      # The pre-1.0 test pages are gone. AlphaCleanup.swift names the old
+      # setting only to delete it.
+      - name: No test-build leftovers
+        run: |
+          if grep -rnE 'Faz 0|showsDeveloperPages' Lanes --include='*.swift' --include='*.xcstrings' --exclude=AlphaCleanup.swift; then
+            echo "::error::Test-build code or strings came back."
+            exit 1
+          fi
       - name: Test
         run: swift test --package-path Packages/LanesCore
 
@@ -60,7 +68,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log
-      # Release is what testers get, so it has to compile too. Signing is off:
+      # Release is what users get, so it has to compile too. Signing is off:
       # CI has no Developer ID certificate. Only Xcode 27 makes releases.
       # Pull requests skip it; make release on the Mac builds Release anyway.
       - name: Build Release (unsigned)

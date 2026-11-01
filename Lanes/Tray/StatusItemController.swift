@@ -28,39 +28,12 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     private var lastShown = Date.distantPast
     /// A right click starts a session too while its menu is tracking.
     private var isShowingContextMenu = false
-    /// True only during check 9's icon-click run. Off, the measuring code
-    /// below does nothing and no event monitor is installed.
-    private var isMeasuringIconClicks = false
-    private var mouseDownMonitors: [Any] = []
     private var defaultsObserver: NSObjectProtocol?
     private var activationObserver: NSObjectProtocol?
     /// The app in front other than Lanes. Matched against the accounts on
     /// each scan, so a Claude that just opened shows once Lanes has seen it.
     private var frontPID: pid_t?
     private var shownIconKey: String?
-    /// Recent presses on the icon, on the system uptime clock that NSEvent
-    /// timestamps use.
-    private var iconMouseDowns: [TimeInterval] = []
-    /// The panel opening being measured, on the same clock.
-    private var panelOpening: PanelOpening?
-
-    private struct PanelOpening {
-        /// When Lanes was told about the click and began showing the panel.
-        var shownAt: TimeInterval
-        /// The left click AppKit handed the callback, when it was one.
-        var eventTime: TimeInterval?
-        /// When the panel took keyboard focus.
-        var keyAt: TimeInterval?
-    }
-
-    /// Seconds from the click until the panel took focus, and what the
-    /// start was: "mouseDown" (the press on the icon), "event" (the click
-    /// event AppKit handed over) or "callback" (the moment Lanes was told,
-    /// which leaves out the system's own delay).
-    struct PanelLatency {
-        var seconds: TimeInterval
-        var source: String
-    }
 
     init(model: AppModel, router: WindowRouter) {
         self.model = model
@@ -202,14 +175,8 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     }
 
     private func updateTitle() {
-        let title: String
-        if let run = model.validation.iconClickRun {
-            // "…" while Lanes gets ready for the next try.
-            title = run.isArmed ? " \(min(run.trials.count + 1, run.target))/\(run.target)" : " …"
-        } else {
-            let count = model.runningCount
-            title = Preferences.showsRunningCountInMenuBar && count > 1 ? " \(count)" : ""
-        }
+        let count = model.runningCount
+        let title = Preferences.showsRunningCountInMenuBar && count > 1 ? " \(count)" : ""
         // Every UserDefaults change lands here, so an unchanged title is left
         // alone.
         if statusItem.button?.title != title {
@@ -221,7 +188,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         if NSApp.currentEvent?.type == .rightMouseUp {
             showContextMenu()
         } else {
-            togglePanel(fromIconClick: true)
+            togglePanel()
         }
     }
 
@@ -229,23 +196,16 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         panel?.isVisible == true
     }
 
-    /// True when the panel was opened by a click on the icon during an
-    /// icon-click run and has taken focus.
-    var hasPanelOpeningFromIconClick: Bool {
-        panelOpening?.keyAt != nil
-    }
-
-    func togglePanel(fromIconClick: Bool = false) {
+    func togglePanel() {
         if panel?.isVisible == true {
             guard Date().timeIntervalSince(lastShown) > 0.25 else { return }
             closePanel()
         } else if Date().timeIntervalSince(lastClosed) > 0.25 {
-            showPanel(fromIconClick: fromIconClick)
+            showPanel()
         }
     }
 
-    func showPanel(fromIconClick: Bool = false) {
-        notePanelOpening(fromIconClick: fromIconClick)
+    func showPanel() {
         let panel = self.panel ?? makePanel()
         self.panel = panel
         model.refreshInstances()
@@ -336,11 +296,6 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let tour = NSMenuItem(title: String(localized: "Başlarken Turu…"), action: #selector(openOnboarding), keyEquivalent: "")
         tour.target = self
         menu.addItem(tour)
-        if model.validation.iconClickRun != nil {
-            let stop = NSMenuItem(title: String(localized: "Ölçümü Durdur"), action: #selector(stopIconClickTrials), keyEquivalent: "")
-            stop.target = self
-            menu.addItem(stop)
-        }
         menu.addItem(.separator())
         let quit = NSMenuItem(title: String(localized: "Lanes'ten Çık"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
@@ -370,120 +325,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         router.showSettings()
     }
 
-    @objc private func stopIconClickTrials() {
-        router.stopIconClickTrials()
-    }
-
-    // MARK: Check 9 icon-click measuring
-
-    /// Starts or stops watching presses on the icon. The monitors only
-    /// observe: the local one passes every event on unchanged.
-    func setMeasuringIconClicks(_ on: Bool) {
-        guard on != isMeasuringIconClicks else { return }
-        isMeasuringIconClicks = on
-        iconMouseDowns = []
-        panelOpening = nil
-        if on {
-            // Up to macOS 26 a press on Lanes's own icon is an event for
-            // Lanes; on macOS 27 it has been seen reaching global monitors.
-            // AppKit calls both handlers on the main thread. Only presses
-            // inside the icon are kept, and only their time.
-            let local = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-                MainActor.assumeIsolated {
-                    self?.noteMouseDown(event)
-                }
-                return event
-            }
-            let global = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-                MainActor.assumeIsolated {
-                    self?.noteMouseDown(event)
-                }
-            }
-            if let local {
-                mouseDownMonitors.append(local)
-            }
-            if let global {
-                mouseDownMonitors.append(global)
-            }
-        } else {
-            for monitor in mouseDownMonitors {
-                NSEvent.removeMonitor(monitor)
-            }
-            mouseDownMonitors = []
-        }
-    }
-
-    private func noteMouseDown(_ event: NSEvent) {
-        guard event.timestamp > 0, let button = statusItem.button, let buttonWindow = button.window else { return }
-        let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
-        // An event for another app has no window; its location is already
-        // in screen coordinates.
-        let point: NSPoint
-        if let window = event.window {
-            point = window.convertPoint(toScreen: event.locationInWindow)
-        } else {
-            point = event.locationInWindow
-        }
-        guard buttonRect.insetBy(dx: -2, dy: -2).contains(point) else { return }
-        iconMouseDowns.append(event.timestamp)
-        if iconMouseDowns.count > 4 {
-            iconMouseDowns.removeFirst()
-        }
-    }
-
-    private func notePanelOpening(fromIconClick: Bool) {
-        guard isMeasuringIconClicks, fromIconClick else {
-            panelOpening = nil
-            return
-        }
-        let now = ProcessInfo.processInfo.systemUptime
-        panelOpening = PanelOpening(shownAt: now, eventTime: freshClickEventTime(now: now))
-    }
-
-    /// The left click AppKit is handling, if it is one and is recent. On
-    /// macOS 27 `NSApp.currentEvent` in status item callbacks is often an
-    /// unrelated event (mouse moved, entered or exited), so anything else is
-    /// ignored. Events made by other apps can carry a zero timestamp.
-    private func freshClickEventTime(now: TimeInterval) -> TimeInterval? {
-        guard let event = NSApp.currentEvent else { return nil }
-        switch event.type {
-        case .leftMouseDown, .leftMouseUp:
-            let age = now - event.timestamp
-            return event.timestamp > 0 && age >= 0 && age < 1 ? event.timestamp : nil
-        default:
-            return nil
-        }
-    }
-
-    /// The last icon-to-panel time, once: a second call returns nil. Read it
-    /// after the main window opened, so a press that a global monitor
-    /// delivered late is already counted.
-    func takePanelLatency() -> PanelLatency? {
-        defer { panelOpening = nil }
-        guard let opening = panelOpening, let keyAt = opening.keyAt else { return nil }
-        let start: TimeInterval
-        let source: String
-        if let press = iconMouseDowns.last(where: { $0 <= opening.shownAt && opening.shownAt - $0 < 1 }) {
-            start = press
-            source = "mouseDown"
-        } else if let eventTime = opening.eventTime {
-            start = eventTime
-            source = "event"
-        } else {
-            start = opening.shownAt
-            source = "callback"
-        }
-        let seconds = keyAt - start
-        guard seconds >= 0 else { return nil }
-        return PanelLatency(seconds: seconds, source: source)
-    }
-
     // MARK: NSWindowDelegate
-
-    func windowDidBecomeKey(_ notification: Notification) {
-        guard (notification.object as? NSWindow) === panel, panelOpening != nil, panelOpening?.keyAt == nil else { return }
-        panelOpening?.keyAt = ProcessInfo.processInfo.systemUptime
-    }
 
     func windowDidResignKey(_ notification: Notification) {
         closePanel()
@@ -520,7 +362,7 @@ extension StatusItemController: @MainActor NSStatusItemExpandedInterfaceDelegate
             session.cancel()
             return
         }
-        showPanel(fromIconClick: true)
+        showPanel()
     }
 
     func statusItemDidEndExpandedInterfaceSession(_ item: NSStatusItem, animated: Bool) {

@@ -114,7 +114,7 @@ enum DS {
         static let tileMinHeight: CGFloat = 128
         static let iconButton: CGFloat = 28
         static let statusIcon: CGFloat = 18
-        /// In-page list columns (Settings panes, Validation checks).
+        /// In-page list columns (Settings panes).
         static let paneListMin: CGFloat = 180
         static let paneListIdeal: CGFloat = 200
         static let paneListMax: CGFloat = 240
@@ -900,6 +900,22 @@ extension View {
             if isEmpty {
                 emptyView
             }
+        }
+    }
+}
+
+/// Buttons side by side, or stacked when the page is too narrow for one line.
+struct ButtonRow<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DS.Space.s) { content }
+            VStack(alignment: .leading, spacing: DS.Space.s) { content }
         }
     }
 }

@@ -1,6 +1,6 @@
-# Test kılavuzu
+# Kullanım kılavuzu
 
-Lanes'i deneyen herkes için kısa bir kılavuz. Lanes bir Anthropic ürünü değil, Anthropic ile bir bağı yok.
+Lanes'i kurmak, ilk hesaplarını eklemek ve bir sorun olduğunda bildirmek için kısa bir kılavuz. Lanes bir Anthropic ürünü değil, Anthropic ile bir bağı yok.
 
 ## Kurulum
 

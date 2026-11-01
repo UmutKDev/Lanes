@@ -531,16 +531,6 @@
         }
       }
     },
-    "%@ macOS bir izin penceresi gösterdiyse aşağıda işaretle.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ If macOS showed a permission prompt, mark it below."
-          }
-        }
-      }
-    },
     "%@ saatine kadar dinleniyor.": {
       "localizations": {
         "en": {
@@ -671,16 +661,6 @@
         }
       }
     },
-    "%@ zaten açık. Ayar yalnız açılışta verilir: önce Claude'dan çık, sonra yeniden dene.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is already open. The setting applies only at launch: quit Claude first, then try again."
-          }
-        }
-      }
-    },
     "%@ · %%%lld işlemci": {
       "localizations": {
         "en": {
@@ -697,16 +677,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@ · %lld/%lld deneme kaydedildi": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ · %2$lld/%3$lld tests recorded"
           }
         }
       }
@@ -737,16 +707,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ · When Lanes Opens"
-          }
-        }
-      }
-    },
-    "%@ · Sonraya kalabilir": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · Can Wait"
           }
         }
       }
@@ -1045,56 +1005,6 @@
         }
       }
     },
-    "1. Başlangıcı Kaydet": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1. Save Baseline"
-          }
-        }
-      }
-    },
-    "1. Başlangıcı Kaydet ve Hesabı Aç": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1. Save Baseline and Open Account"
-          }
-        }
-      }
-    },
-    "2. Açılan pencerede Code sekmesine geç, bir klasör seç ve kısa bir oturum başlat.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2. In the window that opens, switch to the Code tab, choose a folder, and start a short session."
-          }
-        }
-      }
-    },
-    "2. Hesap Ekle": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2. Add Account"
-          }
-        }
-      }
-    },
-    "3. Kontrol Et": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "3. Check"
-          }
-        }
-      }
-    },
     "Ad": {
       "localizations": {
         "en": {
@@ -1141,36 +1051,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Smart rules"
-          }
-        }
-      }
-    },
-    "Ana Hesapla Terminalde Aç": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open in Terminal with Main Account"
-          }
-        }
-      }
-    },
-    "Ana hesabın Terminali kendi hesabında kaldı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The main account’s Terminal stayed on its own account"
-          }
-        }
-      }
-    },
-    "Ana hesapta değiştirdiğin hesap, ikinci hesabın kullandığı hesaptı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The account you changed in the main account was the one the second account uses"
           }
         }
       }
@@ -1547,16 +1427,6 @@
         }
       }
     },
-    "Bağlantı gönderildi. Claude pencerelerine bak.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Link sent. Check the Claude windows."
-          }
-        }
-      }
-    },
     "Bağlantı günlüğü temizlensin mi?": {
       "localizations": {
         "en": {
@@ -1647,16 +1517,6 @@
         }
       }
     },
-    "Bağlantıyı Gönder": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Send Link"
-          }
-        }
-      }
-    },
     "Bağlantıyı kaldır": {
       "localizations": {
         "en": {
@@ -1743,26 +1603,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Start"
-          }
-        }
-      }
-    },
-    "Başlangıç kaydedildi, %@ açılıyor.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Baseline saved, opening %@."
-          }
-        }
-      }
-    },
-    "Başlangıç kaydedildi. Şimdi yeni hesabı ekle ve aç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Baseline saved. Now add and open the new account."
           }
         }
       }
@@ -2037,12 +1877,12 @@
         }
       }
     },
-    "Bir hesap açıldıktan sonraki 30 saniyede ve Faz 0 denemelerinde.": {
+    "Bir hesap açıldıktan sonraki 30 saniyede.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "During the 30 seconds after an account opens and in Phase 0 tests."
+            "value": "During the 30 seconds after an account opens."
           }
         }
       }
@@ -2207,52 +2047,12 @@
         }
       }
     },
-    "Bu Mac'te macOS %lld.%lld çalışıyor. Deneme asıl olarak macOS 27'de anlamlı.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This Mac is running macOS %1$lld.%2$lld. The test mainly matters on macOS 27."
-          }
-        }
-      }
-    },
     "Bu adresler yalnız hesap, sahne ve pencere açar; hiçbir şeyi silmez ya da değiştirmez.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "These links only open accounts, scenes, and windows; they never delete or change anything."
-          }
-        }
-      }
-    },
-    "Bu deneme için ana hesap dışında bir hesap gerekiyor.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This test needs an account other than the main one."
-          }
-        }
-      }
-    },
-    "Bu deneme için en az iki hesap açık olmalı. Şu an %lld Claude penceresi açık.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This test needs at least two accounts open. Claude windows open now: %lld."
-          }
-        }
-      }
-    },
-    "Bu denemenin kayıtlarını sil": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete This Test’s Records"
           }
         }
       }
@@ -3117,16 +2917,6 @@
         }
       }
     },
-    "Claude sürümü": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Claude Version"
-          }
-        }
-      }
-    },
     "Claude uygulaması": {
       "localizations": {
         "en": {
@@ -3257,16 +3047,6 @@
         }
       }
     },
-    "Claude'u Geri Yükle": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restore Claude"
-          }
-        }
-      }
-    },
     "Claude'u Uygulamalar klasörüne kur.": {
       "localizations": {
         "en": {
@@ -3303,16 +3083,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "A copy of Claude opens with its own icon and takes up almost no disk space."
-          }
-        }
-      }
-    },
-    "Claude'un kendi klasörü": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Claude's own folder"
           }
         }
       }
@@ -3377,16 +3147,6 @@
         }
       }
     },
-    "Cmd-Tab'da klonun kendi simgesi görünüyor": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone shows its own icon in Cmd-Tab"
-          }
-        }
-      }
-    },
     "Code oturumunu sürdür": {
       "localizations": {
         "en": {
@@ -3433,86 +3193,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Branch names may contain only letters, digits, - _ . / and can't start with -."
-          }
-        }
-      }
-    },
-    "Deneme": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test"
-          }
-        }
-      }
-    },
-    "Deneme bitince Claude'u geri yüklemeyi unutma. Lanes yeniden açıldığında bunu kendisi de yapar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remember to restore Claude when the test is done. Lanes also does this itself when it reopens."
-          }
-        }
-      }
-    },
-    "Deneme klonu": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test clone"
-          }
-        }
-      }
-    },
-    "Deneme klonu açık (PID %d). Önce klondan Claude'un kendi menüsüyle çık, sonra yeniden dene.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test clone is open (PID %d). Quit the clone from Claude's own menu first, then try again."
-          }
-        }
-      }
-    },
-    "Deneme sayısı: %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Attempts: %lld"
-          }
-        }
-      }
-    },
-    "Deneme sonuçları (%@) okunamadı: %@ Lanes bu dosyayı silmez, ilk kayıtta aynı klasörde başka bir adla saklar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't read test results (%1$@): %2$@ Lanes won't delete this file; on the first save it keeps it under another name in the same folder."
-          }
-        }
-      }
-    },
-    "Deneme sonuçları kaydedilemedi: %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't save test results: %@"
-          }
-        }
-      }
-    },
-    "Denemeyi Başlat": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start Test"
           }
         }
       }
@@ -3667,36 +3347,6 @@
         }
       }
     },
-    "Diskte deneme klonu yok. 3. denemeden bir klon oluştur ve bu denemeyi Claude'un bir sonraki güncellemesinden sonra yap.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No test clone on disk. Create a clone in Test 3, then run this test after Claude's next update."
-          }
-        }
-      }
-    },
-    "Diskte deneme klonu yok. Önce 3. denemeden bir klon oluştur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No test clone on disk. Create a clone in Test 3 first."
-          }
-        }
-      }
-    },
-    "Diskte eski klon yoktu, yani değiştirilen bir klon olmadı. App Management sorusu için klonu bir kez daha oluştur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "There was no old clone on disk, so no clone was replaced. Create the clone once more for the App Management prompt."
-          }
-        }
-      }
-    },
     "Diğer İşlemler": {
       "localizations": {
         "en": {
@@ -3727,16 +3377,6 @@
         }
       }
     },
-    "Dock'ta fareyle üstüne gelince \"Claude – Lanes Deneme\" yazıyor": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hovering in the Dock shows \"Claude – Lanes Deneme\""
-          }
-        }
-      }
-    },
     "Dock'ta görünmeyen klon imzalanamadı: %@": {
       "localizations": {
         "en": {
@@ -3747,32 +3387,12 @@
         }
       }
     },
-    "Dock'ta gösterme (Deneysel)": {
+    "Dock'ta gösterme": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide from Dock (Experimental)"
-          }
-        }
-      }
-    },
-    "Dock'ta klonun kendi simgesi duruyor": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone keeps its own icon in the Dock"
-          }
-        }
-      }
-    },
-    "Dock'ta klonun kendi simgesi görünüyor": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone shows its own icon in the Dock"
+            "value": "Hide from Dock"
           }
         }
       }
@@ -3813,16 +3433,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Status"
-          }
-        }
-      }
-    },
-    "Durumu Kaydet": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save Status"
           }
         }
       }
@@ -3903,16 +3513,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Email"
-          }
-        }
-      }
-    },
-    "E-posta bağlantısı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Email link"
           }
         }
       }
@@ -4047,16 +3647,6 @@
         }
       }
     },
-    "Elle": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manual"
-          }
-        }
-      }
-    },
     "En az bir hesap": {
       "localizations": {
         "en": {
@@ -4107,32 +3697,12 @@
         }
       }
     },
-    "Eski deneme sonuçları (%@) okunamadı: %@ Lanes bu dosyaya dokunmaz, yeni sonuçları %@ dosyasına yazar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't read old test results (%1$@): %2$@ Lanes won't touch this file and writes new results to %3$@."
-          }
-        }
-      }
-    },
     "Eski sürüm kurulu": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Older version installed"
-          }
-        }
-      }
-    },
-    "Evet": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yes"
           }
         }
       }
@@ -4167,27 +3737,7 @@
         }
       }
     },
-    "Faz 0 Doğrulama": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Phase 0 Validation"
-          }
-        }
-      }
-    },
-    "Faz 0 denemelerini göster": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show Phase 0 tests"
-          }
-        }
-      }
-    },
-    "Faz 0'dan kalan %lld deneme klonu": {
+    "Eski sürümlerden kalan %lld Claude kopyası": {
       "localizations": {
         "en": {
           "variations": {
@@ -4195,13 +3745,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld test clone left over from Phase 0"
+                  "value": "%lld Claude copy left over from older versions"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld test clones left over from Phase 0"
+                  "value": "%lld Claude copies left over from older versions"
                 }
               }
             }
@@ -4255,16 +3805,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Advanced"
-          }
-        }
-      }
-    },
-    "Geliştirme": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Development"
           }
         }
       }
@@ -4419,32 +3959,12 @@
         }
       }
     },
-    "Giriş hangi pencerede tamamlandı?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In which window did you finish signing in?"
-          }
-        }
-      }
-    },
     "Giriş ve OAuth bağlantıları hiçbir zaman yönlendirilmez.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Sign-in and OAuth links are never routed."
-          }
-        }
-      }
-    },
-    "Giriş yolu": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign-in path"
           }
         }
       }
@@ -4465,26 +3985,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sign-in, settings, and chats are kept."
-          }
-        }
-      }
-    },
-    "Girişi başlattığın pencere": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The window where you started signing in"
-          }
-        }
-      }
-    },
-    "Girişi başlattığın pencereyi yeniden seç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reselect the window where you started signing in."
           }
         }
       }
@@ -4559,16 +4059,6 @@
         }
       }
     },
-    "Google": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Google"
-          }
-        }
-      }
-    },
     "Google ya da Apple yerine e-posta adresinle devam et.": {
       "localizations": {
         "en": {
@@ -4585,16 +4075,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gray"
-          }
-        }
-      }
-    },
-    "Gördüklerin": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "What You See"
           }
         }
       }
@@ -4749,16 +4229,6 @@
         }
       }
     },
-    "Hayır": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No"
-          }
-        }
-      }
-    },
     "Hazır": {
       "localizations": {
         "en": {
@@ -4775,16 +4245,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No target account; not forwarded."
-          }
-        }
-      }
-    },
-    "Hedef pencere": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Target window"
           }
         }
       }
@@ -4815,16 +4275,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No scenes yet"
-          }
-        }
-      }
-    },
-    "Henüz yeni bir oturum kaydı yok. Code sekmesinde bir oturum başlattığından emin ol ve yeniden kontrol et.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No new session records yet. Make sure you started a session in the Code tab and check again."
           }
         }
       }
@@ -5145,16 +4595,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Account Found"
-          }
-        }
-      }
-    },
-    "Hesap değiştirmeden önce": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Before switching accounts"
           }
         }
       }
@@ -5499,16 +4939,6 @@
         }
       }
     },
-    "Hiçbirinde açılmadı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Didn't open in any"
-          }
-        }
-      }
-    },
     "Kahverengi": {
       "localizations": {
         "en": {
@@ -5589,62 +5019,12 @@
         }
       }
     },
-    "Kaydedildi.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved."
-          }
-        }
-      }
-    },
-    "Kaydedildi. Lanes yalnız dosya adlarına ve tarihlerine baktı.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved. Lanes looked only at file names and dates."
-          }
-        }
-      }
-    },
     "Kaydedildi. Liste boş.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Saved. The list is empty."
-          }
-        }
-      }
-    },
-    "Kaydedildi. Sonucu aşağıdan seç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved. Choose the result below."
-          }
-        }
-      }
-    },
-    "Kaydedildi. Öbür giriş yollarıyla da dene.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved. Try the other sign-in methods too."
-          }
-        }
-      }
-    },
-    "Kaydedildi. Öbür pencereyle de bir kez dene.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved. Try it once with the other window too."
           }
         }
       }
@@ -5709,16 +5089,6 @@
         }
       }
     },
-    "Kaydetmek için önce \"Klonu İncele\"ye bas. Her kayıt yeni bir inceleme ister.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "To save, first click \"Inspect Clone\". Each save needs a new inspection."
-          }
-        }
-      }
-    },
     "Kaynak": {
       "localizations": {
         "en": {
@@ -5735,16 +5105,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Source app"
-          }
-        }
-      }
-    },
-    "Kayıtlar": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Records"
           }
         }
       }
@@ -5909,16 +5269,6 @@
         }
       }
     },
-    "Klasör Yapısını Kaydet": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save Folder Structure"
-          }
-        }
-      }
-    },
     "Klasör ayrılığı denetlenmedi.": {
       "localizations": {
         "en": {
@@ -5999,52 +5349,12 @@
         }
       }
     },
-    "Klon açıldı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone opened"
-          }
-        }
-      }
-    },
-    "Klon açıldı.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone opened."
-          }
-        }
-      }
-    },
-    "Klon açıldı. Dock'a bak ve güncelleme isteyip istemediğini izle.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone opened. Check the Dock and watch whether it asks to update."
-          }
-        }
-      }
-    },
     "Klon bir sonraki açılışta yenilenecek: %@.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The clone will be refreshed the next time it opens: %@."
-          }
-        }
-      }
-    },
-    "Klon güncelleme istedi ya da kendini güncelledi": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The clone asked to update or updated itself"
           }
         }
       }
@@ -6059,52 +5369,12 @@
         }
       }
     },
-    "Klon hazır. Şimdi aç ve Dock'a bak.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone ready. Open it now and check the Dock."
-          }
-        }
-      }
-    },
     "Klon hazırlanıyor…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Preparing clone…"
-          }
-        }
-      }
-    },
-    "Klon inceleniyor…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inspecting clone…"
-          }
-        }
-      }
-    },
-    "Klon izin yüzünden oluşmadı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't create clone due to permissions"
-          }
-        }
-      }
-    },
-    "Klon oluşturuluyor…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Creating clone…"
           }
         }
       }
@@ -6119,32 +5389,12 @@
         }
       }
     },
-    "Klon çöpe atıldı.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clone moved to the Trash."
-          }
-        }
-      }
-    },
     "Klonlar": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Clones"
-          }
-        }
-      }
-    },
-    "Klonu Aç": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Clone"
           }
         }
       }
@@ -6159,52 +5409,12 @@
         }
       }
     },
-    "Klonu Oluştur": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Create Clone"
-          }
-        }
-      }
-    },
-    "Klonu açınca şunlara bak:": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "After opening the clone, check:"
-          }
-        }
-      }
-    },
     "Klonu oluştur ya da yenile": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Create or refresh the clone"
-          }
-        }
-      }
-    },
-    "Klonu Çöpe At": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Move Clone to Trash"
-          }
-        }
-      }
-    },
-    "Klonu İncele": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inspect Clone"
           }
         }
       }
@@ -6239,16 +5449,6 @@
         }
       }
     },
-    "Komut panoya kopyalandı.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Command copied to the clipboard."
-          }
-        }
-      }
-    },
     "Komut satırı": {
       "localizations": {
         "en": {
@@ -6279,16 +5479,6 @@
         }
       }
     },
-    "Komutu oturumun başladığı proje klasöründe çalıştır. Claude Code oturumları o klasöre göre arıyor.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Run the command in the project folder where the session started. Claude Code looks up sessions by that folder."
-          }
-        }
-      }
-    },
     "Konum": {
       "localizations": {
         "en": {
@@ -6299,12 +5489,12 @@
         }
       }
     },
-    "Kopya kendi kimliğini alır ve bu Mac'te yeniden imzalanır. Deneysel.": {
+    "Kopya kendi kimliğini alır ve bu Mac'te yeniden imzalanır.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The copy gets its own identity and is re-signed on this Mac. Experimental."
+            "value": "The copy gets its own identity and is re-signed on this Mac."
           }
         }
       }
@@ -6319,12 +5509,12 @@
         }
       }
     },
-    "Kopyaya hesabın simgesi eklenir; \"Dock'ta gösterme\" açıksa kopya bu Mac'te yeniden imzalanır. Hesap kaldırılınca klon Çöp Sepeti'ne gider.": {
+    "Kopyaya hesabın simgesi eklenir; \"Dock'ta gösterme\" açıksa kopya bu Mac'te yeniden imzalanır. Hesap kaldırılınca klon Çöp Sepeti'ne gider. Deneme sürümlerinden kalan deneme klonunu ve sonuç dosyalarını Lanes ilk açılışta bir kez kaldırır, klonu Çöp Sepeti'ne taşır.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The account's icon is added to the copy; if \"Hide in Dock\" is on, the copy is re-signed on this Mac. When the account is removed, the clone goes to the Trash."
+            "value": "The account's icon is added to the copy; if \"Hide in Dock\" is on, the copy is re-signed on this Mac. When the account is removed, the clone goes to the Trash. On first launch, Lanes removes the test clone and result files left over from pre-release versions once, moving the clone to the Trash."
           }
         }
       }
@@ -6789,16 +5979,6 @@
         }
       }
     },
-    "Lanes dışında açılmış (PID %@)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opened outside Lanes (PID %@)"
-          }
-        }
-      }
-    },
     "Lanes geçici bir konumdan çalışıyor ve güncellenemez. Lanes'ten çık, Lanes.app'i Uygulamalar klasörüne taşı ve oradan aç.": {
       "localizations": {
         "en": {
@@ -6969,16 +6149,6 @@
         }
       }
     },
-    "Lanes yalnız dosyaların değiştirilme saatine bakar, içeriklerini açmaz.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lanes only checks files' modification times and never opens them."
-          }
-        }
-      }
-    },
     "Lanes yalnız kendi klon klasörüne yazar.": {
       "localizations": {
         "en": {
@@ -7029,16 +6199,6 @@
         }
       }
     },
-    "Lanes'e gelen bağlantılar": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Links sent to Lanes"
-          }
-        }
-      }
-    },
     "Lanes'e gelenler": {
       "localizations": {
         "en": {
@@ -7069,32 +6229,12 @@
         }
       }
     },
-    "Lanes'i Varsayılan Yap": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Make Lanes the Default"
-          }
-        }
-      }
-    },
     "Lanes'i aç": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Open Lanes"
-          }
-        }
-      }
-    },
-    "Lanes'i varsayılan yaparken bir onay penceresi çıktı mı?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Did a confirmation dialog appear when you made Lanes the default?"
           }
         }
       }
@@ -7483,16 +6623,6 @@
         }
       }
     },
-    "Okunamayan deneme sonuçları %@ adıyla aynı klasörde saklandı.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The unreadable test results were saved as %@ in the same folder."
-          }
-        }
-      }
-    },
     "Okunamayan hesap listesi %@ adıyla aynı klasörde saklandı.": {
       "localizations": {
         "en": {
@@ -7633,26 +6763,6 @@
         }
       }
     },
-    "Otomatik": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic"
-          }
-        }
-      }
-    },
-    "Otomatik denemede pencere birkaç kez kapanıp panelden yeniden açılır. Bitene kadar fareye ve klavyeye dokunma.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "During the automatic test, the window closes and reopens from the panel a few times. Don't touch the mouse or keyboard until it's done."
-          }
-        }
-      }
-    },
     "Oturum": {
       "localizations": {
         "en": {
@@ -7699,16 +6809,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Lanes at login"
-          }
-        }
-      }
-    },
-    "Oturum kaldığı yerden sürdü": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Session continued where it left off"
           }
         }
       }
@@ -7779,26 +6879,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show only this type in the panel"
-          }
-        }
-      }
-    },
-    "Paneli Aç": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Panel"
-          }
-        }
-      }
-    },
-    "Paneli menü çubuğundaki Lanes simgesine tıklayarak aç. Buradan açılan panelde simge basılı görünmez, bu yüzden bu deneme için sayılmaz.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open the panel by clicking the Lanes icon in the menu bar. When opened from here, the icon doesn't appear pressed, so it doesn't count for this test."
           }
         }
       }
@@ -7943,26 +7023,6 @@
         }
       }
     },
-    "Pencereler Lanes'ten yeniden açıldıktan sonra": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "After windows reopen from Lanes"
-          }
-        }
-      }
-    },
-    "Pencereleri Claude'un kendi menüsünden kapat. Lanes hiçbir Claude penceresini kendisi kapatmaz.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close windows from Claude's own menu. Lanes never closes a Claude window itself."
-          }
-        }
-      }
-    },
     "Pencereleri yerleştirip kaydet. Erişilebilirlik izni gerekir.": {
       "localizations": {
         "en": {
@@ -8053,52 +7113,12 @@
         }
       }
     },
-    "Rapor panoya kopyalandı. Projedeki konuşmaya yapıştırman yeterli.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Report copied to the clipboard. Just paste it into the project's conversation."
-          }
-        }
-      }
-    },
-    "Rapor sonuçları, sürüm bilgilerini ve kayıtları içerir. Kayıtlarda dosya yolları ve hesap adların da var. Ev klasörün ~ olarak yazılır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The report includes results, version info, and logs. The logs also contain file paths and account names. Your home folder is written as ~."
-          }
-        }
-      }
-    },
-    "Raporu Kopyala": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy Report"
-          }
-        }
-      }
-    },
     "Renk": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Color"
-          }
-        }
-      }
-    },
-    "SSO": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SSO"
           }
         }
       }
@@ -8343,26 +7363,6 @@
         }
       }
     },
-    "Seçili Hesapla Terminalde Aç": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open in Terminal with Selected Account"
-          }
-        }
-      }
-    },
-    "Seçili hesabın Terminali kendi hesabında kaldı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The selected account's Terminal stayed in its own account"
-          }
-        }
-      }
-    },
     "Seçtiğin olaylar için. macOS bir kez sorar.": {
       "localizations": {
         "en": {
@@ -8429,26 +7429,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show the number of open accounts next to the icon"
-          }
-        }
-      }
-    },
-    "Simgeye Tıklayarak Ölç": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Measure by Clicking the Icon"
-          }
-        }
-      }
-    },
-    "Simgeye tıklayarak ölçmede Lanes pencereyi kapatır ve odağı Finder'a verir. Her seferinde menü çubuğundaki Lanes simgesine, sonra paneldeki pencere düğmesine (Lanes'i aç) tıkla. Kaçıncı denemede olduğun simgenin yanında görünür. Orada üç nokta varken tıklama, Lanes bir sonraki denemeye hazırlanıyor.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When measuring by clicking the icon, Lanes closes its window and gives focus to Finder. Each time, click the Lanes icon in the menu bar, then the window button in the panel (Open Lanes). The current attempt number appears next to the icon. Don't click while it shows three dots; Lanes is getting ready for the next attempt."
           }
         }
       }
@@ -8633,16 +7613,6 @@
         }
       }
     },
-    "Sonucu Kaydet": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save Result"
-          }
-        }
-      }
-    },
     "Sonuç": {
       "localizations": {
         "en": {
@@ -8659,16 +7629,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No results"
-          }
-        }
-      }
-    },
-    "Soru Claude açıkken soruluyor. Önce bir hesabı aç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Questions can only be asked while Claude is open. Open an account first."
           }
         }
       }
@@ -8749,26 +7709,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Includes versions, accounts and folder paths. Account names are replaced with numbers and the home folder with ~; the contents of account folders are not read."
-          }
-        }
-      }
-    },
-    "Sürüyor…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In progress…"
-          }
-        }
-      }
-    },
-    "Tabloyu Kayıtlara Ekle": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add Table to Records"
           }
         }
       }
@@ -9103,16 +8043,6 @@
         }
       }
     },
-    "Var olan klon değiştirilirken macOS bir izin penceresi gösterdi": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS showed a permission prompt while modifying the existing clone"
-          }
-        }
-      }
-    },
     "Varsayılan Klasör Seç…": {
       "localizations": {
         "en": {
@@ -9129,16 +8059,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Make Default"
-          }
-        }
-      }
-    },
-    "Varsayılan hâlâ Claude değil. Deneme klonu açıksa klondan Claude'un kendi menüsüyle çık ya da klonu 3. denemeden çöpe at, sonra yeniden dene.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The default still isn't Claude. If the test clone is open, quit it from Claude's own menu, or move the clone from attempt 3 to the Trash, then try again."
           }
         }
       }
@@ -9443,16 +8363,6 @@
         }
       }
     },
-    "Yardımlı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Assisted"
-          }
-        }
-      }
-    },
     "Yedekleme": {
       "localizations": {
         "en": {
@@ -9523,32 +8433,12 @@
         }
       }
     },
-    "Yeni sohbet hangi pencerede açıldı? Lanes onu %@ penceresine gönderdi.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Which window did the new chat open in? Lanes sent it to the %@ window."
-          }
-        }
-      }
-    },
     "Yeniden Al": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Take Back"
-          }
-        }
-      }
-    },
-    "Yeniden Açınca Kaydet": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save After Reopening"
           }
         }
       }
@@ -9913,26 +8803,6 @@
         }
       }
     },
-    "claude:// bağlantılarını yeniden Claude açıyor.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Claude is opening claude:// links again."
-          }
-        }
-      }
-    },
-    "claude:// bağlantılarını şu an %@ açıyor. Giriş bağlantısı Claude'a gitmezse bu deneme Claude'u değil o uygulamayı ölçer.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ currently opens claude:// links. If the sign-in link doesn't reach Claude, this test measures that app, not Claude."
-          }
-        }
-      }
-    },
     "dakika": {
       "localizations": {
         "en": {
@@ -10273,46 +9143,6 @@
         }
       }
     },
-    "Çıkmadı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Didn't Appear"
-          }
-        }
-      }
-    },
-    "Çıktı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appeared"
-          }
-        }
-      }
-    },
-    "Ölçüm sürüyor: %lld/%lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Measuring: %1$lld/%2$lld"
-          }
-        }
-      }
-    },
-    "Ölçümü Durdur": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stop Measuring"
-          }
-        }
-      }
-    },
     "Önbellek": {
       "localizations": {
         "en": {
@@ -10359,16 +9189,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quit this account's Claude first."
-          }
-        }
-      }
-    },
-    "Önce klonu oluştur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Create the clone first."
           }
         }
       }
@@ -10593,16 +9413,6 @@
         }
       }
     },
-    "Üçüncü denemede klonu oluştururken macOS bir izin penceresi gösterdi mi? Pencere \"Lanes başka uygulamaları değiştirmek istiyor\" gibi bir şey söyler.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Did macOS show a permission prompt while creating the clone on the third attempt? It says something like \"Lanes would like to modify other apps.\""
-          }
-        }
-      }
-    },
     "çıkış kodu %d": {
       "localizations": {
         "en": {
@@ -10629,56 +9439,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "example"
-          }
-        }
-      }
-    },
-    "İki hesapta aynı anda çalıştı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ran in both accounts at once"
-          }
-        }
-      }
-    },
-    "İki klasör de değişti. Başka bir Claude Code oturumu açık olabilir. Onu kapatıp yeniden dene.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Both folders changed. Another Claude Code session may be open. Close it and try again."
-          }
-        }
-      }
-    },
-    "İki pencerede de giriş yap. Pencereleri kapatıp yeniden aç ve her birinde /status komutuna bak.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to both windows. Close and reopen the windows, then run /status in each."
-          }
-        }
-      }
-    },
-    "İkinci hesabın oturumu açık kaldı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Second account stayed signed in"
-          }
-        }
-      }
-    },
-    "İkinci hesapta Cowork çalıştı": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cowork ran in the second account"
           }
         }
       }
@@ -10783,26 +9543,6 @@
         }
       }
     },
-    "İmza ve Gatekeeper klonu kabul ediyor. Şimdi klonu aç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The signature and Gatekeeper accept the clone. Now open the clone."
-          }
-        }
-      }
-    },
-    "İmza ya da Gatekeeper klonu reddetti. Ayrıntılar kayıtlarda.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The signature or Gatekeeper rejected the clone. Details are in the logs."
-          }
-        }
-      }
-    },
     "İmzaları Denetle": {
       "localizations": {
         "en": {
@@ -10849,26 +9589,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Allow"
-          }
-        }
-      }
-    },
-    "İzin istendi": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permission requested"
-          }
-        }
-      }
-    },
-    "İzin istenmedi": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permission not requested"
           }
         }
       }

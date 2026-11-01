@@ -71,25 +71,21 @@ enum DockPresence {
 /// An app that lives in the menu bar does not always become active when asked,
 /// especially right after it switches to a regular app (FB12399363,
 /// FB7743313). So it tries the polite way first and escalates only when the
-/// window is still not in front. Faz 0 check 9 measures which step works: on
-/// macOS 27 plain `activate()` never worked on its own and `activate(from:)`
-/// always did, so that comes first.
+/// window is still not in front. On macOS 27 plain `activate()` never worked
+/// on its own in testing and `activate(from:)` always did, so that comes first.
 @MainActor
 enum WindowActivator {
-    enum Method: String, Codable {
-        case activate = "activate()"
-        case activateFrom = "activate(from:)"
-        case orderFrontRegardless = "orderFrontRegardless()"
-        case ignoringOtherApps = "activate(ignoringOtherApps:)"
-        case gaveUp = "sonuçsuz"
+    /// The step that finally brought the window forward.
+    enum Method {
+        case activate
+        case activateFrom
+        case orderFrontRegardless
+        case ignoringOtherApps
+        case gaveUp
     }
 
     struct Outcome {
         var method: Method
-        var duration: TimeInterval
-        var becameKey: Bool
-        var appBecameActive: Bool
-        var showsDockIcon: Bool
     }
 
     /// - Parameter alwaysInDock: Show Lanes in the Dock whatever the
@@ -109,32 +105,30 @@ enum WindowActivator {
     }
 
     private static func activate(_ window: NSWindow, previous: NSRunningApplication?) async -> Outcome {
-        let start = Date()
-
         if let previous, previous != NSRunningApplication.current {
             _ = NSRunningApplication.current.activate(from: previous, options: [])
             window.makeKeyAndOrderFront(nil)
             if await waitUntilInFront(window, timeout: 0.15) {
-                return outcome(.activateFrom, window, start)
+                return Outcome(method: .activateFrom)
             }
         }
 
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
         if await waitUntilInFront(window, timeout: 0.15) {
-            return outcome(.activate, window, start)
+            return Outcome(method: .activate)
         }
 
         window.orderFrontRegardless()
         window.makeKey()
         if await waitUntilInFront(window, timeout: 0.15) {
-            return outcome(.orderFrontRegardless, window, start)
+            return Outcome(method: .orderFrontRegardless)
         }
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         if await waitUntilInFront(window, timeout: 0.3) {
-            return outcome(.ignoringOtherApps, window, start)
+            return Outcome(method: .ignoringOtherApps)
         }
 
         // Right after launch the switch to a regular app can take longer
@@ -145,10 +139,10 @@ enum WindowActivator {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         if await waitUntilInFront(window, timeout: 1.0) {
-            return outcome(.ignoringOtherApps, window, start)
+            return Outcome(method: .ignoringOtherApps)
         }
         Log.app.error("Main window shown but Lanes did not become active")
-        return outcome(.gaveUp, window, start)
+        return Outcome(method: .gaveUp)
     }
 
     private static func isInFront(_ window: NSWindow) -> Bool {
@@ -162,15 +156,5 @@ enum WindowActivator {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
         return isInFront(window)
-    }
-
-    private static func outcome(_ method: Method, _ window: NSWindow, _ start: Date) -> Outcome {
-        Outcome(
-            method: method,
-            duration: Date().timeIntervalSince(start),
-            becameKey: window.isKeyWindow,
-            appBecameActive: NSApp.isActive,
-            showsDockIcon: NSApp.activationPolicy() == .regular
-        )
     }
 }
