@@ -60,6 +60,8 @@ Sürüm çıkmadan önce iki denetim yapılır. Derleme numarası yayımlanmış
 
 İş akışının ihtiyaç duyduğu secret'ları sürüm çıkaran Mac'te bir kez `scripts/setup-release-secrets.sh` kaydeder. Betik Developer ID sertifikasının `.p12` dosyasını, Apple ID'yi ve uygulamaya özel parolayı sorar. Sparkle'ın gizli anahtarını Anahtar Zinciri'nden kendisi alır.
 
+İş akışı Chrome/Edge eklentisini Edge Eklentileri'ne de yükleyip incelemeye gönderir. Bunu yalnız eklenti dosyaları önceki sürümden beri değiştiyse yapar, yalnız sürüm numarasının değişmesi yetmez. Edge, inceleme bitince mağazadan kuranları kendisi günceller. Bu adım için `LANES_EDGE_CLIENT_ID`, `LANES_EDGE_API_KEY` ve `LANES_EDGE_PRODUCT_ID` secret'ları gerekir. Bunlar yoksa adım atlanır.
+
 ## Yapı
 
 | Klasör | İçerik |
