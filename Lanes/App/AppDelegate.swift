@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let router: WindowRouter
     private var statusItemController: StatusItemController?
     private var tabStripController: TabStripController?
+    private var menuBarGuard: MenuBarGuard?
     private var isWaitingToTerminate = false
 
     override init() {
@@ -49,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         observeShortcuts()
         tabStripController = TabStripController(model: model, router: router)
+        menuBarGuard = MenuBarGuard(model: model)
         model.openStartupScenes()
         model.reopenLastAccountsIfWanted()
         if !Preferences.onboardingDue {
