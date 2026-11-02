@@ -16,8 +16,16 @@
 #
 # Usage: LANES_TEAM_ID=ABCDE12345 make release
 # LANES_NOTARY_PROFILE picks another profile name (default lanes-notary).
-# LANES_PUBLISH=1 also creates the GitHub release with the DMG and the update
-# feed, using gh. Without it the script prints the command instead.
+# LANES_PUBLISH=1 also creates the GitHub release with the DMG, the update
+# feed and the Chrome/Edge store ZIP, using gh. Without it the script prints
+# the command instead.
+#
+# The release workflow (.github/workflows/release.yml) runs this script on a
+# GitHub runner with two more settings, both optional on a Mac:
+#   LANES_NOTARY_KEYCHAIN    the keychain that holds the notarytool profile
+#                            (default: the keychain search list)
+#   LANES_SPARKLE_KEY_FILE   Sparkle's private key exported with
+#                            generate_keys -x (default: the login keychain)
 set -euo pipefail
 
 fail() {
@@ -32,6 +40,13 @@ step() {
 
 team="${LANES_TEAM_ID:-}"
 profile="${LANES_NOTARY_PROFILE:-lanes-notary}"
+notary_keychain=()
+[ -n "${LANES_NOTARY_KEYCHAIN:-}" ] && notary_keychain=(--keychain "$LANES_NOTARY_KEYCHAIN")
+sparkle_key=()
+if [ -n "${LANES_SPARKLE_KEY_FILE:-}" ]; then
+  [ -s "$LANES_SPARKLE_KEY_FILE" ] || fail "LANES_SPARKLE_KEY_FILE boş ya da yok: $LANES_SPARKLE_KEY_FILE"
+  sparkle_key=(--ed-key-file "$LANES_SPARKLE_KEY_FILE")
+fi
 
 [ "$(uname -s)" = Darwin ] || fail "yalnız macOS'ta çalışır."
 [ -n "$team" ] || fail "LANES_TEAM_ID gerekli, örnek: LANES_TEAM_ID=ABCDE12345 make release"
@@ -62,6 +77,24 @@ build=$(git rev-list --count HEAD)
 commit=$(git rev-parse --short=12 HEAD)
 [ -n "$version" ] || fail "project.yml'de MARKETING_VERSION bulunamadı."
 
+# Sparkle only offers an update whose build number is higher than the
+# installed one, so a release must never go out with a build number at or
+# below one already published (a build from another branch can have a higher
+# commit count than main). The same version twice usually means the version
+# bump was forgotten.
+if [ "${LANES_PUBLISH:-}" = 1 ]; then
+  command -v gh >/dev/null || fail "gh gerekli: brew install gh"
+  tags=$(gh release list --repo UmutKDev/Lanes --limit 200 --json tagName --jq '.[].tagName') \
+    || fail "yayımlanmış sürümler okunamadı (gh auth status?)."
+  latest=$(printf '%s\n' "$tags" | sed -nE 's/^v[0-9.]+-([0-9]+)$/\1/p' | sort -n | tail -1)
+  if [ -n "$latest" ] && [ "$build" -le "$latest" ]; then
+    fail "derleme numarası $build, yayımlanmış en yüksek derleme $latest. Sürüm main'deki yeni bir commit'ten çıkmalı."
+  fi
+  if printf '%s\n' "$tags" | grep -q "^v$version-"; then
+    fail "$version zaten yayımlanmış, project.yml'de MARKETING_VERSION'ı artır."
+  fi
+fi
+
 out="build/release/$version-$build"
 archive="$out/Lanes.xcarchive"
 export_dir="$out/export"
@@ -77,12 +110,12 @@ echo "Lanes $version ($build), commit $commit, ekip $team"
 # read from its JSON output.
 notarize() {
   local file=$1 result="$out/notarytool.json" status id
-  xcrun notarytool submit "$file" --keychain-profile "$profile" --wait --output-format json >"$result"
+  xcrun notarytool submit "$file" --keychain-profile "$profile" ${notary_keychain[@]+"${notary_keychain[@]}"} --wait --output-format json >"$result"
   status=$(plutil -extract status raw -o - "$result" 2>/dev/null || true)
   id=$(plutil -extract id raw -o - "$result" 2>/dev/null || true)
   if [ "$status" != Accepted ]; then
     cat "$result" >&2
-    [ -n "$id" ] && xcrun notarytool log "$id" --keychain-profile "$profile" >&2 || true
+    [ -n "$id" ] && xcrun notarytool log "$id" --keychain-profile "$profile" ${notary_keychain[@]+"${notary_keychain[@]}"} >&2 || true
     fail "onay taraması reddetti: $file (durum: ${status:-bilinmiyor})"
   fi
   echo "Onay taraması kabul etti ($id)."
@@ -202,8 +235,9 @@ else
 fi
 generate_appcast="$out/packages/artifacts/sparkle/Sparkle/bin/generate_appcast"
 [ -x "$generate_appcast" ] || fail "generate_appcast bulunamadı: $generate_appcast"
-# Signs the DMG with the EdDSA key from the keychain and embeds the notes.
-"$generate_appcast" --embed-release-notes --download-url-prefix "https://github.com/$repo/releases/download/$tag/" "$updates"
+# Signs the DMG with the EdDSA key (keychain or LANES_SPARKLE_KEY_FILE) and
+# embeds the notes.
+"$generate_appcast" ${sparkle_key[@]+"${sparkle_key[@]}"} --embed-release-notes --download-url-prefix "https://github.com/$repo/releases/download/$tag/" "$updates"
 [ -f "$updates/appcast.xml" ] || fail "appcast.xml oluşmadı."
 
 # Xcode registers every Lanes.app it builds with LaunchServices, and Safari
@@ -216,12 +250,17 @@ while IFS= read -r -d '' copy; do
 done < <(find "$out/dd" "$export_dir" "$archive" -name Lanes.app -type d -prune -print0 2>/dev/null)
 rm -rf "$out/dd"
 
+step "Chrome ve Edge eklentisi paketleniyor"
+extension_zip="$out/lanes-browser-extension-$version.zip"
+scripts/build-browser-extension.sh --store "$extension_zip"
+
 step "Hazır"
 shasum -a 256 "$dmg"
 echo "$dmg"
 echo "$updates/appcast.xml"
+echo "$extension_zip"
 
-publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" "${notes_args[@]}" "$updates/$(basename "$dmg")" "$updates/appcast.xml")
+publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" "${notes_args[@]}" "$updates/$(basename "$dmg")" "$updates/appcast.xml" "$extension_zip")
 if [ "${LANES_PUBLISH:-}" = 1 ]; then
   step "GitHub'da yayınlanıyor"
   command -v gh >/dev/null || fail "gh gerekli: brew install gh"

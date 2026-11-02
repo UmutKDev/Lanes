@@ -52,6 +52,16 @@ Komut DMG'nin yanında Sparkle'ın güncelleme kaydını (`appcast.xml`) da haz�
 
 Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişiklikte Release'i Xcode 27 ile imzasız derler.
 
+### GitHub Actions ile sürüm
+
+Aynı işi GitHub'daki **Release** iş akışı da yapar. Actions > Release > Run workflow ile elle başlatılır ve yalnız `main`'den çalışır. İş akışı imzalar, onay taramasından geçirir, DMG'yi, `appcast.xml`'i ve Chrome/Edge mağaza ZIP'ini GitHub'da yayımlar. "GitHub'da yayımla" kapatılırsa dosyaları yalnız derleme çıktısı olarak bırakır.
+
+Sürüm çıkmadan önce iki denetim yapılır. Derleme numarası yayımlanmış en yüksek derlemeden büyük olmalı, aynı sürüm numarası da daha önce yayımlanmamış olmalı. Yani `project.yml`'de `MARKETING_VERSION` artırılmadan sürüm çıkmaz.
+
+İş akışının ihtiyaç duyduğu secret'ları sürüm çıkaran Mac'te bir kez `scripts/setup-release-secrets.sh` kaydeder. Betik Developer ID sertifikasının `.p12` dosyasını, Apple ID'yi ve uygulamaya özel parolayı sorar. Sparkle'ın gizli anahtarını Anahtar Zinciri'nden kendisi alır.
+
+İş akışı Chrome/Edge eklentisini Edge Eklentileri'ne de yükleyip incelemeye gönderir. Bunu yalnız eklenti dosyaları önceki sürümden beri değiştiyse yapar, yalnız sürüm numarasının değişmesi yetmez. Edge, inceleme bitince mağazadan kuranları kendisi günceller. Bu adım için `LANES_EDGE_CLIENT_ID`, `LANES_EDGE_API_KEY` ve `LANES_EDGE_PRODUCT_ID` secret'ları gerekir. Bunlar yoksa adım atlanır.
+
 ## Yapı
 
 | Klasör | İçerik |
@@ -64,7 +74,7 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 | `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 | `LanesSafari` | Safari eklentisi. `Resources` web kısmı (manifest, betikler, açılır pencere), Swift kısmı yalnız Anahtar Zinciri'ni ve Lanes'in paylaştığı hesap listesini kullanır. Testler: `node --test LanesSafari/Tests/*.test.js` |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
-| `scripts` | `make release` betiği ve uygulama simgesini çizen `make-icon.py`. |
+| `scripts` | `make release` betiği, GitHub secret'larını kuran `setup-release-secrets.sh` ve uygulama simgesini çizen `make-icon.py`. |
 
 Testler: `make core-test`
 
