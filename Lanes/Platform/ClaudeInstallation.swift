@@ -8,7 +8,8 @@ struct ClaudeInstallation: Equatable {
     /// Claude itself or one of Lanes's clones, which may carry their own
     /// identifier under Claude's (see CloneRecord.bundleIdentifier).
     static func isClaude(_ identifier: String?) -> Bool {
-        identifier?.hasPrefix(bundleIdentifier) ?? false
+        guard let identifier else { return false }
+        return identifier == bundleIdentifier || identifier.hasPrefix(bundleIdentifier + ".lanes.")
     }
 
     let url: URL

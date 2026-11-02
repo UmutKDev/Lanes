@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import LanesCore
 
 /// Makes a copy of Claude.app with its own Finder icon. On APFS the copy is a
@@ -86,7 +87,11 @@ enum CloneMaker {
     /// privacy permissions apart from Claude's. Its URL schemes go: Claude
     /// makes itself the `claude://` handler at launch, and a clone with its
     /// own identifier would take sign-in links away from Claude and Lanes.
-    static func hideFromDock(_ bundle: URL, bundleIdentifier: String) throws {
+    ///
+    /// The icon goes inside the bundle before signing (`iconData`, an
+    /// `.icns`). Setting it afterwards with Finder's custom icon adds files
+    /// the signature does not cover, and macOS then distrusts the clone.
+    static func hideFromDock(_ bundle: URL, bundleIdentifier: String, iconData: Data?) throws {
         let infoURL = bundle.appendingPathComponent("Contents/Info.plist")
         let infoData = try Data(contentsOf: infoURL)
         guard var info = try PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any] else {
@@ -95,6 +100,13 @@ enum CloneMaker {
         info["LSUIElement"] = true
         info["CFBundleIdentifier"] = bundleIdentifier
         info["CFBundleURLTypes"] = nil
+        if let iconData {
+            let iconURL = bundle.appendingPathComponent("Contents/Resources/\(lanesIconName).icns")
+            try iconData.write(to: iconURL, options: .atomic)
+            info["CFBundleIconFile"] = lanesIconName
+            // The asset catalog's icon would win over the file.
+            info["CFBundleIconName"] = nil
+        }
         try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: infoURL, options: .atomic)
 
         var entitlements: [String: Any] = [:]
@@ -115,6 +127,18 @@ enum CloneMaker {
         // Only the outer bundle is signed again; the frameworks and helpers
         // inside keep Anthropic's signature.
         _ = try run("/usr/bin/codesign", ["--force", "--sign", "-", "--options", "runtime", "--entitlements", entitlementsURL.path, bundle.path])
+    }
+
+    static let lanesIconName = "LanesProfileIcon"
+
+    /// An `.icns` of the image, for a clone that is signed again.
+    static func icnsData(from image: NSImage) -> Data? {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, "com.apple.icns" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, cgImage, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 
     /// Runs a tool and returns what it printed, stdout and stderr together.
