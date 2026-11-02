@@ -1,4 +1,4 @@
-// Lanes for Safari: runs on claude.ai. Tells the background who is signed
+// Lanes for Safari, Chrome and Edge: runs on claude.ai. Tells the background who is signed
 // in (only the identity fields of /api/account), and marks the page with the
 // account's color: a thin bar, the tab title and the tab icon.
 (function () {
@@ -224,9 +224,9 @@
 
   // MARK: Wiring
 
-  api.runtime.onMessage.addListener((message) => {
+  api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message) return;
-    if (message.type === "getDraft") return Promise.resolve({ draft: readDraft() });
+    if (message.type === "getDraft") sendResponse({ draft: readDraft() });
     if (message.type === "appearance") apply(message);
   });
 

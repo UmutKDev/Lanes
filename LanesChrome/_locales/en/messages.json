@@ -1,0 +1,335 @@
+{
+  "activeLabel": {
+    "message": "In use"
+  },
+  "addAccount": {
+    "message": "Add Account"
+  },
+  "agentAccount": {
+    "message": "Claude in Chrome uses this account"
+  },
+  "agentAccountHelp": {
+    "message": "Claude in Chrome works only while claude.ai is signed in to its own account. Lanes offers the way back when you switch away."
+  },
+  "agentAwayBody": {
+    "message": "It won't work while this account is in use. To use both at once, give each account its own browser profile."
+  },
+  "agentAwayTitle": {
+    "message": "Claude in Chrome uses $1"
+  },
+  "agentSwitchBack": {
+    "message": "Switch back to $1"
+  },
+  "badgeTitle": {
+    "message": "Lanes: $1 ($2)"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "carryDraft": {
+    "message": "Carry draft"
+  },
+  "carryDraftHelp": {
+    "message": "When you switch, the message you are typing moves to a new chat in the other account."
+  },
+  "color": {
+    "message": "Color"
+  },
+  "color_blue": {
+    "message": "Blue"
+  },
+  "color_brown": {
+    "message": "Brown"
+  },
+  "color_cyan": {
+    "message": "Cyan"
+  },
+  "color_gray": {
+    "message": "Gray"
+  },
+  "color_green": {
+    "message": "Green"
+  },
+  "color_indigo": {
+    "message": "Indigo"
+  },
+  "color_mint": {
+    "message": "Mint"
+  },
+  "color_orange": {
+    "message": "Orange"
+  },
+  "color_pink": {
+    "message": "Pink"
+  },
+  "color_purple": {
+    "message": "Purple"
+  },
+  "color_red": {
+    "message": "Red"
+  },
+  "color_teal": {
+    "message": "Teal"
+  },
+  "color_yellow": {
+    "message": "Yellow"
+  },
+  "commandNext": {
+    "message": "Switch to the next account"
+  },
+  "commandOpen": {
+    "message": "Open the account list"
+  },
+  "commandPrevious": {
+    "message": "Switch to the previous account"
+  },
+  "editAccount": {
+    "message": "Edit account"
+  },
+  "emptyBody": {
+    "message": "Sign in on claude.ai. Lanes recognizes the account and adds it here."
+  },
+  "emptyTitle": {
+    "message": "Add your first account"
+  },
+  "errorAuthFlow": {
+    "message": "An app is signing in with your Claude account in a tab (for example Claude in Chrome). Try again when it's done."
+  },
+  "errorCookiesHidden": {
+    "message": "The browser doesn't show the session cookie to the extension, so accounts can't be switched."
+  },
+  "errorNoAccount": {
+    "message": "This account is no longer in the list."
+  },
+  "errorNoSession": {
+    "message": "There is no saved session for $1. Sign in again with Add Account."
+  },
+  "expiredChip": {
+    "message": "Sign in again"
+  },
+  "extensionDescription": {
+    "message": "Switch between Claude accounts in Chrome and Edge with one click. Each account has its own color, and with Lanes installed sessions are kept in the Keychain."
+  },
+  "extensionName": {
+    "message": "Lanes"
+  },
+  "forget": {
+    "message": "Forget Account"
+  },
+  "forgetActive": {
+    "message": "Forget and Sign Out"
+  },
+  "forgetConfirm": {
+    "message": "Sure? Click again"
+  },
+  "hiddenBody": {
+    "message": "The session cookie is hidden from the extension. Account colors and tab marks still work. To use accounts side by side, give each one its own browser profile."
+  },
+  "hiddenTitle": {
+    "message": "The browser doesn't allow switching"
+  },
+  "lanesAuto": {
+    "message": "Match by e-mail"
+  },
+  "lanesChip": {
+    "message": "Lanes: $1"
+  },
+  "lanesLink": {
+    "message": "Lanes account"
+  },
+  "lanesNone": {
+    "message": "Don't link"
+  },
+  "langCode": {
+    "message": "en"
+  },
+  "menuAsk": {
+    "message": "Ask Claude"
+  },
+  "menuCurrent": {
+    "message": "(in use)"
+  },
+  "name": {
+    "message": "Name"
+  },
+  "newChat": {
+    "message": "New Chat"
+  },
+  "noneActiveBody": {
+    "message": "Pick an account below or add a new one."
+  },
+  "noneActiveLabel": {
+    "message": "Not signed in"
+  },
+  "noneActiveTitle": {
+    "message": "No account in use"
+  },
+  "openClaude": {
+    "message": "Open claude.ai"
+  },
+  "openInLanes": {
+    "message": "Open on Desktop"
+  },
+  "openInLanesHelp": {
+    "message": "Opens this account's Claude app in Lanes ($1)."
+  },
+  "openLanesApp": {
+    "message": "Open Lanes"
+  },
+  "optionsSubtitle": {
+    "message": "Switch Claude accounts in Chrome and Edge with one click."
+  },
+  "optionsTitle": {
+    "message": "Lanes for Chrome and Edge"
+  },
+  "otherAccounts": {
+    "message": "Other accounts"
+  },
+  "pageMarksTitle": {
+    "message": "Account marks on claude.ai"
+  },
+  "pin": {
+    "message": "Keep at the top"
+  },
+  "planEnterprise": {
+    "message": "Enterprise"
+  },
+  "planFree": {
+    "message": "Free"
+  },
+  "planMax": {
+    "message": "Max"
+  },
+  "planPro": {
+    "message": "Pro"
+  },
+  "planTeam": {
+    "message": "Team"
+  },
+  "popupTitle": {
+    "message": "Claude accounts"
+  },
+  "privacy1": {
+    "message": "The extension runs only on claude.ai. To recognize an account it reads only the name, e-mail and plan. It doesn't read your chats."
+  },
+  "privacy2": {
+    "message": "Each account's session cookies are kept in the macOS Keychain when Lanes is installed, otherwise in the extension's own storage. They are never sent to any server."
+  },
+  "privacy3": {
+    "message": "Forgetting an account deletes its saved session too. To end the session on Claude's side, sign out on claude.ai."
+  },
+  "privacyTitle": {
+    "message": "Privacy"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "searchPlaceholder": {
+    "message": "Search accounts"
+  },
+  "settingAutoAdd": {
+    "message": "Add new accounts automatically"
+  },
+  "settingAutoAddHelp": {
+    "message": "Signing in on claude.ai with an account that isn't listed adds it to the list."
+  },
+  "settingFavicon": {
+    "message": "Tab icon"
+  },
+  "settingFaviconHelp": {
+    "message": "A dot in the account's color on the corner of the Claude icon."
+  },
+  "settingStripe": {
+    "message": "Color bar"
+  },
+  "settingStripeHelp": {
+    "message": "A thin bar in the account's color at the top of the page."
+  },
+  "settingTitle": {
+    "message": "Tab title"
+  },
+  "settingTitleHelp": {
+    "message": "The account's color and name go in front of the tab title."
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "shortcutDigits": {
+    "message": "Switch to an account in the list"
+  },
+  "shortcutMenu": {
+    "message": "Ask about selected text with an account"
+  },
+  "shortcutMenuKey": {
+    "message": "Right-click"
+  },
+  "shortcutsTitle": {
+    "message": "Shortcuts"
+  },
+  "statusAccounts": {
+    "message": "$1 accounts saved"
+  },
+  "statusAccountsEmpty": {
+    "message": "An account appears here when you sign in on claude.ai."
+  },
+  "statusLanes": {
+    "message": "Connected to Lanes: $1 accounts"
+  },
+  "statusLanesBody": {
+    "message": "Web accounts with the same e-mail take their name and color from Lanes."
+  },
+  "statusNoLanes": {
+    "message": "No Lanes account list"
+  },
+  "statusNoLanesBody": {
+    "message": "Install and open Lanes. It shares its account list with the extension so names and colors match."
+  },
+  "statusSwitchOK": {
+    "message": "Switching works"
+  },
+  "statusSwitchOKBody": {
+    "message": "A switch moves every claude.ai tab in this browser profile to the chosen account."
+  },
+  "statusSwitchUnknown": {
+    "message": "Not checked yet"
+  },
+  "statusSwitchUnknownBody": {
+    "message": "Open claude.ai once so Lanes can check that switching works."
+  },
+  "statusTitle": {
+    "message": "Status"
+  },
+  "statusVaultKeychain": {
+    "message": "Sessions are in the Keychain"
+  },
+  "statusVaultKeychainBody": {
+    "message": "Saved sessions are kept encrypted in the macOS Keychain."
+  },
+  "statusVaultLocal": {
+    "message": "Sessions are kept in the browser"
+  },
+  "statusVaultLocalBody": {
+    "message": "The Lanes app couldn't be reached, so sessions are in the extension's own storage for now. Install Lanes 1.1 or later and open it once to move them to the Keychain."
+  },
+  "switchingTitle": {
+    "message": "Switching"
+  },
+  "timeDays": {
+    "message": "$1 d ago"
+  },
+  "timeHours": {
+    "message": "$1 h ago"
+  },
+  "timeJustNow": {
+    "message": "just now"
+  },
+  "timeMinutes": {
+    "message": "$1 min ago"
+  },
+  "tipBody": {
+    "message": "A browser profile has one Claude account signed in at a time, and Claude in Chrome works only while claude.ai is signed in to its own account. Mark that account with \"Claude in Chrome uses this account\" and Lanes offers the way back when you switch away. To use accounts at the same time, give each its own Chrome or Edge profile and install the extension and Claude in Chrome there too."
+  },
+  "tipTitle": {
+    "message": "Using two accounts at once"
+  }
+}

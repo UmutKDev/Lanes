@@ -169,3 +169,19 @@ test("manifest version follows Lanes's MARKETING_VERSION", () => {
   const version = yml.match(/MARKETING_VERSION: "([^"]+)"/)[1];
   assert.equal(manifest.version, version);
 });
+
+test("sign-in pages of other apps are left alone", () => {
+  assert.equal(C.isAuthFlowURL("https://claude.ai/oauth/authorize?client_id=x"), true);
+  assert.equal(C.isAuthFlowURL("https://claude.ai/oauth"), true);
+  assert.equal(C.isAuthFlowURL("https://claude.ai/oauthx"), false);
+  assert.equal(C.isAuthFlowURL("https://claude.ai/new"), false);
+  assert.equal(C.isAuthFlowURL("https://example.com/oauth/authorize"), false);
+});
+
+test("empty new tabs are recognized in every browser", () => {
+  for (const url of ["", "about:blank", "favorites://", "chrome://newtab/", "edge://newtab/", "brave://newtab/", "chrome-search://local-ntp/local-ntp.html"]) {
+    assert.equal(C.isBlankTabURL(url), true, url);
+  }
+  assert.equal(C.isBlankTabURL("chrome://extensions/"), false);
+  assert.equal(C.isBlankTabURL("https://claude.ai/new"), false);
+});

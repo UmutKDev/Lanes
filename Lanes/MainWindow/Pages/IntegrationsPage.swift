@@ -9,6 +9,7 @@ struct IntegrationsPage: View {
     @State private var toolState = CommandLineTool.state()
     @State private var toolError: String?
     @State private var safariState: SafariExtensionBridge.State = .unknown
+    @State private var browsers: [BrowserExtensionBridge.BrowserState] = []
 
     var body: some View {
         Form {
@@ -30,6 +31,33 @@ struct IntegrationsPage: View {
                 Text("claude.ai hesaplarını Safari'de tek tıkla değiştirir. Oturumlar Anahtar Zinciri'nde saklanır. E-postası aynı olan hesaplar Lanes'teki adını ve rengini alır.")
             }
             .task { safariState = await SafariExtensionBridge.state() }
+
+            Section {
+                if browsers.isEmpty {
+                    Text("Chrome ya da Edge bulunamadı.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(browsers) { item in
+                    LabeledContent(item.browser.displayName) {
+                        HStack(spacing: 8) {
+                            Text(item.hostInstalled ? "Lanes'e bağlı" : "Bağlı değil")
+                                .foregroundStyle(item.hostInstalled ? Color.secondary : DS.Palette.warning)
+                            Button("Eklentiyi Yükle") {
+                                BrowserExtensionBridge.revealForLoading(in: item.browser)
+                            }
+                            .disabled(BrowserExtensionBridge.extensionFolder == nil)
+                        }
+                    }
+                }
+            } header: {
+                Text("Chrome ve Edge eklentisi")
+            } footer: {
+                Text("Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.")
+            }
+            .task {
+                BrowserExtensionBridge.installHosts()
+                browsers = BrowserExtensionBridge.states()
+            }
 
             Section {
                 LabeledContent("Durum") {

@@ -5,6 +5,21 @@
   "addAccount": {
     "message": "Add Account"
   },
+  "agentAccount": {
+    "message": "Claude in Chrome uses this account"
+  },
+  "agentAccountHelp": {
+    "message": "Claude in Chrome works only while claude.ai is signed in to its own account. Lanes offers the way back when you switch away."
+  },
+  "agentAwayBody": {
+    "message": "It won't work while this account is in use. To use both at once, give each account its own browser profile."
+  },
+  "agentAwayTitle": {
+    "message": "Claude in Chrome uses $1"
+  },
+  "agentSwitchBack": {
+    "message": "Switch back to $1"
+  },
   "badgeTitle": {
     "message": "Lanes: $1 ($2)"
   },
@@ -76,6 +91,9 @@
   },
   "emptyTitle": {
     "message": "Add your first account"
+  },
+  "errorAuthFlow": {
+    "message": "An app is signing in with your Claude account in a tab (for example Claude in Chrome). Try again when it's done."
   },
   "errorCookiesHidden": {
     "message": "Safari doesn't show the session cookie to extensions, so accounts can't be switched."
