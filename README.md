@@ -74,6 +74,7 @@ Sürüm çıkmadan önce iki denetim yapılır. Derleme numarası yayımlanmış
 | `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 | `LanesSafari` | Safari eklentisi. `Resources` web kısmı (manifest, betikler, açılır pencere), Swift kısmı yalnız Anahtar Zinciri'ni ve Lanes'in paylaştığı hesap listesini kullanır. Testler: `node --test LanesSafari/Tests/*.test.js` |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
+| `LanesWindows` | Windows sürümü (C# ve .NET 10). Ayrıntılar: [LanesWindows/README.md](LanesWindows/README.md) |
 | `scripts` | `make release` betiği, GitHub secret'larını kuran `setup-release-secrets.sh` ve uygulama simgesini çizen `make-icon.py`. |
 
 Testler: `make core-test`

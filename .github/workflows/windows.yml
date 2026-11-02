@@ -51,7 +51,9 @@ jobs:
         shell: pwsh
         run: |
           $out = "$env:RUNNER_TEMP\selftest"
-          $p = Start-Process out/win-x64/Lanes.exe -ArgumentList '--self-test', $out -PassThru -Wait
+          # Start-Process -Wait would also wait for the Claude copies Lanes starts.
+          $p = Start-Process out/win-x64/Lanes.exe -ArgumentList '--self-test', $out -PassThru
+          if (-not $p.WaitForExit(300000)) { Write-Error 'Self-test did not finish in 5 minutes'; $p.Kill() }
           Get-Content "$out\selftest.log"
           Get-Content "$out\report.json" -ErrorAction SilentlyContinue
           Get-Process claude -ErrorAction SilentlyContinue | Stop-Process -Force
