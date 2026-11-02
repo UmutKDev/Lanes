@@ -5,6 +5,13 @@ import LanesCore
 struct ClaudeInstallation: Equatable {
     static let bundleIdentifier = "com.anthropic.claudefordesktop"
 
+    /// Claude itself or one of Lanes's clones, which may carry their own
+    /// identifier under Claude's (see CloneRecord.bundleIdentifier).
+    static func isClaude(_ identifier: String?) -> Bool {
+        guard let identifier else { return false }
+        return identifier == bundleIdentifier || identifier.hasPrefix(bundleIdentifier + ".lanes.")
+    }
+
     let url: URL
     let version: String?
 

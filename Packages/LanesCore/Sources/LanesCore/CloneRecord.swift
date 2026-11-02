@@ -13,6 +13,9 @@ public struct CloneRecord: Codable, Equatable, Sendable {
     /// Whether the clone was made to stay out of the Dock. Older records
     /// lack it, which means it shows in the Dock.
     public var hiddenFromDock: Bool?
+    /// Whether the clone has its own bundle identifier. Only a clone signed
+    /// again on this Mac can; older hidden clones lack it.
+    public var ownBundleID: Bool?
 
     public init(claudeVersion: String?, name: String, color: ProfileColor, monogram: String, madeAt: Date = Date(), hiddenFromDock: Bool = false) {
         self.claudeVersion = claudeVersion
@@ -21,6 +24,16 @@ public struct CloneRecord: Codable, Equatable, Sendable {
         self.monogram = monogram
         self.madeAt = madeAt
         self.hiddenFromDock = hiddenFromDock ? true : nil
+        self.ownBundleID = hiddenFromDock ? true : nil
+    }
+
+    /// The bundle identifier a re-signed clone gets. macOS keeps privacy
+    /// permissions such as Documents access per bundle identifier together
+    /// with the signature; a clone sharing Claude's identifier but not its
+    /// signature makes macOS ask again on every switch.
+    public static func bundleIdentifier(for id: ProfileID) -> String {
+        let suffix = id.rawValue.lowercased().filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
+        return "com.anthropic.claudefordesktop.lanes." + suffix
     }
 
     public init(profile: Profile, claudeVersion: String?, madeAt: Date = Date()) {
@@ -71,6 +84,8 @@ public enum CloneRenewalReason: Equatable, Sendable {
     /// The Dock setting changed, so the clone must be made again with or
     /// without its Dock icon.
     case dockSettingChanged
+    /// A hidden clone made before clones got their own bundle identifier.
+    case sharedBundleID
     /// The clone has no record, for example one made by an older build.
     case unknownOrigin
 }
@@ -104,6 +119,8 @@ public enum CloneCheck {
         }
         if (record.hiddenFromDock ?? false) != profile.hidesFromDock {
             reasons.append(.dockSettingChanged)
+        } else if profile.hidesFromDock, record.ownBundleID != true {
+            reasons.append(.sharedBundleID)
         }
         return reasons.isEmpty ? .ready : .needsRenewal(reasons)
     }
