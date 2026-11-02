@@ -61,6 +61,12 @@ final class BrowserNativeHostTests: XCTestCase {
         XCTAssertEqual(opened.map(\.absoluteString), ["lanes://open?account=%C4%B0%C5%9F%20%26%20Ev", "lanes://show?page=integrations"])
     }
 
+    func testOnlyEdgeInstallsFromAStore() {
+        let edge = BrowserNativeHost.browsers.filter { $0.storeURL != nil }.map(\.id)
+        XCTAssertEqual(edge, ["edge", "edge-beta", "edge-dev", "edge-canary"])
+        XCTAssertTrue(BrowserNativeHost.edgeStoreURL.absoluteString.hasSuffix("/oibhpcchenilokfnhhdlfbconbieibgd"))
+    }
+
     func testHostManifestListsTheExtensionAndIsRecognized() throws {
         let exe = URL(fileURLWithPath: "/Applications/Lanes.app/Contents/MacOS/lanes-browser-host")
         let data = BrowserNativeHost.hostManifest(executable: exe)

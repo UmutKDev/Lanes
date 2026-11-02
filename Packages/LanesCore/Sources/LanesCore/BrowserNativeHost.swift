@@ -30,6 +30,9 @@ public enum BrowserNativeHost {
         "oibhpcchenilokfnhhdlfbconbieibgd", // Edge Add-ons
     ]
 
+    /// The extension's page on Edge Add-ons.
+    public static let edgeStoreURL = URL(string: "https://microsoftedge.microsoft.com/addons/detail/lanes/oibhpcchenilokfnhhdlfbconbieibgd")!
+
     public static var allowedExtensionIDs: [String] {
         [developmentExtensionID] + storeExtensionIDs
     }
@@ -48,6 +51,12 @@ public enum BrowserNativeHost {
         public func dataFolder(home: URL) -> URL {
             home.appendingPathComponent("Library/Application Support", isDirectory: true)
                 .appendingPathComponent(supportFolder, isDirectory: true)
+        }
+
+        /// Where this browser installs the extension from, if a store has it.
+        /// Others load the copy inside Lanes.app in Developer mode.
+        public var storeURL: URL? {
+            id.hasPrefix("edge") ? BrowserNativeHost.edgeStoreURL : nil
         }
 
         public func hostFile(home: URL) -> URL {
