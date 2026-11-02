@@ -133,11 +133,19 @@ final class MenuBarGuard {
     /// frontmost ordinary window.
     private static func screen(of pid: pid_t, in windows: [ListedWindow]) -> CGRect? {
         guard let window = windows.first(where: { $0.pid == pid && $0.window.layer == 0 && $0.window.bounds.width > 100 }) else { return nil }
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-        let screens = NSScreen.screens.map { MenuBarCheck.windowListRect(ofScreen: $0.frame, primaryHeight: primaryHeight) }
-        return screens.max { lhs, rhs in
-            area(lhs.intersection(window.window.bounds)) < area(rhs.intersection(window.window.bounds))
-        }.flatMap { area($0.intersection(window.window.bounds)) > 0 ? $0 : nil }
+        let bounds = window.window.bounds
+        let primaryHeight: CGFloat = NSScreen.screens.first?.frame.height ?? 0
+        var best: CGRect?
+        var bestArea: CGFloat = 0
+        for screen in NSScreen.screens {
+            let rect = MenuBarCheck.windowListRect(ofScreen: screen.frame, primaryHeight: primaryHeight)
+            let overlap = area(rect.intersection(bounds))
+            if overlap > bestArea {
+                best = rect
+                bestArea = overlap
+            }
+        }
+        return best
     }
 
     private static func area(_ rect: CGRect) -> CGFloat {
