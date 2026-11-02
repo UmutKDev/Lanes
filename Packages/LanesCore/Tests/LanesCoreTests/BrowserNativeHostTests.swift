@@ -68,7 +68,13 @@ final class BrowserNativeHostTests: XCTestCase {
         XCTAssertEqual(object["name"] as? String, "com.umutkdev.lanes")
         XCTAssertEqual(object["path"] as? String, exe.path)
         XCTAssertEqual(object["type"] as? String, "stdio")
-        XCTAssertEqual(object["allowed_origins"] as? [String], ["chrome-extension://\(ext)/"])
+        XCTAssertEqual(object["allowed_origins"] as? [String], [
+            "chrome-extension://\(ext)/",
+            "chrome-extension://oibhpcchenilokfnhhdlfbconbieibgd/",
+        ])
+        for id in BrowserNativeHost.storeExtensionIDs {
+            XCTAssertEqual(BrowserNativeHost.extensionID(fromOrigin: "chrome-extension://\(id)/"), id)
+        }
         XCTAssertEqual(BrowserNativeHost.hostFileState(data, executable: exe), .current)
         XCTAssertEqual(BrowserNativeHost.hostFileState(data, executable: URL(fileURLWithPath: "/tmp/x")), .outdated)
         XCTAssertEqual(BrowserNativeHost.hostFileState(Data(#"{"name":"other"}"#.utf8), executable: exe), .foreign)

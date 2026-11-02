@@ -26,7 +26,9 @@ public enum BrowserNativeHost {
     public static let developmentExtensionID = "gfddmgggahfmohadmaohjddpkhfnfaeg"
     /// IDs the Chrome Web Store and Edge Add-ons give the extension. Each
     /// store picks its own, so they are added here once the listings exist.
-    public static let storeExtensionIDs: [String] = []
+    public static let storeExtensionIDs: [String] = [
+        "oibhpcchenilokfnhhdlfbconbieibgd", // Edge Add-ons
+    ]
 
     public static var allowedExtensionIDs: [String] {
         [developmentExtensionID] + storeExtensionIDs
