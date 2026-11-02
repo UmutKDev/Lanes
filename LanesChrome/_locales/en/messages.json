@@ -5,6 +5,21 @@
   "addAccount": {
     "message": "Add Account"
   },
+  "agentAccount": {
+    "message": "Claude in Chrome uses this account"
+  },
+  "agentAccountHelp": {
+    "message": "Claude in Chrome works only while claude.ai is signed in to its own account. Lanes offers the way back when you switch away."
+  },
+  "agentAwayBody": {
+    "message": "It won't work while this account is in use. To use both at once, give each account its own browser profile."
+  },
+  "agentAwayTitle": {
+    "message": "Claude in Chrome uses $1"
+  },
+  "agentSwitchBack": {
+    "message": "Switch back to $1"
+  },
   "badgeTitle": {
     "message": "Lanes: $1 ($2)"
   },
@@ -312,7 +327,7 @@
     "message": "$1 min ago"
   },
   "tipBody": {
-    "message": "A browser profile has one Claude account signed in at a time. To use two side by side, add a second Chrome or Edge profile and install the extension there too. Claude in Chrome keeps its own sign-in and isn't affected by switching."
+    "message": "A browser profile has one Claude account signed in at a time, and Claude in Chrome works only while claude.ai is signed in to its own account. Mark that account with \"Claude in Chrome uses this account\" and Lanes offers the way back when you switch away. To use accounts at the same time, give each its own Chrome or Edge profile and install the extension and Claude in Chrome there too."
   },
   "tipTitle": {
     "message": "Using two accounts at once"

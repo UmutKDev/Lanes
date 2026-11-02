@@ -39,8 +39,13 @@ that shows it and opens the browser's extensions page.
 ## Claude in Chrome
 
 Claude in Chrome signs in with its own OAuth flow on `claude.ai/oauth/...`
-and keeps its own sign-in, so switching the claude.ai web session doesn't
-change or end it. To keep it that way the extension:
+and keeps its own sign-in: switching the claude.ai web session doesn't change
+or end it. But it refuses to work while claude.ai is signed in to another
+account ("Claude in Chrome uses a different account"), and no extension can
+change its account. Tested in Edge 156 on 2 November 2026. So the user marks
+the account Claude in Chrome uses ("Claude in Chrome bu hesapta" in the
+account sheet), and the popup shows a "switch back" banner while another
+account is active. Besides that, the extension:
 
 - touches only claude.ai cookies, never anthropic.com, claude.com or other
   extensions' storage,
@@ -48,8 +53,8 @@ change or end it. To keep it that way the extension:
   one is open (an app is signing in and would get the wrong account),
 - asks for no permission beyond `https://claude.ai/*`.
 
-Accounts that must be fully separate (Claude in Chrome on one account, the
-web on another, both at once) belong in separate browser profiles.
+Accounts used at the same time (each with its own Claude in Chrome) belong in
+separate browser profiles.
 
 ## Store IDs
 

@@ -49,9 +49,27 @@
     others.forEach((acc, index) => list.appendChild(row(acc, index)));
   }
 
+  // Claude in Chrome works only while claude.ai is signed in to its own
+  // account, and no extension can change that account. The user marks
+  // which account it uses; away from it, the popup offers the way back.
+  const hasClaudeInChrome = !location.protocol.startsWith("safari");
+
   function renderBanner() {
     const banner = $("banner");
     banner.textContent = "";
+    const agent = hasClaudeInChrome ? state.accounts.find((a) => a.agent) : null;
+    if (state.capability !== "hidden" && agent && state.activeId && state.activeId !== agent.id) {
+      banner.hidden = false;
+      const text = el("div");
+      text.appendChild(el("strong", "", t("agentAwayTitle", [agent.name])));
+      text.appendChild(document.createTextNode(t("agentAwayBody")));
+      const back = el("button", "button", t("agentSwitchBack", [agent.name]));
+      back.addEventListener("click", () => switchTo(agent));
+      text.appendChild(el("br"));
+      text.appendChild(back);
+      banner.appendChild(text);
+      return;
+    }
     if (state.capability !== "hidden") {
       banner.hidden = true;
       return;
@@ -190,6 +208,8 @@
     $("sheet-email").textContent = acc.email || "";
     $("sheet-name").value = acc.name;
     $("sheet-pin").checked = !!acc.pinned;
+    $("sheet-agent-row").hidden = !hasClaudeInChrome;
+    $("sheet-agent").checked = !!acc.agent;
     $("sheet-remove").textContent = t(acc.id === state.activeId ? "forgetActive" : "forget");
     $("sheet-remove").dataset.confirm = "";
     paintSheetAvatar();
@@ -253,6 +273,7 @@
   $("sheet-save").addEventListener("click", async () => {
     if (!editing) return;
     const changes = { pinned: $("sheet-pin").checked };
+    if (hasClaudeInChrome && $("sheet-agent").checked !== !!editing.agent) changes.agent = $("sheet-agent").checked;
     const name = $("sheet-name").value.trim();
     if (name && name !== editing.name) changes.name = name;
     if (editColor !== editing.color) changes.color = editColor;

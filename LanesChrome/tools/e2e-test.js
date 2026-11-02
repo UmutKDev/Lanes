@@ -56,7 +56,7 @@ async function main() {
   const signIn = (key) => context.addCookies([{ name: "sessionKey", value: key, domain: "claude.ai", path: "/", secure: true, httpOnly: true, sameSite: "Lax", expires: Math.floor(Date.now() / 1000) + 86400 }]);
   const sessionKey = async () => ((await context.cookies("https://claude.ai")).find((c) => c.name === "sessionKey") || {}).value;
 
-  const popup = await context.newPage();
+  let popup = await context.newPage();
   await popup.goto(`chrome-extension://${ID}/popup/popup.html`);
   const send = (message) => popup.evaluate((m) => chrome.runtime.sendMessage(m), message);
   const waitFor = async (check, what) => {
@@ -117,6 +117,24 @@ async function main() {
   await context.addCookies([{ name: "keep", value: "1", domain: ".anthropic.com", path: "/", secure: true }]);
   await send({ type: "switch", id: ada.id });
   assert.ok((await context.cookies("https://console.anthropic.com")).some((c) => c.name === "keep"), "anthropic.com cookie untouched");
+
+  // Claude in Chrome's account: away from it, the popup offers the way back.
+  assert.deepEqual(await send({ type: "update", id: ada.id, changes: { agent: true } }), { ok: true });
+  await send({ type: "switch", id: bob.id });
+  assert.equal(await sessionKey(), "sk-bob");
+  await popup.reload();
+  const back = popup.locator("#banner button");
+  await waitFor(async () => (await back.count()) === 1, "switch-back banner");
+  assert.match(await back.innerText(), /Ada/);
+  await back.click().catch(() => {}); // the popup closes itself after a switch
+  await waitFor(async () => (await sessionKey()) === "sk-ada", "back on Ada");
+  if (popup.isClosed()) {
+    popup = await context.newPage();
+    await popup.goto(`chrome-extension://${ID}/popup/popup.html`);
+  }
+  assert.deepEqual(await send({ type: "update", id: bob.id, changes: { agent: true } }), { ok: true });
+  state = await send({ type: "getState" });
+  assert.deepEqual(state.accounts.filter((a) => a.agent).map((a) => a.email), ["bob@example.com"], "one Claude in Chrome account at most");
 
   // Next/previous wraps around.
   await popup.reload();

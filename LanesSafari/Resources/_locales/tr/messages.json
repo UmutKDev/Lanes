@@ -5,6 +5,21 @@
   "addAccount": {
     "message": "Hesap Ekle"
   },
+  "agentAccount": {
+    "message": "Claude in Chrome bu hesapta"
+  },
+  "agentAccountHelp": {
+    "message": "Claude in Chrome yalnız claude.ai'de kendi hesabı açıkken çalışır. Başka hesaba geçince Lanes geri dönmeyi önerir."
+  },
+  "agentAwayBody": {
+    "message": "Bu hesap açıkken Claude in Chrome çalışmaz. İki hesabı aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç."
+  },
+  "agentAwayTitle": {
+    "message": "Claude in Chrome $1 hesabında"
+  },
+  "agentSwitchBack": {
+    "message": "$1 hesabına dön"
+  },
   "badgeTitle": {
     "message": "Lanes: $1 ($2)"
   },

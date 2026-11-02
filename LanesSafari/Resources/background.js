@@ -395,6 +395,11 @@ async function updateAccount(id, changes) {
       acc.customColor = true;
     }
     if (typeof changes.pinned === "boolean") acc.pinned = changes.pinned;
+    if (typeof changes.agent === "boolean") {
+      // One account at most: Claude in Chrome is signed in to one.
+      for (const other of state.accounts) other.agent = false;
+      acc.agent = changes.agent;
+    }
     if (typeof changes.lanesId === "string") {
       acc.lanesId = changes.lanesId || null;
       if (acc.lanesId) {

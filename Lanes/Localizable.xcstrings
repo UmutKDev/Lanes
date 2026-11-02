@@ -10375,12 +10375,12 @@
         }
       }
     },
-    "Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome kendi girişini tutar, hesap değiştirmek onu etkilemez.": {
+    "Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The same as the Safari extension. Turn on Developer mode on the Extensions page and drag the BrowserExtension folder Lanes shows onto it. Sessions are kept in the Keychain. Claude in Chrome keeps its own sign-in, and switching doesn’t affect it."
+            "value": "The same as the Safari extension. Turn on Developer mode on the Extensions page and drag the BrowserExtension folder Lanes shows onto it. Sessions are kept in the Keychain. Claude in Chrome only works while its own account is in use. To use accounts at the same time, give each its own browser profile."
           }
         }
       }

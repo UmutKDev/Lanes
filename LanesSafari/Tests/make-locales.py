@@ -45,6 +45,17 @@ M = {
     "lanesAuto": ("E-postaya göre otomatik", "Match by e-mail"),
     "lanesNone": ("Bağlama", "Don't link"),
     "pin": ("Listenin başında tut", "Keep at the top"),
+    "agentAccount": ("Claude in Chrome bu hesapta", "Claude in Chrome uses this account"),
+    "agentAccountHelp": (
+        "Claude in Chrome yalnız claude.ai'de kendi hesabı açıkken çalışır. Başka hesaba geçince Lanes geri dönmeyi önerir.",
+        "Claude in Chrome works only while claude.ai is signed in to its own account. Lanes offers the way back when you switch away.",
+    ),
+    "agentAwayTitle": ("Claude in Chrome $1 hesabında", "Claude in Chrome uses $1"),
+    "agentAwayBody": (
+        "Bu hesap açıkken Claude in Chrome çalışmaz. İki hesabı aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.",
+        "It won't work while this account is in use. To use both at once, give each account its own browser profile.",
+    ),
+    "agentSwitchBack": ("$1 hesabına dön", "Switch back to $1"),
     "forget": ("Hesabı Unut", "Forget Account"),
     "forgetActive": ("Unut ve Oturumu Kapat", "Forget and Sign Out"),
     "forgetConfirm": ("Emin misin? Tekrar bas", "Sure? Click again"),

@@ -68,8 +68,8 @@ OVERRIDES = {
     ),
     "tipTitle": ("İki hesabı aynı anda kullanmak", "Using two accounts at once"),
     "tipBody": (
-        "Bir tarayıcı profilinde aynı anda tek Claude hesabı açık olabilir. İki hesabı yan yana kullanmak için ikinci bir Chrome ya da Edge profili aç ve eklentiyi orada da kur. Claude in Chrome kendi girişini tutar, geçişten etkilenmez.",
-        "A browser profile has one Claude account signed in at a time. To use two side by side, add a second Chrome or Edge profile and install the extension there too. Claude in Chrome keeps its own sign-in and isn't affected by switching.",
+        "Bir tarayıcı profilinde aynı anda tek Claude hesabı açık olabilir. Claude in Chrome da yalnız claude.ai'de kendi hesabı açıkken çalışır. Hesabını listede \"Claude in Chrome bu hesapta\" diye işaretle, başka hesaba geçince Lanes geri dönmeyi önerir. Hesapları aynı anda kullanmak için her hesaba ayrı bir Chrome ya da Edge profili aç, eklentiyi ve Claude in Chrome'u orada da kur.",
+        "A browser profile has one Claude account signed in at a time, and Claude in Chrome works only while claude.ai is signed in to its own account. Mark that account with \"Claude in Chrome uses this account\" and Lanes offers the way back when you switch away. To use accounts at the same time, give each its own Chrome or Edge profile and install the extension and Claude in Chrome there too.",
     ),
 }
 for key in OVERRIDES:

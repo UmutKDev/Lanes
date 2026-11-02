@@ -5,6 +5,21 @@
   "addAccount": {
     "message": "Hesap Ekle"
   },
+  "agentAccount": {
+    "message": "Claude in Chrome bu hesapta"
+  },
+  "agentAccountHelp": {
+    "message": "Claude in Chrome yalnız claude.ai'de kendi hesabı açıkken çalışır. Başka hesaba geçince Lanes geri dönmeyi önerir."
+  },
+  "agentAwayBody": {
+    "message": "Bu hesap açıkken Claude in Chrome çalışmaz. İki hesabı aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç."
+  },
+  "agentAwayTitle": {
+    "message": "Claude in Chrome $1 hesabında"
+  },
+  "agentSwitchBack": {
+    "message": "$1 hesabına dön"
+  },
   "badgeTitle": {
     "message": "Lanes: $1 ($2)"
   },
@@ -312,7 +327,7 @@
     "message": "$1 dk önce"
   },
   "tipBody": {
-    "message": "Bir tarayıcı profilinde aynı anda tek Claude hesabı açık olabilir. İki hesabı yan yana kullanmak için ikinci bir Chrome ya da Edge profili aç ve eklentiyi orada da kur. Claude in Chrome kendi girişini tutar, geçişten etkilenmez."
+    "message": "Bir tarayıcı profilinde aynı anda tek Claude hesabı açık olabilir. Claude in Chrome da yalnız claude.ai'de kendi hesabı açıkken çalışır. Hesabını listede \"Claude in Chrome bu hesapta\" diye işaretle, başka hesaba geçince Lanes geri dönmeyi önerir. Hesapları aynı anda kullanmak için her hesaba ayrı bir Chrome ya da Edge profili aç, eklentiyi ve Claude in Chrome'u orada da kur."
   },
   "tipTitle": {
     "message": "İki hesabı aynı anda kullanmak"

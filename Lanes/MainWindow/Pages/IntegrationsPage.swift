@@ -52,7 +52,7 @@ struct IntegrationsPage: View {
             } header: {
                 Text("Chrome ve Edge eklentisi")
             } footer: {
-                Text("Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome kendi girişini tutar, hesap değiştirmek onu etkilemez.")
+                Text("Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.")
             }
             .task {
                 BrowserExtensionBridge.installHosts()

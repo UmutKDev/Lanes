@@ -31,7 +31,7 @@ Lanes, claude.ai'de birden fazla hesap kullananlar için. İş, kişisel ve mü�
 - Seçili metni bir hesapla sor: sağ tık menüsünden.
 - Kısayollar: Alt+Shift+L listeyi açar, Alt+Shift+J ve K sonraki ve önceki hesaba geçer.
 - Lanes uygulamasıyla birlikte: Mac'te Lanes kuruluysa oturumlar macOS Anahtar Zinciri'nde saklanır, hesaplar Lanes'teki adını ve rengini alır.
-- Claude in Chrome ile uyumlu: Claude in Chrome kendi girişini tutar, hesap değiştirmek onu etkilemez.
+- Claude in Chrome ile birlikte: Claude in Chrome yalnız claude.ai'de kendi hesabı açıkken çalışır. O hesabı işaretlersen başka hesaba geçince Lanes tek tıkla geri dönmeyi önerir.
 
 Gizlilik: Eklenti yalnız claude.ai'de çalışır. Hesabı tanımak için yalnız ad, e-posta ve plan bilgisini okur, sohbetlerini okumaz. Hiçbir sunucuya veri göndermez.
 
@@ -45,7 +45,7 @@ Lanes is for people who use more than one account on claude.ai. Switch between w
 - Ask with an account: right-click selected text.
 - Shortcuts: Alt+Shift+L opens the list, Alt+Shift+J and K switch to the next and previous account.
 - Works with the Lanes app: with Lanes installed on your Mac, sessions are kept in the macOS Keychain and accounts take their names and colors from Lanes.
-- Works alongside Claude in Chrome: it keeps its own sign-in, and switching doesn't affect it.
+- Works alongside Claude in Chrome: Claude in Chrome only works while claude.ai is signed in to its own account. Mark that account and Lanes offers a one-click way back when you switch away.
 
 Privacy: the extension runs only on claude.ai. To recognize an account it reads only the name, e-mail and plan, never your chats. It sends no data to any server.
 
