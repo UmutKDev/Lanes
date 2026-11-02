@@ -1,0 +1,9 @@
+#lanes-account-stripe {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 2147483647;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--lanes-color), color-mix(in srgb, var(--lanes-color) 55%, transparent));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--lanes-color) 45%, transparent);
+}

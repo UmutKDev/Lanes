@@ -177,6 +177,12 @@ struct PrivacyPage: View {
                     help: "Kısayollar ve her hesabın son beş Claude Code klasörü de burada durur."
                 )
                 PrivacyItem(
+                    systemImage: "safari",
+                    title: "Safari eklentisinin hesap listesi",
+                    detail: "Hesapların adı, rengi ve e-postası, eklenti claude.ai hesaplarını eşleştirsin diye.",
+                    help: "Lanes'in ortak klasörüne (Group Containers) yazılır. Eklentiyi Safari'de açarsan claude.ai oturumlarını her hesap için Anahtar Zinciri'nde o saklar. Lanes uygulaması bu oturumları okumaz."
+                )
+                PrivacyItem(
                     systemImage: "magnifyingglass",
                     title: "Spotlight dizini",
                     detail: "Hesapların adı ve kısa bir açıklaması.",

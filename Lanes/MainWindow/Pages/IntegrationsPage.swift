@@ -8,9 +8,29 @@ struct IntegrationsPage: View {
     @Environment(AppModel.self) private var model
     @State private var toolState = CommandLineTool.state()
     @State private var toolError: String?
+    @State private var safariState: SafariExtensionBridge.State = .unknown
 
     var body: some View {
         Form {
+            Section {
+                LabeledContent("Durum") {
+                    Text(safariStateText)
+                        .foregroundStyle(safariState == .on ? Color.secondary : DS.Palette.warning)
+                }
+                Button(safariState == .on ? "Safari Ayarlarını Aç" : "Safari'de Aç") {
+                    Task {
+                        _ = await SafariExtensionBridge.openSafariSettings()
+                        safariState = await SafariExtensionBridge.state()
+                    }
+                }
+                .fixedSize()
+            } header: {
+                Text("Safari eklentisi")
+            } footer: {
+                Text("claude.ai hesaplarını Safari'de tek tıkla değiştirir. Oturumlar Anahtar Zinciri'nde saklanır. E-postası aynı olan hesaplar Lanes'teki adını ve rengini alır.")
+            }
+            .task { safariState = await SafariExtensionBridge.state() }
+
             Section {
                 LabeledContent("Durum") {
                     Text(toolStateText)
@@ -128,6 +148,14 @@ struct IntegrationsPage: View {
         ("lanes use \(work)", String(localized: "Bu klasörü İş hesabına bağla")),
         ("lanes which", String(localized: "Bu klasör hangi hesapta")),
         ]
+    }
+
+    private var safariStateText: String {
+        switch safariState {
+        case .on: return String(localized: "Açık")
+        case .off: return String(localized: "Safari'de kapalı")
+        case .unknown: return String(localized: "Safari henüz görmedi. Lanes'i Uygulamalar klasöründen aç.")
+        }
     }
 
     private var toolStateText: String {

@@ -13,6 +13,7 @@ Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydın
 - **Günlük kolaylıklar:** Her uygulamada çalışan kısayollar (yeni bir izin istemez), Komut Paleti, birkaç hesabı tek tıkla açan sahneler, hesap ve proje başına Zaman Çizelgesi.
 - **Kurulum ve Sağlık:** Eksik olanı uygulamanın içinden tamamlama (Claude uygulaması, Claude Code ve izinler) ve her şeyin yerinde olup olmadığını gösteren Sağlık sayfası. Lanes sen bir düğmeye basmadan hiçbir şey kurmaz.
 - **Başlarken turu:** İlk açılışta kurulumu, izinleri ve ilk hesabı adım adım gösterir.
+- **Safari eklentisi:** claude.ai hesaplarını Safari'de tek tıkla değiştirir. Her hesabın oturumu Anahtar Zinciri'nde saklanır, sayfa ve sekme hesabın rengini taşır, yazılmakta olan mesaj yeni hesaba taşınır. E-postası aynı olan hesaplar Lanes'teki adını ve rengini alır, "Masaüstünde Aç" aynı hesabın Claude uygulamasını açar.
 - **Türkçe ve English:** Lanes Türkçe ve İngilizce kullanılabilir. Dil Ayarlar'dan değiştirilir.
 
 Kurulum ve kullanım için: [docs/kullanim-kilavuzu.md](docs/kullanim-kilavuzu.md)
@@ -61,6 +62,7 @@ Release derlemesi `Config/Local.xcconfig` dosyasını okumaz. CI her değişikli
 | `Lanes/MainWindow` | Ana pencere: kenar çubuğu, hesap sayfası, ayarlar. |
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
 | `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
+| `LanesSafari` | Safari eklentisi. `Resources` web kısmı (manifest, betikler, açılır pencere), Swift kısmı yalnız Anahtar Zinciri'ni ve Lanes'in paylaştığı hesap listesini kullanır. Testler: `node --test LanesSafari/Tests/*.test.js` |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
 | `scripts` | `make release` betiği ve uygulama simgesini çizen `make-icon.py`. |
 
@@ -74,6 +76,7 @@ Lanes'in neye baktığı, neyi yazdığı ve neyi gönderdiği uygulamadaki Gizl
 - **Yazdıkları:** `~/Library/Application Support/Lanes` altında hesap listesi ve yedeği, hesap klasörleri (içine Claude yazar, Lanes yalnız Araç Kutusu'nda paylaştığın öğeler için Claude Code klasörüne bağlantı ekler), Terminal komut dosyaları, tanılama raporu ve her hesabın klonu (`Clones/<hesap kimliği>/`). Hesapların adı ve kısa bir açıklaması Spotlight dizinine yazılır. Eski sürümlerden kalan Claude kopyaları `~/Applications/Lanes Profiles` altında durabilir, Sağlık sayfası onları Çöp Sepeti'ne taşıyabilir. Deneme sürümlerinin deneme klonunu ve sonuç dosyalarını Lanes ilk açılışta bir kez kaldırır, klonu Çöp Sepeti'ne taşır.
 - **Günlük ve tanılama:** Sistem günlüğüne hesap adı, klasör ya da bağlantı içermeyen olaylar yazılır. Ayarlar > Gelişmiş'teki "Tanılama Bilgisini Hazırla" sürümleri, hesapları numarayla ve çalışan Claude'ların klasörlerini panoya ve Tanılama klasörüne yazar.
 - **Gönderdikleri:** Claude'a pencereyi öne getiren "yeniden aç" komutu, yönlendirme açıkken kurala göre seçilen hesaba `claude://` bağlantıları (giriş bağlantıları asla), Kimlik sekmesindeki "Claude Ayarlarını Aç" düğmesiyle o hesabın Claude'una ayarlar bağlantısı ve GitHub'daki sürüm listesini indiren güncelleme denetimi. Kurulum sayfasında "Kur" düğmesine basınca Lanes Claude Code'un resmî kurulum betiğini claude.ai'dan indirip çalıştırır. Bunun dışında Lanes'in yaptığı tek ağ isteği güncelleme denetimi.
+- **Safari eklentisi:** Lanes, hesapların adını, rengini, kısaltmasını ve e-postasını ortak klasöre (`~/Library/Group Containers/TN6A8RCVKP.com.umutkdev.Lanes`) yazar. Eklenti Safari'de açılırsa yalnız claude.ai'de çalışır. Hesabı tanımak için `/api/account` yanıtından yalnız ad, e-posta, kuruluş ve planı okur, sohbetleri okumaz. Her hesabın claude.ai çerezlerini Anahtar Zinciri'nde saklar, hiçbir sunucuya göndermez. Lanes uygulaması bu oturumları okumaz.
 - **Dokunmadıkları:** Giriş bilgileri, çerezler, Anahtar Zinciri, sohbetler, Claude'un ayar dosyaları (yukarıdaki hesap numarası dışında) ve hesap klasörlerinin içi.
 
 ## Lisans
