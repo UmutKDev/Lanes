@@ -98,6 +98,7 @@ xcodebuild \
   -configuration Release \
   -destination 'generic/platform=macOS' \
   -archivePath "$archive" \
+  -derivedDataPath "$out/dd" \
   -clonedSourcePackagesDirPath "$out/packages" \
   LANES_TEAM_ID="$team" \
   CURRENT_PROJECT_VERSION="$build" \
@@ -204,6 +205,16 @@ generate_appcast="$out/packages/artifacts/sparkle/Sparkle/bin/generate_appcast"
 # Signs the DMG with the EdDSA key from the keychain and embeds the notes.
 "$generate_appcast" --embed-release-notes --download-url-prefix "https://github.com/$repo/releases/download/$tag/" "$updates"
 [ -f "$updates/appcast.xml" ] || fail "appcast.xml oluşmadı."
+
+# Xcode registers every Lanes.app it builds with LaunchServices, and Safari
+# then lists each copy's extension as another "Lanes". Only the installed
+# app should count, so the build copies are unregistered and the build
+# folder is removed. The DMG keeps its own copy.
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+while IFS= read -r -d '' copy; do
+  "$lsregister" -u "$copy" >/dev/null 2>&1 || true
+done < <(find "$out/dd" "$export_dir" "$archive" -name Lanes.app -type d -prune -print0 2>/dev/null)
+rm -rf "$out/dd"
 
 step "Hazır"
 shasum -a 256 "$dmg"
