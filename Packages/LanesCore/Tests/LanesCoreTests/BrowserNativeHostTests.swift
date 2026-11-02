@@ -61,6 +61,12 @@ final class BrowserNativeHostTests: XCTestCase {
         XCTAssertEqual(opened.map(\.absoluteString), ["lanes://open?account=%C4%B0%C5%9F%20%26%20Ev", "lanes://show?page=integrations"])
     }
 
+    func testOnlyEdgeInstallsFromAStore() {
+        let edge = BrowserNativeHost.browsers.filter { $0.storeURL != nil }.map(\.id)
+        XCTAssertEqual(edge, ["edge", "edge-beta", "edge-dev", "edge-canary"])
+        XCTAssertTrue(BrowserNativeHost.edgeStoreURL.absoluteString.hasSuffix("/oibhpcchenilokfnhhdlfbconbieibgd"))
+    }
+
     func testHostManifestListsTheExtensionAndIsRecognized() throws {
         let exe = URL(fileURLWithPath: "/Applications/Lanes.app/Contents/MacOS/lanes-browser-host")
         let data = BrowserNativeHost.hostManifest(executable: exe)
@@ -68,7 +74,13 @@ final class BrowserNativeHostTests: XCTestCase {
         XCTAssertEqual(object["name"] as? String, "com.umutkdev.lanes")
         XCTAssertEqual(object["path"] as? String, exe.path)
         XCTAssertEqual(object["type"] as? String, "stdio")
-        XCTAssertEqual(object["allowed_origins"] as? [String], ["chrome-extension://\(ext)/"])
+        XCTAssertEqual(object["allowed_origins"] as? [String], [
+            "chrome-extension://\(ext)/",
+            "chrome-extension://oibhpcchenilokfnhhdlfbconbieibgd/",
+        ])
+        for id in BrowserNativeHost.storeExtensionIDs {
+            XCTAssertEqual(BrowserNativeHost.extensionID(fromOrigin: "chrome-extension://\(id)/"), id)
+        }
         XCTAssertEqual(BrowserNativeHost.hostFileState(data, executable: exe), .current)
         XCTAssertEqual(BrowserNativeHost.hostFileState(data, executable: URL(fileURLWithPath: "/tmp/x")), .outdated)
         XCTAssertEqual(BrowserNativeHost.hostFileState(Data(#"{"name":"other"}"#.utf8), executable: exe), .foreign)
@@ -89,6 +101,22 @@ final class BrowserNativeHostTests: XCTestCase {
         XCTAssertEqual(accounts[0]["email"], "is@example.com")
         XCTAssertEqual(accounts[0]["color"], "purple")
         XCTAssertEqual(Set(accounts[0].keys), ["id", "name", "monogram", "color", "email"])
+    }
+
+    func testAccountListCarriesWhatLanesKnowsAboutTheAccount() throws {
+        var work = Profile(id: ProfileID(rawValue: "w"), name: "İş", color: .purple)
+        work.email = "typed@example.com"
+        let home = Profile(id: ProfileID(rawValue: "h"), name: "Ev", color: .blue)
+        let data = BrowserNativeHost.accountList([work, home], identities: [
+            work.id: .init(email: "code@example.com", accountUuid: "1111-aaaa"),
+            home.id: .init(email: nil, accountUuid: "2222-bbbb"),
+        ])
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let accounts = try XCTUnwrap(object["accounts"] as? [[String: String]])
+        XCTAssertEqual(accounts[0]["email"], "code@example.com")
+        XCTAssertEqual(accounts[0]["accountUuid"], "1111-aaaa")
+        XCTAssertNil(accounts[1]["email"])
+        XCTAssertEqual(accounts[1]["accountUuid"], "2222-bbbb")
     }
 
     func testExtensionIDMatchesTheManifestKey() throws {

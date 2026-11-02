@@ -42,17 +42,21 @@ struct IntegrationsPage: View {
                         HStack(spacing: 8) {
                             Text(item.hostInstalled ? "Lanes'e bağlı" : "Bağlı değil")
                                 .foregroundStyle(item.hostInstalled ? Color.secondary : DS.Palette.warning)
-                            Button("Eklentiyi Yükle") {
-                                BrowserExtensionBridge.revealForLoading(in: item.browser)
+                            if let store = item.browser.storeURL {
+                                Button("Mağazadan Kur") { NSWorkspace.shared.open(store) }
+                            } else {
+                                Button("Eklentiyi Yükle") {
+                                    BrowserExtensionBridge.revealForLoading(in: item.browser)
+                                }
+                                .disabled(BrowserExtensionBridge.extensionFolder == nil)
                             }
-                            .disabled(BrowserExtensionBridge.extensionFolder == nil)
                         }
                     }
                 }
             } header: {
                 Text("Chrome ve Edge eklentisi")
             } footer: {
-                Text("Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.")
+                Text("Safari eklentisinin aynısı. Edge'de mağazadan kurulur. Chrome ve diğerlerinde Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.")
             }
             .task {
                 BrowserExtensionBridge.installHosts()

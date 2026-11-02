@@ -20,8 +20,8 @@ your device and sends nothing to us or anyone else.
 - Account list and settings: the browser's extension storage on your device.
 - Saved sessions: the macOS Keychain when the Lanes app is installed, otherwise
   the browser's extension storage on your device.
-- The Lanes app shares its own account names, colors and e-mails with the
-  extension so they match. That stays on your Mac too.
+- The Lanes app shares its own account names, colors, e-mails and Claude
+  user IDs with the extension so they match. That stays on your Mac too.
 
 ## What is sent
 

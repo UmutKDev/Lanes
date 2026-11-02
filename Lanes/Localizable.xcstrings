@@ -10375,12 +10375,22 @@
         }
       }
     },
-    "Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.": {
+    "Safari eklentisinin aynısı. Edge'de mağazadan kurulur. Chrome ve diğerlerinde Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome yalnız kendi hesabı açıkken çalışır. Hesapları aynı anda kullanmak için her birine ayrı bir tarayıcı profili aç.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The same as the Safari extension. Turn on Developer mode on the Extensions page and drag the BrowserExtension folder Lanes shows onto it. Sessions are kept in the Keychain. Claude in Chrome only works while its own account is in use. To use accounts at the same time, give each its own browser profile."
+            "value": "The same as the Safari extension. In Edge, install it from the store. In Chrome and other browsers, turn on Developer mode on the Extensions page and drag the BrowserExtension folder Lanes shows onto it. Sessions are kept in the Keychain. Claude in Chrome only works while its own account is in use. To use accounts at the same time, give each its own browser profile."
+          }
+        }
+      }
+    },
+    "Mağazadan Kur": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install from Store"
           }
         }
       }

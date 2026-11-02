@@ -3,6 +3,9 @@
 The Safari extension's twin for Chrome, Edge and other Chrome-based browsers:
 switch claude.ai accounts with one click, each account in its own color.
 
+Edge: [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/lanes/oibhpcchenilokfnhhdlfbconbieibgd)
+(ID `oibhpcchenilokfnhhdlfbconbieibgd`). Chrome Web Store: not listed yet.
+
 ## What's where
 
 - `LanesSafari/Resources`: the web code both extensions share (background,

@@ -108,7 +108,7 @@
     "message": "Sign in again"
   },
   "extensionDescription": {
-    "message": "Switch between Claude accounts in Chrome and Edge with one click. Each account has its own color, and with Lanes installed sessions are kept in the Keychain."
+    "message": "Switch between Claude accounts with one click. Each account has its own color, and sessions stay on your device."
   },
   "extensionName": {
     "message": "Lanes"

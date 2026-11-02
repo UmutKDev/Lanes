@@ -136,6 +136,15 @@ async function refreshLanes() {
   return state.lanes;
 }
 
+/// Picks up Lanes's changes (a new account, a new name or color) as
+/// claude.ai pages load, at most every 30 seconds.
+let lanesCheckedAt = 0;
+function refreshLanesSoon() {
+  if (Date.now() - lanesCheckedAt < 30000) return;
+  lanesCheckedAt = Date.now();
+  serial(() => refreshLanes()).then(() => refreshBadge()).catch(() => {});
+}
+
 function applyLanes(state) {
   const list = state.lanes ? state.lanes.accounts : [];
   for (const acc of state.accounts) {
@@ -202,6 +211,7 @@ async function draftFrom(tab) {
 // MARK: Identity reports from claude.ai pages
 
 async function onIdentity(report) {
+  refreshLanesSoon();
   return serial(async () => {
     const state = await loadState();
     const now = Date.now();

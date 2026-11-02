@@ -233,8 +233,7 @@ final class AppModel {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
         SpotlightIndex.update(library.activeProfiles)
-        SafariExtensionBridge.publish(library.activeProfiles)
-        BrowserExtensionBridge.publish(library.activeProfiles, paths: paths)
+        publishExtensionAccounts()
         BrowserExtensionBridge.installHosts()
         CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
         CommandLineTool.updateIfOutdated()
@@ -991,13 +990,31 @@ final class AppModel {
                 desktop[profile.id] = uuid
             }
         }
+        let changed = found != claudeCodeAccounts || desktop != desktopAccountUuids
         if found != claudeCodeAccounts {
             claudeCodeAccounts = found
         }
         if desktop != desktopAccountUuids {
             desktopAccountUuids = desktop
         }
+        if changed { publishExtensionAccounts() }
         warnAboutIdentityMismatches()
+    }
+
+    /// Hands the account list to the Safari, Chrome and Edge extensions,
+    /// with each account's e-mail and claude.ai account number so they can
+    /// match their accounts to Lanes's on their own.
+    func publishExtensionAccounts() {
+        var identities: [ProfileID: BrowserNativeHost.Identity] = [:]
+        for profile in library.activeProfiles {
+            let codeUuid = accountMatch(for: profile) == .different ? nil : claudeCodeAccounts[profile.id]?.accountUuid
+            identities[profile.id] = BrowserNativeHost.Identity(
+                email: email(for: profile),
+                accountUuid: desktopAccountUuids[profile.id] ?? codeUuid
+            )
+        }
+        SafariExtensionBridge.publish(library.activeProfiles, identities: identities)
+        BrowserExtensionBridge.publish(library.activeProfiles, identities: identities, paths: paths)
     }
 
     /// Whether Claude Code is signed in to the same account as the Claude
@@ -2343,8 +2360,7 @@ final class AppModel {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
             SpotlightIndex.update(library.activeProfiles)
-            SafariExtensionBridge.publish(library.activeProfiles)
-            BrowserExtensionBridge.publish(library.activeProfiles, paths: paths)
+            publishExtensionAccounts()
             if doneNoticesEnabled { doneNotices.install(profiles: library.activeProfiles, kinds: doneNoticeKinds) }
             CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
             if let setAside {
