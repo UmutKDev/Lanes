@@ -2,6 +2,8 @@
 *.xcodeproj/
 Lanes/Info.plist
 Lanes/Lanes.entitlements
+LanesSafari/Info.plist
+LanesSafari/LanesSafari.entitlements
 
 # Personal signing settings
 Config/Local.xcconfig

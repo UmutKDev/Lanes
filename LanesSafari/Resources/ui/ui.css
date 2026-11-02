@@ -1,0 +1,145 @@
+/* Shared look for the popup and the settings page. Follows Lanes's glass
+   style: system font, soft layered surfaces, the system accent color, and
+   account colors as the only strong color. */
+:root {
+  color-scheme: light dark;
+  --accent: #0a84ff;
+  --text: rgba(0, 0, 0, 0.88);
+  --text-2: rgba(0, 0, 0, 0.56);
+  --text-3: rgba(0, 0, 0, 0.36);
+  --bg: #f5f5f7;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-2: rgba(255, 255, 255, 0.5);
+  --hover: rgba(0, 0, 0, 0.05);
+  --press: rgba(0, 0, 0, 0.09);
+  --line: rgba(0, 0, 0, 0.08);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --danger: #e5383b;
+  --warning: #b86e00;
+  --warning-bg: rgba(255, 159, 10, 0.14);
+  --r-card: 14px;
+  --r-row: 10px;
+  --r-control: 8px;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  font: 13px/1.38 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+@supports (color: AccentColor) {
+  :root { --accent: AccentColor; }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: rgba(255, 255, 255, 0.92);
+    --text-2: rgba(255, 255, 255, 0.6);
+    --text-3: rgba(255, 255, 255, 0.36);
+    --bg: #1c1c1e;
+    --surface: rgba(255, 255, 255, 0.07);
+    --surface-2: rgba(255, 255, 255, 0.04);
+    --hover: rgba(255, 255, 255, 0.07);
+    --press: rgba(255, 255, 255, 0.12);
+    --line: rgba(255, 255, 255, 0.09);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --danger: #ff5a5f;
+    --warning: #ffb340;
+    --warning-bg: rgba(255, 159, 10, 0.16);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; color: var(--text); background: var(--bg); }
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.muted { color: var(--text-2); }
+.spacer { flex: 1; }
+svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Buttons */
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 28px; padding: 0 12px; border-radius: var(--r-control);
+  border: 0.5px solid var(--line); background: var(--surface); box-shadow: 0 0.5px 1px rgba(0,0,0,0.08);
+  cursor: default; white-space: nowrap; font-weight: 500;
+  transition: background 0.12s, transform 0.08s;
+}
+.button:hover { background: var(--hover); }
+.button:active { background: var(--press); transform: scale(0.98); }
+.button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+.button.primary:hover { filter: brightness(1.06); }
+.button.danger { color: var(--danger); }
+.button.ghost { background: transparent; border-color: transparent; box-shadow: none; }
+.button.ghost:hover { background: var(--hover); }
+.button:disabled { opacity: 0.45; pointer-events: none; }
+.button svg { width: 14px; height: 14px; }
+.icon-button {
+  width: 28px; height: 28px; border-radius: var(--r-control); border: 0; background: transparent;
+  display: inline-grid; place-items: center; color: var(--text-2); cursor: default;
+}
+.icon-button:hover { background: var(--hover); color: var(--text); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--r-control); }
+
+/* Avatars: the account color with its monogram, like Lanes's tiles. */
+.avatar {
+  --c: #8e8e93;
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  color: #fff; font-weight: 600; font-size: 12.5px; letter-spacing: 0.01em;
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 70%);
+  box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.12), 0 1px 2px color-mix(in srgb, var(--c) 40%, transparent);
+}
+.avatar.light-swatch { color: rgba(0, 0, 0, 0.78); }
+.avatar.large { width: 44px; height: 44px; font-size: 17px; }
+.avatar.xl { width: 52px; height: 52px; font-size: 19px; }
+
+/* Toggle */
+.toggle {
+  appearance: none; -webkit-appearance: none; flex: none;
+  width: 30px; height: 18px; border-radius: 9px; margin: 0;
+  background: var(--press); position: relative; transition: background 0.15s;
+}
+.toggle::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.15s;
+}
+.toggle:checked { background: var(--accent); }
+.toggle:checked::after { transform: translateX(12px); }
+
+.switch-row { display: flex; align-items: center; gap: var(--s2); color: var(--text-2); }
+
+/* Chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border-radius: 9px;
+  background: var(--hover); color: var(--text-2); font-size: 11px; font-weight: 500; white-space: nowrap;
+}
+.chip.plan { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.chip.warn { background: var(--warning-bg); color: var(--warning); }
+.chip.lanes::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+/* Swatches */
+.swatches { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.swatch {
+  width: 24px; height: 24px; border-radius: 50%; border: 0; background: var(--c);
+  box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.15); justify-self: center; position: relative;
+}
+.swatch[aria-checked="true"]::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--c);
+}
+
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 11.5px; font-weight: 600; color: var(--text-2); }
+input[type="text"], input[type="search"], select {
+  height: 28px; padding: 0 9px; border-radius: var(--r-control);
+  border: 0.5px solid var(--line); background: var(--surface); outline: none;
+}
+input[type="text"]:focus, select:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); border-color: var(--accent); }
+
+.banner {
+  display: flex; gap: var(--s2); align-items: flex-start;
+  margin: 0 var(--s3) var(--s2); padding: 10px 12px; border-radius: var(--r-row);
+  background: var(--warning-bg); color: var(--text); font-size: 12px;
+}
+.banner strong { display: block; margin-bottom: 2px; }
+.banner .button { margin-top: 6px; height: 24px; font-size: 12px; }

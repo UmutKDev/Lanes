@@ -233,6 +233,7 @@ final class AppModel {
         claude = ClaudeInstallation.find(paths: paths)
         Log.app.info("Started, \(self.library.profiles.count) accounts, Claude \(self.claude?.version ?? "not found", privacy: .public)")
         SpotlightIndex.update(library.activeProfiles)
+        SafariExtensionBridge.publish(library.activeProfiles)
         CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
         CommandLineTool.updateIfOutdated()
         monitor.onChange = { [weak self] in
@@ -2340,6 +2341,7 @@ final class AppModel {
             let setAside = try store.save(library)
             Log.app.info("Saved \(self.library.profiles.count) accounts")
             SpotlightIndex.update(library.activeProfiles)
+            SafariExtensionBridge.publish(library.activeProfiles)
             if doneNoticesEnabled { doneNotices.install(profiles: library.activeProfiles, kinds: doneNoticeKinds) }
             CommandLineTool.writeMap(library: library, paths: paths, hookSettings: doneNoticeSettingsFiles())
             if let setAside {

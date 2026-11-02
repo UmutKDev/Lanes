@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="popup.css">
+  <script src="../lib/core.js"></script>
+  <script src="../ui/ui.js"></script>
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/icon-48.png" alt="" width="22" height="22">
+      <span data-i18n="popupTitle"></span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-button" id="open-lanes" data-i18n-title="openLanesApp" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="3"/><path d="M7 4v12M3 8h4"/></svg>
+      </button>
+      <button class="icon-button" id="open-settings" data-i18n-title="settings">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M17.5 10h-2.2M4.7 10H2.5M15.3 4.7l-1.6 1.6M6.3 13.7l-1.6 1.6M15.3 15.3l-1.6-1.6M6.3 6.3L4.7 4.7"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main id="main">
+    <section id="current" class="current" hidden></section>
+
+    <div id="search-wrap" class="search" hidden>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13 13l4 4"/></svg>
+      <input id="search" type="search" data-i18n-placeholder="searchPlaceholder" autocomplete="off" spellcheck="false">
+    </div>
+
+    <p id="list-title" class="section-title" data-i18n="otherAccounts" hidden></p>
+    <ul id="list" class="list" role="listbox"></ul>
+
+    <section id="empty" class="empty" hidden>
+      <div class="empty-art" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h2 data-i18n="emptyTitle"></h2>
+      <p data-i18n="emptyBody"></p>
+      <button class="button primary" id="open-claude" data-i18n="openClaude"></button>
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <button class="button" id="add">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+      <span data-i18n="addAccount"></span>
+    </button>
+    <label class="switch-row" data-i18n-title="carryDraftHelp">
+      <span data-i18n="carryDraft"></span>
+      <input type="checkbox" id="carry-draft" class="toggle">
+    </label>
+  </footer>
+
+  <div id="sheet" class="sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <div id="sheet-avatar" class="avatar large"></div>
+        <div>
+          <h2 id="sheet-title"></h2>
+          <p id="sheet-email" class="muted"></p>
+        </div>
+      </div>
+      <label class="field">
+        <span data-i18n="name"></span>
+        <input id="sheet-name" type="text" maxlength="40" autocomplete="off">
+      </label>
+      <div class="field">
+        <span data-i18n="color"></span>
+        <div id="sheet-colors" class="swatches" role="radiogroup"></div>
+      </div>
+      <label class="field" id="sheet-lanes-field" hidden>
+        <span data-i18n="lanesLink"></span>
+        <select id="sheet-lanes"></select>
+      </label>
+      <label class="switch-row inline">
+        <span data-i18n="pin"></span>
+        <input type="checkbox" id="sheet-pin" class="toggle">
+      </label>
+      <div class="sheet-actions">
+        <button class="button danger ghost" id="sheet-remove" data-i18n="forget"></button>
+        <span class="spacer"></span>
+        <button class="button" id="sheet-cancel" data-i18n="cancel"></button>
+        <button class="button primary" id="sheet-save" data-i18n="save"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -10204,6 +10204,126 @@
           }
         }
       }
+    },
+    "Safari Ayarlarını Aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Safari Settings"
+          }
+        }
+      }
+    },
+    "Safari'de Aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn On in Safari"
+          }
+        }
+      }
+    },
+    "Safari eklentisi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari extension"
+          }
+        }
+      }
+    },
+    "claude.ai hesaplarını Safari'de tek tıkla değiştirir. Oturumlar Anahtar Zinciri'nde saklanır. E-postası aynı olan hesaplar Lanes'teki adını ve rengini alır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switches claude.ai accounts in Safari with one click. Sessions are kept in the Keychain. Accounts with the same e-mail take their name and color from Lanes."
+          }
+        }
+      }
+    },
+    "Safari'de kapalı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off in Safari"
+          }
+        }
+      }
+    },
+    "Safari henüz görmedi. Lanes'i Uygulamalar klasöründen aç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari hasn't seen it yet. Open Lanes from the Applications folder."
+          }
+        }
+      }
+    },
+    "Safari eklentisinin hesap listesi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari extension's account list"
+          }
+        }
+      }
+    },
+    "Hesapların adı, rengi ve e-postası, eklenti claude.ai hesaplarını eşleştirsin diye.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account names, colors and e-mails, so the extension can match claude.ai accounts."
+          }
+        }
+      }
+    },
+    "Lanes'in ortak klasörüne (Group Containers) yazılır. Eklentiyi Safari'de açarsan claude.ai oturumlarını her hesap için Anahtar Zinciri'nde o saklar. Lanes uygulaması bu oturumları okumaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Written to Lanes's shared folder (Group Containers). If you turn the extension on in Safari, it keeps each account's claude.ai session in the Keychain. The Lanes app never reads those sessions."
+          }
+        }
+      }
+    },
+    "Lanes artık Safari'de de": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes is in Safari now"
+          }
+        }
+      }
+    },
+    "Safari eklentisi claude.ai hesaplarını tek tıkla değiştirir. Her hesap kendi rengini taşır, oturumlar Anahtar Zinciri'nde saklanır. Açmak için Safari'de Lanes'in kutusunu işaretle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Safari extension switches claude.ai accounts with one click. Each account has its own color, and sessions are kept in the Keychain. To turn it on, tick Lanes in Safari."
+          }
+        }
+      }
+    },
+    "Şimdi Değil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Now"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

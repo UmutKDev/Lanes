@@ -11,7 +11,7 @@ options:
   groupSortPosition: top
 settings:
   base:
-    MARKETING_VERSION: "1.0.4"
+    MARKETING_VERSION: "1.1.0"
     CURRENT_PROJECT_VERSION: "1"
 packages:
   LanesCore:
@@ -33,6 +33,10 @@ targets:
     dependencies:
       - package: LanesCore
       - package: Sparkle
+      # The Safari extension rides inside Lanes.app (Contents/PlugIns), so
+      # Safari lists it as soon as Lanes is installed.
+      - target: LanesSafari
+        embed: true
     info:
       path: Lanes/Info.plist
       properties:
@@ -52,6 +56,9 @@ targets:
         SUPublicEDKey: $(LANES_SPARKLE_PUBLIC_KEY)
         # Updates are checked by default instead of asking on the second launch.
         SUEnableAutomaticChecks: true
+        # Folder Lanes shares with its Safari extension: the account list
+        # (names, colors, e-mails). Never sessions or passwords.
+        LanesAppGroup: $(TeamIdentifierPrefix)com.umutkdev.Lanes
         NSAppleEventsUsageDescription: "Lanes, seçtiğin hesabın Claude penceresini öne getirmek için Claude'a \"yeniden aç\" komutu gönderir. Bağlantı yönlendirme açıksa claude:// bağlantılarını da seçilen hesabın Claude'una iletir, \"Claude Ayarlarını Aç\" düğmesi de ayarlar bağlantısını gönderir. Giriş bağlantılarını hiçbir zaman iletmez. Bitti Haberi bildiriminde \"Terminale Git\"e basınca da Terminal ya da iTerm2'de o oturumun sekmesini seçer."
         # Declared for link routing, which takes over claude:// links. Lanes
         # hands the default back to Claude on launch unless it is on.
@@ -67,6 +74,9 @@ targets:
       properties:
         # Needed under the hardened runtime to send Apple Events to Claude.
         com.apple.security.automation.apple-events: true
+        # Shared with the Safari extension, see LanesAppGroup above.
+        com.apple.security.application-groups:
+          - $(TeamIdentifierPrefix)com.umutkdev.Lanes
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes
@@ -121,6 +131,79 @@ targets:
           if [ -n "$changes" ]; then dirty=true; else dirty=false; fi
           "$buddy" -c "Add :LanesGitTreeDirty bool $dirty" "$plist" >/dev/null 2>&1
           exit 0
+  # Safari Web Extension for using several claude.ai accounts in Safari.
+  # The web part (manifest, scripts, popup) is in LanesSafari/Resources and is
+  # copied as a folder; the native part only keeps saved sessions in the
+  # Keychain and reads the account list Lanes shares.
+  LanesSafari:
+    type: app-extension
+    platform: macOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - path: LanesSafari
+        excludes:
+          - "Resources/**"
+          - "Tests/**"
+          - "*.md"
+      # Safari wants manifest.json at the top of the extension's Resources,
+      # so the web files are listed one by one and the folders they use are
+      # copied whole, keeping their paths.
+      - path: LanesSafari/Resources/manifest.json
+        buildPhase: resources
+      - path: LanesSafari/Resources/background.js
+        buildPhase: resources
+      - path: LanesSafari/Resources/content.js
+        buildPhase: resources
+      - path: LanesSafari/Resources/content.css
+        buildPhase: resources
+      - path: LanesSafari/Resources/_locales
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/lib
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/ui
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/popup
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/options
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/icons
+        type: folder
+        buildPhase: resources
+    info:
+      path: LanesSafari/Info.plist
+      properties:
+        CFBundleDisplayName: Lanes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "© 2026 Umut Kızıloğlu. MIT lisansıyla."
+        LanesAppGroup: $(TeamIdentifierPrefix)com.umutkdev.Lanes
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+    entitlements:
+      path: LanesSafari/LanesSafari.entitlements
+      properties:
+        # Safari only loads sandboxed extensions.
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(TeamIdentifierPrefix)com.umutkdev.Lanes
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes.Safari
+        PRODUCT_NAME: LanesSafari
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        ENABLE_HARDENED_RUNTIME: YES
+        DEAD_CODE_STRIPPING: YES
+        SKIP_INSTALL: YES
 schemes:
   Lanes:
     build:

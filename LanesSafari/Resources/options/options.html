@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Lanes</title>
+  <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="options.css">
+  <script src="../lib/core.js"></script>
+  <script src="../ui/ui.js"></script>
+  <script src="options.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <img src="../icons/icon-128.png" alt="" width="64" height="64">
+      <div>
+        <h1 data-i18n="optionsTitle"></h1>
+        <p class="muted" data-i18n="optionsSubtitle"></p>
+      </div>
+    </header>
+
+    <section class="group">
+      <h2 data-i18n="statusTitle"></h2>
+      <div class="card" id="status"></div>
+    </section>
+
+    <section class="group">
+      <h2 data-i18n="pageMarksTitle"></h2>
+      <div class="card">
+        <label class="setting"><div><strong data-i18n="settingStripe"></strong><p data-i18n="settingStripeHelp"></p></div><input type="checkbox" class="toggle" data-setting="stripe"></label>
+        <label class="setting"><div><strong data-i18n="settingTitle"></strong><p data-i18n="settingTitleHelp"></p></div><input type="checkbox" class="toggle" data-setting="titleMark"></label>
+        <label class="setting"><div><strong data-i18n="settingFavicon"></strong><p data-i18n="settingFaviconHelp"></p></div><input type="checkbox" class="toggle" data-setting="favicon"></label>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2 data-i18n="switchingTitle"></h2>
+      <div class="card">
+        <label class="setting"><div><strong data-i18n="carryDraft"></strong><p data-i18n="carryDraftHelp"></p></div><input type="checkbox" class="toggle" data-setting="carryDraft"></label>
+        <label class="setting"><div><strong data-i18n="settingAutoAdd"></strong><p data-i18n="settingAutoAddHelp"></p></div><input type="checkbox" class="toggle" data-setting="autoAdd"></label>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2 data-i18n="shortcutsTitle"></h2>
+      <div class="card shortcuts">
+        <div class="shortcut"><span data-i18n="commandOpen"></span><kbd>⌥⇧L</kbd></div>
+        <div class="shortcut"><span data-i18n="commandNext"></span><kbd>⌥⇧J</kbd></div>
+        <div class="shortcut"><span data-i18n="commandPrevious"></span><kbd>⌥⇧K</kbd></div>
+        <div class="shortcut"><span data-i18n="shortcutDigits"></span><kbd>1 … 9</kbd></div>
+        <div class="shortcut"><span data-i18n="shortcutMenu"></span><kbd data-i18n="shortcutMenuKey"></kbd></div>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2 data-i18n="privacyTitle"></h2>
+      <div class="card prose">
+        <p data-i18n="privacy1"></p>
+        <p data-i18n="privacy2"></p>
+        <p data-i18n="privacy3"></p>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2 data-i18n="tipTitle"></h2>
+      <div class="card prose"><p data-i18n="tipBody"></p></div>
+    </section>
+  </div>
+</body>
+</html>
