@@ -47,7 +47,7 @@ main { padding: 0 var(--s2) var(--s2); flex: 1; }
 .row:hover, .row.selected { background: var(--hover); }
 .row:active { background: var(--press); }
 .row .who { flex: 1; min-width: 0; }
-.row .name { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+.row .name { font-size: 13px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
 .row .detail { color: var(--text-2); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .pin { color: var(--text-3); font-size: 10px; }
 .row .key {

@@ -95,7 +95,10 @@
     const chips = el("div", "chips");
     const plan = planLabel(active.plan);
     if (plan) chips.appendChild(el("span", "chip plan", plan));
-    if (active.orgName && !/'s Organization$|’s Organization$/.test(active.orgName)) chips.appendChild(el("span", "chip", active.orgName));
+    // Personal plans name the org after the person; that chip says nothing new.
+    const org = String(active.orgName || "").trim();
+    const sameAsAccount = [active.name, active.email].some((v) => String(v || "").trim().toLocaleLowerCase("tr") === org.toLocaleLowerCase("tr"));
+    if (org && !sameAsAccount && !/'s Organization$|’s Organization$/.test(org)) chips.appendChild(el("span", "chip", org));
     const profile = C.findLanesProfile(lanesList(), active);
     if (profile) chips.appendChild(el("span", "chip lanes", t("lanesChip", [profile.name])));
     if (chips.childNodes.length) box.appendChild(chips);
