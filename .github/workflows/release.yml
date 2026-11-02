@@ -12,6 +12,9 @@ name: Release
 #   LANES_NOTARY_PASSWORD            an app-specific password for that Apple ID
 #   LANES_SPARKLE_PRIVATE_KEY        Sparkle's private EdDSA key
 #                                    (generate_keys -x <file>)
+# And for the Edge Add-ons upload (the step is skipped without them):
+#   LANES_EDGE_CLIENT_ID, LANES_EDGE_API_KEY  Partner Center > Publish API
+#   LANES_EDGE_PRODUCT_ID            the GUID on the extension's overview page
 
 on:
   workflow_dispatch:
@@ -20,6 +23,11 @@ on:
         description: "GitHub'da yayımla (kapalıysa yalnız DMG'yi derleme çıktısı olarak bırakır)"
         type: boolean
         default: true
+      edge:
+        description: "Edge Eklentileri'ne yükle (auto: yalnız eklenti dosyaları değiştiyse)"
+        type: choice
+        options: [auto, always, never]
+        default: auto
 
 permissions:
   contents: write
@@ -117,6 +125,47 @@ jobs:
           LANES_PUBLISH: ${{ inputs.publish && '1' || '' }}
           GH_TOKEN: ${{ github.token }}
         run: scripts/release.sh
+
+      # Edge updates store installs itself once a new package passes review.
+      # A version bump alone changes nothing in the extension, so "auto"
+      # uploads only when its files changed since the previous release; an
+      # upload that isn't needed only costs another review.
+      - name: Edge Add-ons
+        if: ${{ inputs.publish && inputs.edge != 'never' }}
+        env:
+          EDGE_CLIENT_ID: ${{ secrets.LANES_EDGE_CLIENT_ID }}
+          EDGE_API_KEY: ${{ secrets.LANES_EDGE_API_KEY }}
+          EDGE_PRODUCT_ID: ${{ secrets.LANES_EDGE_PRODUCT_ID }}
+          MODE: ${{ inputs.edge }}
+        run: |
+          set -euo pipefail
+          if [ -z "$EDGE_CLIENT_ID" ] || [ -z "$EDGE_API_KEY" ] || [ -z "$EDGE_PRODUCT_ID" ]; then
+            echo "::warning::Edge secret'ları yok, Edge'e yüklenmedi."
+            exit 0
+          fi
+          # The tag just published exists only on GitHub, so the newest
+          # local tag is the previous release.
+          previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+          if [ "$MODE" = auto ] && [ -n "$previous" ]; then
+            changed=$(git diff "$previous" HEAD -- LanesSafari/Resources LanesChrome scripts/build-browser-extension.sh \
+              ':(exclude)LanesChrome/tools' ':(exclude)LanesChrome/store' ':(exclude)*.md' \
+              | grep -E '^[+-]' | grep -vE '^(\+\+\+|---) ' | grep -vE '^[+-][[:space:]]*"version":' || true)
+            if [ -z "$changed" ]; then
+              echo "Eklenti dosyaları $previous sürümünden beri değişmedi, Edge'e yüklenmedi."
+              exit 0
+            fi
+          fi
+          zip=$(ls build/release/*/lanes-browser-extension-*.zip | head -1)
+          version=$(basename "$zip" .zip | sed 's/^lanes-browser-extension-//')
+          set +e
+          scripts/edge-upload.sh "$zip" "Lanes $version. Release notes: https://github.com/$GITHUB_REPOSITORY/releases"
+          status=$?
+          set -e
+          if [ "$status" = 3 ]; then
+            echo "::warning::Edge önceki gönderimi hâlâ inceliyor. Paket taslak olarak yüklendi, inceleme bitince Partner Center'da Publish'e bas."
+            exit 0
+          fi
+          exit "$status"
 
       - name: Keep the DMG
         if: ${{ !inputs.publish }}
