@@ -28,8 +28,8 @@ M = dict(safari.M)
 
 OVERRIDES = {
     "extensionDescription": (
-        "Birden fazla Claude hesabını Chrome ve Edge'de tek tıkla değiştir. Her hesap kendi rengini taşır, oturumlar Lanes ile Anahtar Zinciri'nde saklanır.",
-        "Switch between Claude accounts in Chrome and Edge with one click. Each account has its own color, and with Lanes installed sessions are kept in the Keychain.",
+        "Claude hesapları arasında tek tıkla geç. Her hesap kendi rengini taşır, oturumlar cihazında kalır.",
+        "Switch between Claude accounts with one click. Each account has its own color, and sessions stay on your device.",
     ),
     "errorCookiesHidden": (
         "Tarayıcı oturum çerezini eklentiye göstermiyor, bu yüzden hesap değiştirilemiyor.",
@@ -76,6 +76,11 @@ for key in OVERRIDES:
     if key not in M:
         sys.exit(f"unknown key {key}: the Safari table changed")
 M.update(OVERRIDES)
+
+# Chrome Web Store and Edge Add-ons refuse a description over 132 characters.
+for index, text in enumerate(M["extensionDescription"]):
+    if len(text) > 132:
+        sys.exit(f"extensionDescription ({['tr', 'en'][index]}) is {len(text)} characters, the stores allow 132")
 
 for key, (tr, en) in M.items():
     if "Safari" in tr or "Safari" in en:
