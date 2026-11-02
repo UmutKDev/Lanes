@@ -37,6 +37,13 @@ targets:
       # Safari lists it as soon as Lanes is installed.
       - target: LanesSafari
         embed: true
+      # Native messaging host of the Chrome and Edge extension, next to the
+      # Lanes binary (Contents/MacOS/lanes-browser-host). Lanes points
+      # Chrome's and Edge's NativeMessagingHosts files at it.
+      - target: LanesBrowserHost
+        embed: true
+        copy:
+          destination: executables
     info:
       path: Lanes/Info.plist
       properties:
@@ -94,6 +101,16 @@ targets:
         # sandbox only allows declared files, and git's reads cannot be
         # declared one by one. With YES the keys would silently go missing.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
+    preBuildScripts:
+      # The Chrome and Edge extension as an unpacked folder in
+      # Contents/Resources/BrowserExtension, for "Load unpacked" until the
+      # store listings are live. Built from LanesSafari/Resources and
+      # LanesChrome by the same script that makes the store ZIP.
+      - name: Copy Chrome and Edge extension
+        basedOnDependencyAnalysis: false
+        showEnvVars: false
+        script: |
+          "$SRCROOT/scripts/build-browser-extension.sh" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/BrowserExtension" >/dev/null
     postBuildScripts:
       # Runs after every other phase. The built Info.plist is an input, so the
       # script waits for Info.plist processing, and code signing waits for the
@@ -199,6 +216,30 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes.Safari
         PRODUCT_NAME: LanesSafari
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        ENABLE_HARDENED_RUNTIME: YES
+        DEAD_CODE_STRIPPING: YES
+        SKIP_INSTALL: YES
+  # Native messaging host for the Lanes extension in Chrome and Edge. Keeps
+  # saved claude.ai sessions in the Keychain and reads the account list Lanes
+  # shares. The logic is in LanesCore (BrowserNativeHost).
+  LanesBrowserHost:
+    type: tool
+    platform: macOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - path: LanesBrowserHost
+    dependencies:
+      - package: LanesCore
+    settings:
+      base:
+        PRODUCT_NAME: lanes-browser-host
+        PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes.BrowserHost
+        GENERATE_INFOPLIST_FILE: YES
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES
         SWIFT_VERSION: "5.0"
         SWIFT_STRICT_CONCURRENCY: minimal
         ENABLE_HARDENED_RUNTIME: YES

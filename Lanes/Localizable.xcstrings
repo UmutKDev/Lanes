@@ -10324,6 +10324,66 @@
           }
         }
       }
+    },
+    "Chrome ya da Edge bulunamadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chrome or Edge wasn’t found."
+          }
+        }
+      }
+    },
+    "Lanes'e bağlı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected to Lanes"
+          }
+        }
+      }
+    },
+    "Bağlı değil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not connected"
+          }
+        }
+      }
+    },
+    "Eklentiyi Yükle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load Extension"
+          }
+        }
+      }
+    },
+    "Chrome ve Edge eklentisi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chrome and Edge extension"
+          }
+        }
+      }
+    },
+    "Safari eklentisinin aynısı. Eklentiler sayfasında Geliştirici modunu aç, Lanes'in gösterdiği BrowserExtension klasörünü sayfaya sürükle. Oturumlar Anahtar Zinciri'nde saklanır. Claude in Chrome kendi girişini tutar, hesap değiştirmek onu etkilemez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The same as the Safari extension. Turn on Developer mode on the Extensions page and drag the BrowserExtension folder Lanes shows onto it. Sessions are kept in the Keychain. Claude in Chrome keeps its own sign-in, and switching doesn’t affect it."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

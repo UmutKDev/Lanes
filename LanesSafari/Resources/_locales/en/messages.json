@@ -77,6 +77,9 @@
   "emptyTitle": {
     "message": "Add your first account"
   },
+  "errorAuthFlow": {
+    "message": "An app is signing in with your Claude account in a tab (for example Claude in Chrome). Try again when it's done."
+  },
   "errorCookiesHidden": {
     "message": "Safari doesn't show the session cookie to extensions, so accounts can't be switched."
   },

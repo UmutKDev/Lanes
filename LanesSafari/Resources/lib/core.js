@@ -212,6 +212,26 @@
     }
   }
 
+  /// A claude.ai page where an app is signing in with the user's Claude
+  /// account: Claude in Chrome, Claude Code or another OAuth client. A switch
+  /// must not reload it or change the session under it.
+  function isAuthFlowURL(url) {
+    if (!isClaudeURL(url)) return false;
+    try {
+      return /^\/oauth(\/|$)/.test(new URL(url).pathname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// An empty new tab a switch may reuse instead of opening another one.
+  function isBlankTabURL(url) {
+    const text = String(url || "");
+    return !text || text === "about:blank" || text.startsWith("favorites:") ||
+      /^(chrome|edge|brave|vivaldi|arc):\/\/(newtab|new-tab-page)\/?$/.test(text) ||
+      text.startsWith("chrome-search://local-ntp") || text === "about:newtab";
+  }
+
   /// Where a claude.ai tab goes after a switch. Conversations and projects
   /// belong to one account, so they turn into a new chat; settings pages
   /// stay where they are.
@@ -295,7 +315,7 @@
     monogram, nameFromEmail, normalizeEmail,
     parseAccount, findAccount, findLanesProfile,
     isClaudeCookie, hasSessionCookie, snapshotCookie, cookieSetDetails, cookieRemoveDetails,
-    isClaudeURL, urlAfterSwitch, titleWithMark, stripTitleMark,
+    isClaudeURL, isAuthFlowURL, isBlankTabURL, urlAfterSwitch, titleWithMark, stripTitleMark,
     timeAgo, matchesSearch, newID, sortAccounts,
   };
 

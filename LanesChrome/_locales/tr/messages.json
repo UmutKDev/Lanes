@@ -1,0 +1,320 @@
+{
+  "activeLabel": {
+    "message": "Şu an açık"
+  },
+  "addAccount": {
+    "message": "Hesap Ekle"
+  },
+  "badgeTitle": {
+    "message": "Lanes: $1 ($2)"
+  },
+  "cancel": {
+    "message": "Vazgeç"
+  },
+  "carryDraft": {
+    "message": "Taslağı taşı"
+  },
+  "carryDraftHelp": {
+    "message": "Hesap değiştirirken yazmakta olduğun mesaj yeni hesapta yeni bir sohbete taşınır."
+  },
+  "color": {
+    "message": "Renk"
+  },
+  "color_blue": {
+    "message": "Mavi"
+  },
+  "color_brown": {
+    "message": "Kahverengi"
+  },
+  "color_cyan": {
+    "message": "Camgöbeği"
+  },
+  "color_gray": {
+    "message": "Gri"
+  },
+  "color_green": {
+    "message": "Yeşil"
+  },
+  "color_indigo": {
+    "message": "Çivit"
+  },
+  "color_mint": {
+    "message": "Nane"
+  },
+  "color_orange": {
+    "message": "Turuncu"
+  },
+  "color_pink": {
+    "message": "Pembe"
+  },
+  "color_purple": {
+    "message": "Mor"
+  },
+  "color_red": {
+    "message": "Kırmızı"
+  },
+  "color_teal": {
+    "message": "Çam yeşili"
+  },
+  "color_yellow": {
+    "message": "Sarı"
+  },
+  "commandNext": {
+    "message": "Sonraki hesaba geç"
+  },
+  "commandOpen": {
+    "message": "Hesap listesini aç"
+  },
+  "commandPrevious": {
+    "message": "Önceki hesaba geç"
+  },
+  "editAccount": {
+    "message": "Hesabı düzenle"
+  },
+  "emptyBody": {
+    "message": "claude.ai'de giriş yap. Lanes hesabını tanır ve buraya ekler."
+  },
+  "emptyTitle": {
+    "message": "İlk hesabını ekle"
+  },
+  "errorAuthFlow": {
+    "message": "Bir sekmede bir uygulama Claude hesabınla giriş yapıyor (örneğin Claude in Chrome). Giriş bitince yeniden dene."
+  },
+  "errorCookiesHidden": {
+    "message": "Tarayıcı oturum çerezini eklentiye göstermiyor, bu yüzden hesap değiştirilemiyor."
+  },
+  "errorNoAccount": {
+    "message": "Bu hesap artık listede yok."
+  },
+  "errorNoSession": {
+    "message": "$1 için kayıtlı oturum yok. Hesap Ekle ile yeniden giriş yap."
+  },
+  "expiredChip": {
+    "message": "Yeniden giriş gerekli"
+  },
+  "extensionDescription": {
+    "message": "Birden fazla Claude hesabını Chrome ve Edge'de tek tıkla değiştir. Her hesap kendi rengini taşır, oturumlar Lanes ile Anahtar Zinciri'nde saklanır."
+  },
+  "extensionName": {
+    "message": "Lanes"
+  },
+  "forget": {
+    "message": "Hesabı Unut"
+  },
+  "forgetActive": {
+    "message": "Unut ve Oturumu Kapat"
+  },
+  "forgetConfirm": {
+    "message": "Emin misin? Tekrar bas"
+  },
+  "hiddenBody": {
+    "message": "Oturum çerezi eklentiye görünmüyor. Hesap rengi ve sekme işareti çalışmaya devam eder. Hesapları aynı anda kullanmak için her hesaba ayrı bir tarayıcı profili aç."
+  },
+  "hiddenTitle": {
+    "message": "Tarayıcı hesap değiştirmeye izin vermiyor"
+  },
+  "lanesAuto": {
+    "message": "E-postaya göre otomatik"
+  },
+  "lanesChip": {
+    "message": "Lanes: $1"
+  },
+  "lanesLink": {
+    "message": "Lanes hesabı"
+  },
+  "lanesNone": {
+    "message": "Bağlama"
+  },
+  "langCode": {
+    "message": "tr"
+  },
+  "menuAsk": {
+    "message": "Claude'a Sor"
+  },
+  "menuCurrent": {
+    "message": "(açık)"
+  },
+  "name": {
+    "message": "Ad"
+  },
+  "newChat": {
+    "message": "Yeni Sohbet"
+  },
+  "noneActiveBody": {
+    "message": "Aşağıdan bir hesap seç ya da yeni hesap ekle."
+  },
+  "noneActiveLabel": {
+    "message": "Giriş yok"
+  },
+  "noneActiveTitle": {
+    "message": "Hiçbir hesap açık değil"
+  },
+  "openClaude": {
+    "message": "claude.ai'yi Aç"
+  },
+  "openInLanes": {
+    "message": "Masaüstünde Aç"
+  },
+  "openInLanesHelp": {
+    "message": "Bu hesabın Lanes'teki Claude uygulamasını ($1) açar."
+  },
+  "openLanesApp": {
+    "message": "Lanes'i Aç"
+  },
+  "optionsSubtitle": {
+    "message": "Claude hesaplarını Chrome ve Edge'de tek tıkla değiştir."
+  },
+  "optionsTitle": {
+    "message": "Lanes Tarayıcı Eklentisi"
+  },
+  "otherAccounts": {
+    "message": "Diğer hesaplar"
+  },
+  "pageMarksTitle": {
+    "message": "claude.ai'de hesap işareti"
+  },
+  "pin": {
+    "message": "Listenin başında tut"
+  },
+  "planEnterprise": {
+    "message": "Enterprise"
+  },
+  "planFree": {
+    "message": "Ücretsiz"
+  },
+  "planMax": {
+    "message": "Max"
+  },
+  "planPro": {
+    "message": "Pro"
+  },
+  "planTeam": {
+    "message": "Team"
+  },
+  "popupTitle": {
+    "message": "Claude hesapları"
+  },
+  "privacy1": {
+    "message": "Eklenti yalnız claude.ai'de çalışır. Hesabı tanımak için yalnız ad, e-posta ve plan bilgisini okur. Sohbetlerini okumaz."
+  },
+  "privacy2": {
+    "message": "Her hesabın oturum çerezleri Lanes kuruluysa macOS Anahtar Zinciri'nde, değilse eklentinin kendi deposunda saklanır. Hiçbir sunucuya gönderilmez."
+  },
+  "privacy3": {
+    "message": "Hesabı unutmak kayıtlı oturumunu da siler. Claude'da oturumu tamamen kapatmak için claude.ai'de çıkış yap."
+  },
+  "privacyTitle": {
+    "message": "Gizlilik"
+  },
+  "save": {
+    "message": "Kaydet"
+  },
+  "searchPlaceholder": {
+    "message": "Hesap ara"
+  },
+  "settingAutoAdd": {
+    "message": "Yeni hesapları otomatik ekle"
+  },
+  "settingAutoAddHelp": {
+    "message": "claude.ai'de listede olmayan bir hesapla giriş yapınca hesap listeye eklenir."
+  },
+  "settingFavicon": {
+    "message": "Sekme simgesi"
+  },
+  "settingFaviconHelp": {
+    "message": "Claude simgesinin köşesine hesabın renginde bir nokta."
+  },
+  "settingStripe": {
+    "message": "Renkli şerit"
+  },
+  "settingStripeHelp": {
+    "message": "Sayfanın üstünde hesabın renginde ince bir şerit."
+  },
+  "settingTitle": {
+    "message": "Sekme başlığı"
+  },
+  "settingTitleHelp": {
+    "message": "Sekme başlığının önüne hesabın rengi ve adı gelir."
+  },
+  "settings": {
+    "message": "Ayarlar"
+  },
+  "shortcutDigits": {
+    "message": "Listede hesaba geç"
+  },
+  "shortcutMenu": {
+    "message": "Seçili metni bir hesapla sor"
+  },
+  "shortcutMenuKey": {
+    "message": "Sağ tık"
+  },
+  "shortcutsTitle": {
+    "message": "Kısayollar"
+  },
+  "statusAccounts": {
+    "message": "$1 hesap kayıtlı"
+  },
+  "statusAccountsEmpty": {
+    "message": "claude.ai'de giriş yaptığında hesap buraya eklenir."
+  },
+  "statusLanes": {
+    "message": "Lanes'e bağlı: $1 hesap"
+  },
+  "statusLanesBody": {
+    "message": "E-postası aynı olan web hesapları Lanes'teki adını ve rengini alır."
+  },
+  "statusNoLanes": {
+    "message": "Lanes hesap listesi yok"
+  },
+  "statusNoLanesBody": {
+    "message": "Lanes'i kurup aç. Hesap listesini eklentiyle paylaşır, böylece adlar ve renkler eşleşir."
+  },
+  "statusSwitchOK": {
+    "message": "Hesap değiştirme çalışıyor"
+  },
+  "statusSwitchOKBody": {
+    "message": "Geçiş, bu tarayıcı profilindeki tüm claude.ai sekmelerini seçilen hesaba taşır."
+  },
+  "statusSwitchUnknown": {
+    "message": "Henüz denenmedi"
+  },
+  "statusSwitchUnknownBody": {
+    "message": "claude.ai'yi bir kez aç, Lanes geçişin çalışıp çalışmadığına baksın."
+  },
+  "statusTitle": {
+    "message": "Durum"
+  },
+  "statusVaultKeychain": {
+    "message": "Oturumlar Anahtar Zinciri'nde"
+  },
+  "statusVaultKeychainBody": {
+    "message": "Kayıtlı oturumlar macOS Anahtar Zinciri'nde şifreli durur."
+  },
+  "statusVaultLocal": {
+    "message": "Oturumlar tarayıcıda saklanıyor"
+  },
+  "statusVaultLocalBody": {
+    "message": "Lanes uygulamasına ulaşılamadı. Oturumlar şimdilik eklentinin kendi deposunda. Lanes 1.1 ya da sonrasını kurup bir kez aç, oturumlar Anahtar Zinciri'ne taşınır."
+  },
+  "switchingTitle": {
+    "message": "Geçiş"
+  },
+  "timeDays": {
+    "message": "$1 gün önce"
+  },
+  "timeHours": {
+    "message": "$1 sa önce"
+  },
+  "timeJustNow": {
+    "message": "az önce"
+  },
+  "timeMinutes": {
+    "message": "$1 dk önce"
+  },
+  "tipBody": {
+    "message": "Bir tarayıcı profilinde aynı anda tek Claude hesabı açık olabilir. İki hesabı yan yana kullanmak için ikinci bir Chrome ya da Edge profili aç ve eklentiyi orada da kur. Claude in Chrome kendi girişini tutar, geçişten etkilenmez."
+  },
+  "tipTitle": {
+    "message": "İki hesabı aynı anda kullanmak"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "default_locale": "tr",
+  "name": "__MSG_extensionName__",
+  "short_name": "Lanes",
+  "description": "__MSG_extensionDescription__",
+  "version": "1.1.0",
+  "minimum_chrome_version": "120",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3tNDQiZnotIhhWEIAQ13psF8JI+6Z50oQiesBj/xGhixdlMXlhkZx/9qIJYOFkny3/HQvsezd17uxJG25Tfz3qFKjFYnpYc/yLpcnAYmK75i0YmCKKIE1rBX3mtgFvxzJiAgUH9iMBuwCNh0PfoNK/QQ1vG5qASEr3O1c0bxX5BpTiqldp5paXREr4CHHGBGbK0VrKWkCNzh6yxhp3G8YQWvt3eDxx+Sux5BQCUfqjUhWn87yO7K8buPb4dqig/dWMUn679hKbndFTV8MNkC3y7xwJNi9B5S+6rus97qpRu4hBDTy3ym3IiTWV27lLv8Kw0bwnywg6NLomDdCCR+XQIDAQAB",
+  "icons": {
+    "16": "icons/toolbar-16.png",
+    "32": "icons/toolbar-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["lib/core.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "__MSG_extensionName__",
+    "default_icon": {
+      "16": "icons/toolbar-16.png",
+      "32": "icons/toolbar-32.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+L" },
+      "description": "__MSG_commandOpen__"
+    },
+    "switch-next": {
+      "suggested_key": { "default": "Alt+Shift+J" },
+      "description": "__MSG_commandNext__"
+    },
+    "switch-previous": {
+      "suggested_key": { "default": "Alt+Shift+K" },
+      "description": "__MSG_commandPrevious__"
+    }
+  },
+  "permissions": ["cookies", "storage", "tabs", "contextMenus", "nativeMessaging"],
+  "host_permissions": ["https://claude.ai/*"]
+}

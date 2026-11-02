@@ -74,6 +74,10 @@ M = {
         "Safari oturum çerezini eklentiye göstermiyor, bu yüzden hesap değiştirilemiyor.",
         "Safari doesn't show the session cookie to extensions, so accounts can't be switched.",
     ),
+    "errorAuthFlow": (
+        "Bir sekmede bir uygulama Claude hesabınla giriş yapıyor (örneğin Claude in Chrome). Giriş bitince yeniden dene.",
+        "An app is signing in with your Claude account in a tab (for example Claude in Chrome). Try again when it's done.",
+    ),
     "hiddenTitle": ("Safari hesap değiştirmeye izin vermiyor", "Safari doesn't allow switching"),
     "hiddenBody": (
         "Bu Safari sürümü oturum çerezini eklentilere göstermiyor. Hesap rengi ve sekme işareti çalışmaya devam eder. Hesapları aynı anda kullanmak için her hesaba ayrı bir Safari profili aç.",

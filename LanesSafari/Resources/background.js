@@ -1,4 +1,4 @@
-// Lanes for Safari: background script. Keeps the account list, saves and
+// Lanes for Safari, Chrome and Edge: background script. Keeps the account list, saves and
 // restores claude.ai sessions, and keeps the toolbar badge and menus in step.
 "use strict";
 
@@ -6,7 +6,10 @@ if (typeof importScripts === "function" && typeof LanesCore === "undefined") imp
 
 const api = globalThis.browser || globalThis.chrome;
 const C = globalThis.LanesCore;
-const NATIVE_APP = "com.umutkdev.Lanes";
+// Safari ignores the name and talks to the app the extension came in. Chrome
+// and Edge look it up among the native hosts Lanes installs (platform.js).
+const PLATFORM = globalThis.LanesPlatform || { browser: "safari", nativeHost: "com.umutkdev.Lanes" };
+const NATIVE_APP = PLATFORM.nativeHost;
 const STATE_KEY = "lanes.state.v1";
 const DEFAULT_SETTINGS = {
   stripe: true, // thin bar in the account color at the top of claude.ai
@@ -293,6 +296,11 @@ async function switchTo(id, options) {
       throw new Error(t("errorNoSession", [target.name]));
     }
 
+    // Another app may be signing in with claude.ai in a tab (Claude in
+    // Chrome, Claude Code). Swapping the session under it would hand that
+    // app the wrong account, so wait until it is done.
+    if ((await claudeTabs()).some((tab) => C.isAuthFlowURL(tab.url))) throw new Error(t("errorAuthFlow"));
+
     const tab = await activeTab();
     const draft = options && typeof options.draft === "string" ? options.draft : state.settings.carryDraft ? await draftFrom(tab) : "";
 
@@ -331,12 +339,13 @@ async function moveTabs(current, draft) {
   const tabs = await claudeTabs();
   const focused = current && tabs.find((tab) => tab.id === current.id);
   for (const tab of tabs) {
+    if (C.isAuthFlowURL(tab.url)) continue;
     const url = C.urlAfterSwitch(tab.url, tab === focused ? draft : "");
     await api.tabs.update(tab.id, { url });
   }
   if (!focused) {
     const url = C.urlAfterSwitch(C.CLAUDE_ORIGIN + "/new", draft);
-    if (current && (current.url === "about:blank" || !current.url || current.url.startsWith("favorites:"))) {
+    if (current && (C.isBlankTabURL(current.url))) {
       await api.tabs.update(current.id, { url });
     } else {
       await api.tabs.create({ url });
@@ -365,6 +374,7 @@ async function addAccount() {
     if (tab && tab.url && C.isClaudeURL(tab.url)) await api.tabs.update(tab.id, { url });
     else await api.tabs.create({ url });
     for (const other of await claudeTabs()) {
+      if (C.isAuthFlowURL(other.url)) continue;
       if (!tab || other.id !== tab.id) await api.tabs.update(other.id, { url });
     }
     return { ok: true };
@@ -500,7 +510,9 @@ async function publicState() {
 
 // MARK: Wiring
 
-api.runtime.onMessage.addListener((message, sender) => {
+// Replies go through sendResponse: Chrome and Edge ignore a returned
+// promise, Safari takes both.
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const run = async () => {
     switch (message && message.type) {
       case "identity": return onIdentity(message);
@@ -520,7 +532,10 @@ api.runtime.onMessage.addListener((message, sender) => {
       default: return { ok: false, error: "unknown" };
     }
   };
-  return run().catch((error) => ({ ok: false, error: String(error && error.message || error) }));
+  run()
+    .catch((error) => ({ ok: false, error: String(error && error.message || error) }))
+    .then(sendResponse);
+  return true;
 });
 
 if (api.contextMenus) {

@@ -1,4 +1,4 @@
-// Lanes for Safari: toolbar popup.
+// Lanes for Safari, Chrome and Edge: toolbar popup.
 (function () {
   "use strict";
   const { api, t, localize, send, avatar, el, planLabel } = globalThis.LanesUI;
@@ -16,7 +16,7 @@
   async function load() {
     state = await send({ type: "getState" });
     render();
-    // The Lanes list can change while Safari runs; read it again quietly.
+    // The Lanes list can change while the browser runs; read it again quietly.
     send({ type: "refreshLanes" }).then((fresh) => {
       state = fresh;
       render();

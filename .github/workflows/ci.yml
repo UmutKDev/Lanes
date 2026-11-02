@@ -33,14 +33,25 @@ jobs:
         run: swift test --package-path Packages/LanesCore
 
   safari:
-    name: Safari extension (Node)
+    name: Browser extensions (Node)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - name: Syntax
-        run: for f in LanesSafari/Resources/*.js LanesSafari/Resources/*/*.js; do node --check "$f"; done
+        run: for f in LanesSafari/Resources/*.js LanesSafari/Resources/*/*.js LanesChrome/*.js LanesChrome/tools/*.js; do node --check "$f"; done
       - name: Test
         run: node --test LanesSafari/Tests/*.test.js
+      - name: Chrome and Edge texts match the Safari table
+        run: |
+          python3 LanesChrome/tools/make-assets.py
+          git diff --exit-code -- LanesChrome/_locales LanesSafari/Resources/_locales
+      - name: Chrome and Edge in Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+          node LanesChrome/tools/e2e-test.js
+      - name: Store ZIP
+        run: scripts/build-browser-extension.sh --store lanes-browser-extension.zip
 
   app:
     name: Build Lanes (Xcode ${{ matrix.xcode }})
