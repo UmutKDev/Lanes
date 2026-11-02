@@ -147,7 +147,33 @@ targets:
           - "Resources/**"
           - "Tests/**"
           - "*.md"
-      - path: LanesSafari/Resources
+      # Safari wants manifest.json at the top of the extension's Resources,
+      # so the web files are listed one by one and the folders they use are
+      # copied whole, keeping their paths.
+      - path: LanesSafari/Resources/manifest.json
+        buildPhase: resources
+      - path: LanesSafari/Resources/background.js
+        buildPhase: resources
+      - path: LanesSafari/Resources/content.js
+        buildPhase: resources
+      - path: LanesSafari/Resources/content.css
+        buildPhase: resources
+      - path: LanesSafari/Resources/_locales
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/lib
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/ui
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/popup
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/options
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/icons
         type: folder
         buildPhase: resources
     info:
