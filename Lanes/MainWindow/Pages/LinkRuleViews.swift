@@ -255,7 +255,7 @@ private struct LinkRuleEditor: View {
         return NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && $0.processIdentifier != ownPID && !claudePIDs.contains($0.processIdentifier) }
             .compactMap { app -> LinkSourceApp? in
-                guard let id = app.bundleIdentifier, id != ClaudeInstallation.bundleIdentifier, seen.insert(id).inserted else { return nil }
+                guard let id = app.bundleIdentifier, !ClaudeInstallation.isClaude(id), seen.insert(id).inserted else { return nil }
                 return LinkSourceApp(bundleIdentifier: id, name: app.localizedName ?? id)
             }
             .filter { app in !sourceApps.contains { $0.bundleIdentifier == app.bundleIdentifier } }

@@ -935,6 +935,8 @@ extension CloneRenewalReason {
             return String(localized: "simge değişti")
         case .dockSettingChanged:
             return String(localized: "Dock ayarı değişti")
+        case .sharedBundleID:
+            return String(localized: "macOS her geçişte izin soruyordu")
         case .unknownOrigin:
             return String(localized: "klonun kaydı yok")
         }
