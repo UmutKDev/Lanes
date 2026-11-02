@@ -253,7 +253,7 @@ final class AppModel {
         ) { [weak self] notification in
             let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             let pid = app?.processIdentifier
-            let isClaude = app?.bundleIdentifier == ClaudeInstallation.bundleIdentifier
+            let isClaude = ClaudeInstallation.isClaude(app?.bundleIdentifier)
             MainActor.assumeIsolated {
                 guard let self, let pid else { return }
                 // A Claude that just opened may not be in the list yet.
@@ -1223,8 +1223,9 @@ final class AppModel {
             }
             if current.hidesFromDock {
                 // Signing again takes a few seconds, so it runs off the main thread.
+                let bundleIdentifier = CloneRecord.bundleIdentifier(for: current.id)
                 try await Task.detached(priority: .userInitiated) {
-                    try CloneMaker.hideFromDock(temporary)
+                    try CloneMaker.hideFromDock(temporary, bundleIdentifier: bundleIdentifier)
                 }.value
                 guard self.profile(withID: profile.id) != nil else {
                     try? FileManager.default.removeItem(at: temporary)
@@ -2570,7 +2571,7 @@ final class AppModel {
     }
 
     private func isClaude(_ app: NSRunningApplication) -> Bool {
-        app.bundleIdentifier == ClaudeInstallation.bundleIdentifier
+        ClaudeInstallation.isClaude(app.bundleIdentifier)
             || instances.contains(where: { $0.pid == app.processIdentifier })
     }
 
@@ -2581,7 +2582,7 @@ final class AppModel {
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
               !instances.contains(where: { $0.pid == app.processIdentifier }),
               let bundleID = app.bundleIdentifier,
-              bundleID != ClaudeInstallation.bundleIdentifier,
+              !ClaudeInstallation.isClaude(bundleID),
               bundleID != Bundle.main.bundleIdentifier else { return nil }
         return LinkSourceApp(bundleIdentifier: bundleID, name: app.localizedName ?? bundleID)
     }

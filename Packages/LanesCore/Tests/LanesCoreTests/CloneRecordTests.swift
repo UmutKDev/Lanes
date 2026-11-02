@@ -43,6 +43,20 @@ final class CloneRecordTests: XCTestCase {
         XCTAssertEqual(CloneCheck.status(for: profile, bundleName: "Claude – İş.app", record: hiddenRecord, claudeVersion: "1"), .needsRenewal([.dockSettingChanged]))
     }
 
+    func testHiddenClonesGetTheirOwnBundleID() {
+        var hidden = profile
+        hidden.hidesFromDock = true
+        var old = CloneRecord(profile: hidden, claudeVersion: "1")
+        XCTAssertEqual(old.ownBundleID, true)
+        old.ownBundleID = nil
+        XCTAssertEqual(CloneCheck.status(for: hidden, bundleName: "Claude – İş.app", record: old, claudeVersion: "1"), .needsRenewal([.sharedBundleID]))
+        XCTAssertNil(CloneRecord(profile: profile, claudeVersion: "1").ownBundleID, "a clone in the Dock keeps Claude's identifier")
+        XCTAssertEqual(
+            CloneRecord.bundleIdentifier(for: ProfileID(rawValue: "D6997C6C-fa22 x/ç")),
+            "com.anthropic.claudefordesktop.lanes.d6997c6c-fa22x"
+        )
+    }
+
     func testHidesFromDockIsWrittenOnlyWhenSet() throws {
         let plain = String(data: try JSONEncoder().encode(profile), encoding: .utf8) ?? ""
         XCTAssertFalse(plain.contains("hidesFromDock"))

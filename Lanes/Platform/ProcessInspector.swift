@@ -29,7 +29,7 @@ enum RunningInstanceScanner {
         let known = Set(knownBundles.map(InstanceMatcher.normalize))
         return NSWorkspace.shared.runningApplications.compactMap { app -> RunningInstance? in
             let bundlePath = app.bundleURL.map { InstanceMatcher.normalize($0.path) }
-            let isClaude = app.bundleIdentifier == ClaudeInstallation.bundleIdentifier
+            let isClaude = ClaudeInstallation.isClaude(app.bundleIdentifier)
             let isKnownBundle = bundlePath.map { known.contains($0) } ?? false
             guard isClaude || isKnownBundle else { return nil }
             guard let arguments = ProcessInspector.arguments(of: app.processIdentifier) else { return nil }

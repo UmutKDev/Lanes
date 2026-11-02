@@ -81,13 +81,20 @@ enum CloneMaker {
     /// Anthropic's team entitlements go, and library validation is turned
     /// off so Claude's frameworks, still signed by Anthropic, load. The
     /// clone then asks for the keychain password once and shows no menus.
-    static func hideFromDock(_ bundle: URL) throws {
+    ///
+    /// The clone also gets its own bundle identifier, so macOS keeps its
+    /// privacy permissions apart from Claude's. Its URL schemes go: Claude
+    /// makes itself the `claude://` handler at launch, and a clone with its
+    /// own identifier would take sign-in links away from Claude and Lanes.
+    static func hideFromDock(_ bundle: URL, bundleIdentifier: String) throws {
         let infoURL = bundle.appendingPathComponent("Contents/Info.plist")
         let infoData = try Data(contentsOf: infoURL)
         guard var info = try PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any] else {
             throw Failure.signingFailed("Info.plist")
         }
         info["LSUIElement"] = true
+        info["CFBundleIdentifier"] = bundleIdentifier
+        info["CFBundleURLTypes"] = nil
         try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: infoURL, options: .atomic)
 
         var entitlements: [String: Any] = [:]
