@@ -10294,6 +10294,36 @@
           }
         }
       }
+    },
+    "Lanes artık Safari'de de": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes is in Safari now"
+          }
+        }
+      }
+    },
+    "Safari eklentisi claude.ai hesaplarını tek tıkla değiştirir. Her hesap kendi rengini taşır, oturumlar Anahtar Zinciri'nde saklanır. Açmak için Safari'de Lanes'in kutusunu işaretle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Safari extension switches claude.ai accounts with one click. Each account has its own color, and sessions are kept in the Keychain. To turn it on, tick Lanes in Safari."
+          }
+        }
+      }
+    },
+    "Şimdi Değil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Now"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

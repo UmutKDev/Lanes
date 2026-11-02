@@ -51,10 +51,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tabStripController = TabStripController(model: model, router: router)
         model.openStartupScenes()
         model.reopenLastAccountsIfWanted()
+        if !Preferences.onboardingDue {
+            Task { await offerSafariExtensionOnce() }
+        }
         Task { [model] in
             if await LegacyWebData.removeOnce() > 0 {
                 model.notice = AppModel.Notice(kind: .info, message: String(localized: "Hesaplar artık Claude uygulamasında kendi simgeleriyle açılıyor. Bu hesaplara bir kez yeniden giriş yapman gerekir."))
             }
+        }
+    }
+
+    /// The Safari extension comes inside Lanes, but Safari keeps new
+    /// extensions off until the user turns them on. Asks once, a little
+    /// after launch, when Safari already lists it and it is still off. With
+    /// the tour pending it waits for a later launch.
+    private func offerSafariExtensionOnce() async {
+        let key = "safariExtensionOffered"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
+        guard await SafariExtensionBridge.state() == .off else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Lanes artık Safari'de de")
+        alert.informativeText = String(localized: "Safari eklentisi claude.ai hesaplarını tek tıkla değiştirir. Her hesap kendi rengini taşır, oturumlar Anahtar Zinciri'nde saklanır. Açmak için Safari'de Lanes'in kutusunu işaretle.")
+        alert.addButton(withTitle: String(localized: "Safari'de Aç"))
+        alert.addButton(withTitle: String(localized: "Şimdi Değil"))
+        NSApp.activate()
+        if alert.runModal() == .alertFirstButtonReturn {
+            _ = await SafariExtensionBridge.openSafariSettings()
         }
     }
 
