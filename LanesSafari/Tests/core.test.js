@@ -52,6 +52,17 @@ test("findLanesProfile: manual link, e-mail match, or none", () => {
   assert.equal(C.findLanesProfile(null, { email: "me@x.io" }), null);
 });
 
+test("findLanesProfile: the claude.ai account id wins over the e-mail", () => {
+  const lanes = [
+    { id: "p1", name: "İş", accountUuid: "AAAA-1" },
+    { id: "p2", name: "Kişisel", email: "me@x.io", accountUuid: "bbbb-2" },
+  ];
+  assert.equal(C.findLanesProfile(lanes, { uuid: "aaaa-1", email: "me@x.io" }).id, "p1");
+  assert.equal(C.findLanesProfile(lanes, { uuid: "cccc-3", email: "me@x.io" }).id, "p2");
+  assert.equal(C.findLanesProfile(lanes, { uuid: "aaaa-1", lanesId: "none" }), null);
+  assert.equal(C.findLanesProfile(lanes, { uuid: "cccc-3" }), null);
+});
+
 test("cookies round-trip into cookies.set details", () => {
   const live = { name: "sessionKey", value: "sk", domain: ".claude.ai", hostOnly: false, path: "/", secure: true, httpOnly: true, sameSite: "lax", expirationDate: 2000000000, storeId: "0" };
   const saved = C.snapshotCookie(live);

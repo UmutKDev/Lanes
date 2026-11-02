@@ -103,6 +103,22 @@ final class BrowserNativeHostTests: XCTestCase {
         XCTAssertEqual(Set(accounts[0].keys), ["id", "name", "monogram", "color", "email"])
     }
 
+    func testAccountListCarriesWhatLanesKnowsAboutTheAccount() throws {
+        var work = Profile(id: ProfileID(rawValue: "w"), name: "İş", color: .purple)
+        work.email = "typed@example.com"
+        let home = Profile(id: ProfileID(rawValue: "h"), name: "Ev", color: .blue)
+        let data = BrowserNativeHost.accountList([work, home], identities: [
+            work.id: .init(email: "code@example.com", accountUuid: "1111-aaaa"),
+            home.id: .init(email: nil, accountUuid: "2222-bbbb"),
+        ])
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let accounts = try XCTUnwrap(object["accounts"] as? [[String: String]])
+        XCTAssertEqual(accounts[0]["email"], "code@example.com")
+        XCTAssertEqual(accounts[0]["accountUuid"], "1111-aaaa")
+        XCTAssertNil(accounts[1]["email"])
+        XCTAssertEqual(accounts[1]["accountUuid"], "2222-bbbb")
+    }
+
     func testExtensionIDMatchesTheManifestKey() throws {
         // The ID Chrome derives from the manifest key must be the one the host allows.
         let manifestURL = URL(fileURLWithPath: #filePath)

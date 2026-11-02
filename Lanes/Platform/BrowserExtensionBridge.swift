@@ -33,11 +33,11 @@ enum BrowserExtensionBridge {
     }
 
     /// Writes the list the host hands to the extension.
-    static func publish(_ profiles: [Profile], paths: ProfilePaths) {
+    static func publish(_ profiles: [Profile], identities: [ProfileID: BrowserNativeHost.Identity], paths: ProfilePaths) {
         let url = paths.root.appendingPathComponent(BrowserNativeHost.accountsFileName, isDirectory: false)
         do {
             try FileManager.default.createDirectory(at: paths.root, withIntermediateDirectories: true)
-            try BrowserNativeHost.accountList(profiles).write(to: url, options: .atomic)
+            try BrowserNativeHost.accountList(profiles, identities: identities).write(to: url, options: .atomic)
         } catch {
             Log.app.error("Browser account list not written: \(error.localizedDescription, privacy: .public)")
         }

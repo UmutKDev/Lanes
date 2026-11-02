@@ -5,8 +5,8 @@ import SafariServices
 /// Lanes's side of the Safari extension (LanesSafari). Lanes shares its
 /// account list through the app group folder, so the extension can give a
 /// claude.ai account the same name and color as its desktop twin and open it
-/// in Lanes. Only names, colors, monograms and e-mails are shared: never
-/// account folders, sessions or Claude data.
+/// in Lanes. Only names, colors, monograms, e-mails and claude.ai account
+/// numbers are shared: never account folders, sessions or Claude data.
 enum SafariExtensionBridge {
     static let extensionIdentifier = "com.umutkdev.Lanes.Safari"
     static let fileName = "SafariAccounts.json"
@@ -27,27 +27,12 @@ enum SafariExtensionBridge {
 
     /// Writes the list the extension reads. Archived accounts are left out.
     /// Failure only costs the name and color match, so it is logged, not shown.
-    static func publish(_ profiles: [Profile]) {
+    static func publish(_ profiles: [Profile], identities: [ProfileID: BrowserNativeHost.Identity]) {
         guard let folder = groupFolder else { return }
-        let accounts = profiles.map { profile -> [String: String] in
-            var entry = [
-                "id": profile.id.rawValue,
-                "name": profile.name,
-                "monogram": profile.monogram,
-                "color": profile.color.rawValue,
-            ]
-            if let email = profile.email, !email.isEmpty { entry["email"] = email }
-            return entry
-        }
-        let payload: [String: Any] = [
-            "version": 1,
-            "updatedAt": ISO8601DateFormatter().string(from: Date()),
-            "accounts": accounts,
-        ]
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: folder.appendingPathComponent(fileName), options: .atomic)
+            try BrowserNativeHost.accountList(profiles, identities: identities)
+                .write(to: folder.appendingPathComponent(fileName), options: .atomic)
         } catch {
             Log.app.error("Safari account list not written: \(error.localizedDescription, privacy: .public)")
         }

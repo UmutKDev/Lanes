@@ -110,9 +110,22 @@ public enum BrowserNativeHost {
 
     // MARK: Account list
 
-    /// What the extension gets as `lanes`: names, colors, monograms and
-    /// e-mails of active accounts. The same shape the Safari extension reads.
-    public static func accountList(_ profiles: [Profile], updatedAt: Date = Date()) -> Data {
+    /// What Lanes knows about an account's claude.ai identity: the e-mail
+    /// and the account number the desktop app (or Claude Code) is signed in
+    /// with. The extensions match their accounts to Lanes's by these.
+    public struct Identity: Equatable, Sendable {
+        public var email: String?
+        public var accountUuid: String?
+        public init(email: String? = nil, accountUuid: String? = nil) {
+            self.email = email
+            self.accountUuid = accountUuid
+        }
+    }
+
+    /// What the extensions get as `lanes`: names, colors, monograms, e-mails
+    /// and claude.ai account numbers of active accounts. Safari reads the
+    /// same shape from the app group folder.
+    public static func accountList(_ profiles: [Profile], identities: [ProfileID: Identity] = [:], updatedAt: Date = Date()) -> Data {
         let accounts = profiles.filter { !$0.isArchived }.map { profile -> [String: String] in
             var entry = [
                 "id": profile.id.rawValue,
@@ -120,7 +133,9 @@ public enum BrowserNativeHost {
                 "monogram": profile.monogram,
                 "color": profile.color.rawValue,
             ]
-            if let email = profile.email, !email.isEmpty { entry["email"] = email }
+            let identity = identities[profile.id]
+            if let email = identity?.email ?? profile.email, !email.isEmpty { entry["email"] = email }
+            if let uuid = identity?.accountUuid, !uuid.isEmpty { entry["accountUuid"] = uuid }
             return entry
         }
         let formatter = ISO8601DateFormatter()

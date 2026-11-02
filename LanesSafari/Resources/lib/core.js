@@ -137,9 +137,17 @@
       const linked = lanesAccounts.find((p) => p.id === account.lanesId);
       if (linked) return linked;
     }
+    if (account.lanesId === "none") return null;
+    // The claude.ai account id is the surest match: Lanes reads it from the
+    // desktop app's settings, so it works even when Lanes has no e-mail.
+    const uuid = str(account.uuid).toLowerCase();
+    if (uuid) {
+      const same = lanesAccounts.find((p) => p && str(p.accountUuid).toLowerCase() === uuid);
+      if (same) return same;
+    }
     const email = normalizeEmail(account.email);
-    if (!email || account.lanesId === "none") return null;
-    return lanesAccounts.find((p) => normalizeEmail(p.email) === email) || null;
+    if (!email) return null;
+    return lanesAccounts.find((p) => p && normalizeEmail(p.email) === email) || null;
   }
 
   // MARK: Cookies
