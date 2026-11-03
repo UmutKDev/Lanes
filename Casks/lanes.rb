@@ -18,7 +18,7 @@ cask "lanes" do
   homepage "https://github.com/UmutKDev/Lanes"
 
   auto_updates true
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :tahoe
 
   app "Lanes.app"
 
