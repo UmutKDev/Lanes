@@ -53,6 +53,33 @@ jobs:
       - name: Store ZIP
         run: scripts/build-browser-extension.sh --store lanes-browser-extension.zip
 
+  cask:
+    name: Homebrew cask
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Style
+        run: brew style --cask Casks/lanes.rb
+      # Installs the latest release the way users do, from this checkout as
+      # the tap, then removes it again.
+      - name: Install and uninstall
+        run: |
+          set -euo pipefail
+          # Releases before 1.1.4 have no Lanes.dmg yet.
+          if ! curl -fsIL -o /dev/null https://github.com/UmutKDev/Lanes/releases/latest/download/Lanes.dmg; then
+            echo "::warning::Son sürümde Lanes.dmg yok, kurulum denenmedi."
+            exit 0
+          fi
+          brew tap umutkdev/lanes "$GITHUB_WORKSPACE"
+          brew audit --cask --online umutkdev/lanes/lanes || echo "::warning::brew audit uyarı verdi."
+          brew install --cask umutkdev/lanes/lanes
+          test -d /Applications/Lanes.app
+          codesign --verify --deep --strict /Applications/Lanes.app
+          spctl --assess --type execute --verbose=4 /Applications/Lanes.app
+          brew uninstall --cask lanes
+          test ! -e /Applications/Lanes.app
+
   app:
     name: Build Lanes (Xcode ${{ matrix.xcode }})
     runs-on: ${{ startsWith(matrix.xcode, '26') && 'macos-26' || 'xcode-27' }}
@@ -89,6 +116,18 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log
+      # The Mac App Store app with the Safari extension (scripts/app-store.sh).
+      - name: Build Lanes for Safari
+        shell: bash
+        run: |
+          xcodebuild \
+            -project Lanes.xcodeproj \
+            -scheme LanesForSafari \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build-store.log
       # Release is what users get, so it has to compile too. Signing is off:
       # CI has no Developer ID certificate. Only Xcode 27 makes releases.
       # Pull requests skip it; make release on the Mac builds Release anyway.
@@ -117,7 +156,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          logs=$(ls build.log build-release.log 2>/dev/null || true)
+          logs=$(ls build.log build-store.log build-release.log 2>/dev/null || true)
           [ -n "$logs" ] || exit 0
           grep -hE "(error|warning): " $logs | sort -u | head -100 || true
           if grep -qE "\.swift:[0-9]+:[0-9]+: warning: " $logs; then

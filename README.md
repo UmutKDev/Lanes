@@ -16,6 +16,19 @@ Lanes hiçbir hesabın giriş bilgisini, çerezini ya da Anahtar Zinciri kaydın
 - **Safari eklentisi:** claude.ai hesaplarını Safari'de tek tıkla değiştirir. Her hesabın oturumu Anahtar Zinciri'nde saklanır, sayfa ve sekme hesabın rengini taşır, yazılmakta olan mesaj yeni hesaba taşınır. E-postası aynı olan hesaplar Lanes'teki adını ve rengini alır, "Masaüstünde Aç" aynı hesabın Claude uygulamasını açar.
 - **Türkçe ve English:** Lanes Türkçe ve İngilizce kullanılabilir. Dil Ayarlar'dan değiştirilir.
 
+## Kurulum
+
+[Son sürümün](https://github.com/UmutKDev/Lanes/releases/latest) DMG'sini indirip Lanes'i Uygulamalar klasörüne sürükle. Homebrew ile de kurulur:
+
+```sh
+brew tap umutkdev/lanes https://github.com/UmutKDev/Lanes
+brew install --cask lanes
+```
+
+Lanes kendini Sparkle ile güncellediği için `brew upgrade` ona dokunmaz.
+
+Lanes Mac App Store'da yok, çünkü Claude'u kopyalayıp yeniden imzalaması, Erişilebilirlik ve Apple Event kullanması App Store'un zorunlu tuttuğu sandbox'ta (kum havuzu) yapılamıyor. Safari eklentisi ise App Store için ayrı ve küçük bir "Lanes for Safari" uygulamasıyla hazırlanıyor. Ayrıntılar: [docs/app-store.md](docs/app-store.md)
+
 Kurulum ve kullanım için: [docs/kullanim-kilavuzu.md](docs/kullanim-kilavuzu.md)
 
 ## Derleme
@@ -73,8 +86,10 @@ Sürüm çıkmadan önce iki denetim yapılır. Derleme numarası yayımlanmış
 | `Lanes/Platform` | macOS ile konuşan katman: Claude'u açma, çalışan pencereleri bulma, Apple Event, klon, Lanes'in imza türü. |
 | `Lanes/Shared` | Ekranların ortak kullandığı parçalar: ayar anahtarları ve hesap renklerinin karşılıkları. |
 | `LanesSafari` | Safari eklentisi. `Resources` web kısmı (manifest, betikler, açılır pencere), Swift kısmı yalnız Anahtar Zinciri'ni ve Lanes'in paylaştığı hesap listesini kullanır. Testler: `node --test LanesSafari/Tests/*.test.js` |
+| `LanesForSafari` | Mac App Store'daki "Lanes for Safari" uygulaması. Yalnız Safari eklentisini taşır ve nasıl açılacağını gösterir. Eklentinin kodu `LanesSafari` ile aynı. |
+| `Casks` | Homebrew cask'ı. Depo aynı zamanda tap olarak kullanılır. |
 | `Config` | İmza ayarları (Debug ve Release ayrı) ve Developer ID dışa aktarma ayarları. |
-| `scripts` | `make release` betiği, GitHub secret'larını kuran `setup-release-secrets.sh` ve uygulama simgesini çizen `make-icon.py`. |
+| `scripts` | `make release` betiği, App Store'a yükleyen `app-store.sh`, GitHub secret'larını kuran `setup-release-secrets.sh` ve uygulama simgesini çizen `make-icon.py`. |
 
 Testler: `make core-test`
 

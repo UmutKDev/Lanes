@@ -1,0 +1,89 @@
+name: App Store
+
+# Builds "Lanes for Safari" (the Safari extension in a small sandboxed app)
+# and uploads it to App Store Connect with scripts/app-store.sh. Lanes itself
+# is released by the Release workflow and stays outside the store.
+# It only runs by hand: Actions > App Store > Run workflow. Submitting the
+# uploaded build for review stays a step in App Store Connect.
+#
+# Repository secrets it needs (Settings > Secrets and variables > Actions):
+#   ASC_KEY_ID      App Store Connect API key ID (Team key, Admin role)
+#   ASC_ISSUER_ID   the issuer ID shown above the key list
+#   ASC_KEY_P8      the contents of the downloaded AuthKey_<ID>.p8
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "App Store Connect'e yükle (kapalıysa yalnız paketi derleme çıktısı olarak bırakır)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-store
+  cancel-in-progress: false
+
+jobs:
+  app-store:
+    name: Build and upload Lanes for Safari
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+    steps:
+      - name: Only from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Mağaza sürümü yalnız main'den çıkar. Run workflow'da main dalını seç."
+          exit 1
+
+      # The whole history, because the build number is the commit count.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: API key
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "$KEY_ID" ] || missing="$missing ASC_KEY_ID"
+          [ -n "$ISSUER_ID" ] || missing="$missing ASC_ISSUER_ID"
+          [ -n "$KEY_P8" ] || missing="$missing ASC_KEY_P8"
+          if [ -n "$missing" ]; then
+            echo "::error::Eksik secret:$missing"
+            exit 1
+          fi
+          umask 077
+          key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          printf '%s\n' "$KEY_P8" >"$key"
+          echo "ASC_KEY_ID=$KEY_ID" >>"$GITHUB_ENV"
+          echo "ASC_ISSUER_ID=$ISSUER_ID" >>"$GITHUB_ENV"
+          echo "ASC_KEY_FILE=$key" >>"$GITHUB_ENV"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Build and upload
+        env:
+          LANES_UPLOAD: ${{ inputs.upload && '1' || '' }}
+        run: scripts/app-store.sh
+
+      - name: Keep the package
+        if: ${{ !inputs.upload }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lanes-for-safari
+          path: build/app-store/*/export/*.pkg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean up
+        if: always()
+        run: rm -fP "$RUNNER_TEMP"/AuthKey_*.p8 2>/dev/null || true

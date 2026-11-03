@@ -1,0 +1,7 @@
+// Mac App Store builds of "Lanes for Safari" (LanesForSafari and
+// LanesForSafariExtension). Xcode signs them automatically for the team.
+// scripts/app-store.sh archives with an App Store Connect API key, so Xcode
+// makes the Apple Distribution certificate and the store profiles itself.
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = Apple Development
+DEVELOPMENT_TEAM = TN6A8RCVKP

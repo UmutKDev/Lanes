@@ -279,10 +279,10 @@
     "message": "E-postası aynı olan web hesapları Lanes'teki adını ve rengini alır."
   },
   "statusNoLanes": {
-    "message": "Lanes hesap listesi yok"
+    "message": "Lanes masaüstü uygulaması bağlı değil"
   },
   "statusNoLanesBody": {
-    "message": "Lanes'i aç. Hesap listesini eklentiyle paylaşır, böylece adlar ve renkler eşleşir."
+    "message": "Eklenti onsuz da çalışır. Lanes masaüstü uygulaması açıksa hesap listesini paylaşır, böylece adlar ve renkler eşleşir."
   },
   "statusSwitchOK": {
     "message": "Hesap değiştirme çalışıyor"

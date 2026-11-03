@@ -11,7 +11,7 @@ options:
   groupSortPosition: top
 settings:
   base:
-    MARKETING_VERSION: "1.1.3"
+    MARKETING_VERSION: "1.1.4"
     CURRENT_PROJECT_VERSION: "1"
 packages:
   LanesCore:
@@ -21,6 +21,78 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.7.0"
+targetTemplates:
+  # Safari Web Extension for using several claude.ai accounts in Safari.
+  # The web part (manifest, scripts, popup) is in LanesSafari/Resources and is
+  # copied as a folder; the native part only keeps saved sessions in the
+  # Keychain and reads the account list Lanes shares. Used by LanesSafari
+  # (inside Lanes.app) and LanesForSafariExtension (Mac App Store).
+  SafariWebExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: LanesSafari
+        excludes:
+          - "Resources/**"
+          - "Tests/**"
+          - "*.md"
+          - "Info.plist"
+          - "*.entitlements"
+      # Safari wants manifest.json at the top of the extension's Resources,
+      # so the web files are listed one by one and the folders they use are
+      # copied whole, keeping their paths.
+      - path: LanesSafari/Resources/manifest.json
+        buildPhase: resources
+      - path: LanesSafari/Resources/background.js
+        buildPhase: resources
+      - path: LanesSafari/Resources/content.js
+        buildPhase: resources
+      - path: LanesSafari/Resources/content.css
+        buildPhase: resources
+      - path: LanesSafari/Resources/_locales
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/lib
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/ui
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/popup
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/options
+        type: folder
+        buildPhase: resources
+      - path: LanesSafari/Resources/icons
+        type: folder
+        buildPhase: resources
+    info:
+      path: ${target_name}/Info.plist
+      properties:
+        CFBundleDisplayName: Lanes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "© 2026 Umut Kızıloğlu. MIT lisansıyla."
+        LanesAppGroup: $(TeamIdentifierPrefix)com.umutkdev.Lanes
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+    entitlements:
+      path: ${target_name}/${target_name}.entitlements
+      properties:
+        # Safari only loads sandboxed extensions.
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(TeamIdentifierPrefix)com.umutkdev.Lanes
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        ENABLE_HARDENED_RUNTIME: YES
+        DEAD_CODE_STRIPPING: YES
+        SKIP_INSTALL: YES
 targets:
   Lanes:
     type: application
@@ -148,79 +220,69 @@ targets:
           if [ -n "$changes" ]; then dirty=true; else dirty=false; fi
           "$buddy" -c "Add :LanesGitTreeDirty bool $dirty" "$plist" >/dev/null 2>&1
           exit 0
-  # Safari Web Extension for using several claude.ai accounts in Safari.
-  # The web part (manifest, scripts, popup) is in LanesSafari/Resources and is
-  # copied as a folder; the native part only keeps saved sessions in the
-  # Keychain and reads the account list Lanes shares.
+  # Safari Web Extension for using several claude.ai accounts in Safari,
+  # embedded in Lanes.app. Its parts are in the SafariWebExtension template.
   LanesSafari:
-    type: app-extension
-    platform: macOS
+    templates: [SafariWebExtension]
     configFiles:
       Debug: Config/Debug.xcconfig
       Release: Config/Release.xcconfig
-    sources:
-      - path: LanesSafari
-        excludes:
-          - "Resources/**"
-          - "Tests/**"
-          - "*.md"
-      # Safari wants manifest.json at the top of the extension's Resources,
-      # so the web files are listed one by one and the folders they use are
-      # copied whole, keeping their paths.
-      - path: LanesSafari/Resources/manifest.json
-        buildPhase: resources
-      - path: LanesSafari/Resources/background.js
-        buildPhase: resources
-      - path: LanesSafari/Resources/content.js
-        buildPhase: resources
-      - path: LanesSafari/Resources/content.css
-        buildPhase: resources
-      - path: LanesSafari/Resources/_locales
-        type: folder
-        buildPhase: resources
-      - path: LanesSafari/Resources/lib
-        type: folder
-        buildPhase: resources
-      - path: LanesSafari/Resources/ui
-        type: folder
-        buildPhase: resources
-      - path: LanesSafari/Resources/popup
-        type: folder
-        buildPhase: resources
-      - path: LanesSafari/Resources/options
-        type: folder
-        buildPhase: resources
-      - path: LanesSafari/Resources/icons
-        type: folder
-        buildPhase: resources
-    info:
-      path: LanesSafari/Info.plist
-      properties:
-        CFBundleDisplayName: Lanes
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSHumanReadableCopyright: "© 2026 Umut Kızıloğlu. MIT lisansıyla."
-        LanesAppGroup: $(TeamIdentifierPrefix)com.umutkdev.Lanes
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.Safari.web-extension
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
-    entitlements:
-      path: LanesSafari/LanesSafari.entitlements
-      properties:
-        # Safari only loads sandboxed extensions.
-        com.apple.security.app-sandbox: true
-        com.apple.security.application-groups:
-          - $(TeamIdentifierPrefix)com.umutkdev.Lanes
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.Lanes.Safari
         PRODUCT_NAME: LanesSafari
+  # The same extension for the Mac App Store, inside "Lanes for Safari"
+  # (LanesForSafari). Same code and web files, its own bundle id.
+  LanesForSafariExtension:
+    templates: [SafariWebExtension]
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Store.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.LanesForSafari.Extension
+        PRODUCT_NAME: LanesForSafariExtension
+  # Small sandboxed app for the Mac App Store that only carries the Safari
+  # extension and shows how to turn it on. Lanes itself can't be sandboxed
+  # (it copies and re-signs Claude, uses Accessibility and Apple Events), so
+  # it stays outside the store.
+  LanesForSafari:
+    type: application
+    platform: macOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Store.xcconfig
+    sources:
+      - path: LanesForSafari
+      - path: Lanes/Assets.xcassets
+    dependencies:
+      - target: LanesForSafariExtension
+        embed: true
+    info:
+      path: LanesForSafari/Info.plist
+      properties:
+        CFBundleDisplayName: Lanes for Safari
+        CFBundleLocalizations: [tr, en]
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "© 2026 Umut Kızıloğlu. MIT lisansıyla."
+        # Only HTTPS through Apple's own frameworks: no export paperwork.
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: LanesForSafari/LanesForSafari.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.umutkdev.LanesForSafari
+        PRODUCT_NAME: Lanes for Safari
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
         SWIFT_STRICT_CONCURRENCY: minimal
         ENABLE_HARDENED_RUNTIME: YES
         DEAD_CODE_STRIPPING: YES
-        SKIP_INSTALL: YES
   # Native messaging host for the Lanes extension in Chrome and Edge. Keeps
   # saved claude.ai sessions in the Keychain and reads the account list Lanes
   # shares. The logic is in LanesCore (BrowserNativeHost).
@@ -250,6 +312,16 @@ schemes:
     build:
       targets:
         Lanes: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  # The Mac App Store app with the Safari extension. scripts/app-store.sh
+  # archives it; the Lanes scheme never builds it.
+  LanesForSafari:
+    build:
+      targets:
+        LanesForSafari: all
     run:
       config: Debug
     archive:

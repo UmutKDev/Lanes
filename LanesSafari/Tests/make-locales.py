@@ -130,10 +130,10 @@ M = {
         "E-postası aynı olan web hesapları Lanes'teki adını ve rengini alır.",
         "Web accounts with the same e-mail take their name and color from Lanes.",
     ),
-    "statusNoLanes": ("Lanes hesap listesi yok", "No Lanes account list"),
+    "statusNoLanes": ("Lanes masaüstü uygulaması bağlı değil", "Lanes desktop app not connected"),
     "statusNoLanesBody": (
-        "Lanes'i aç. Hesap listesini eklentiyle paylaşır, böylece adlar ve renkler eşleşir.",
-        "Open Lanes. It shares its account list with the extension so names and colors match.",
+        "Eklenti onsuz da çalışır. Lanes masaüstü uygulaması açıksa hesap listesini paylaşır, böylece adlar ve renkler eşleşir.",
+        "The extension works without it. When the Lanes desktop app is open, it shares its account list so names and colors match.",
     ),
     "pageMarksTitle": ("claude.ai'de hesap işareti", "Account marks on claude.ai"),
     "settingStripe": ("Renkli şerit", "Color bar"),
