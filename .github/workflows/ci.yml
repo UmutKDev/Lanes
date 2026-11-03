@@ -59,10 +59,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+      # Homebrew only reads casks from a tap, so this checkout becomes one.
+      - name: Tap this checkout
+        run: brew tap umutkdev/lanes "$GITHUB_WORKSPACE"
       - name: Style
-        run: brew style --cask Casks/lanes.rb
-      # Installs the latest release the way users do, from this checkout as
-      # the tap, then removes it again.
+        run: brew style --cask umutkdev/lanes/lanes
+      # Installs the latest release the way users do, then removes it again.
       - name: Install and uninstall
         run: |
           set -euo pipefail
@@ -71,7 +73,6 @@ jobs:
             echo "::warning::Son sürümde Lanes.dmg yok, kurulum denenmedi."
             exit 0
           fi
-          brew tap umutkdev/lanes "$GITHUB_WORKSPACE"
           brew audit --cask --online umutkdev/lanes/lanes || echo "::warning::brew audit uyarı verdi."
           brew install --cask umutkdev/lanes/lanes
           test -d /Applications/Lanes.app
