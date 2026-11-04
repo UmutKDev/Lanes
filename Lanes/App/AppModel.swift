@@ -113,6 +113,8 @@ final class AppModel {
     /// read from its `config.json` (only `lastKnownAccountUuid`, never the
     /// sign-in keys in the same file).
     private(set) var desktopAccountUuids: [ProfileID: String] = [:]
+    /// Recent session moves to other accounts, newest first, for undo.
+    private(set) var sessionMoves: [SessionMove] = SessionMoveLog.decode(UserDefaults.standard.data(forKey: AppModel.sessionMovesKey))
     /// Memory and CPU of each open account's Claude, read every few seconds.
     private(set) var resourceUsage: [ProfileID: ResourceUsage] = [:]
     /// When each open account was last in front or opened, for quitting
@@ -1558,15 +1560,37 @@ final class AppModel {
         let recordsFolder: URL? = record == nil ? nil : targetData.flatMap {
             DesktopSessionHandoff.recordsFolder(inDesktopData: $0, accountUuid: desktopAccountUuids[target.id])
         }
+        // Everything Lanes creates in the target, so the move can be undone.
+        var created: [String] = []
         if let handoff {
-            guard copySessionFiles(handoff, to: target) else { return }
+            guard let copied = copySessionFiles(handoff, to: target) else { return }
+            created += copied
             if let record, recordsFolder != nil {
                 // Earlier parts of the same conversation, when the record
                 // names them, so the Code tab shows the whole history.
                 let related = DesktopSessionHandoff.relatedSessionIDs(record: record, mainSessionID: session.id)
-                SharedSessionCopy.copy(SharedSessionCopy.plan(sessionIDs: related, sharedProjects: sourceProjects, targetProjects: targetProjects))
+                let items = SharedSessionCopy.plan(sessionIDs: related, sharedProjects: sourceProjects, targetProjects: targetProjects)
+                SharedSessionCopy.copy(items)
+                for item in items where FileManager.default.fileExists(atPath: item.handoff.destinationFile.path) {
+                    created.append(item.handoff.destinationFile.path)
+                    if item.hasFolder { created.append(item.handoff.destinationFolder.path) }
+                }
             }
             Log.app.info("Copied a Claude Code session to another account")
+        }
+        func remember(addedToCodeTab: Bool) {
+            guard !created.isEmpty else { return }
+            let move = SessionMove(
+                date: Date(),
+                sourceID: source.id,
+                targetID: target.id,
+                project: ClaudeCodeProjectName.name(forFolderName: session.projectFolderName),
+                title: record?.object["title"] as? String,
+                addedToCodeTab: addedToCodeTab,
+                created: created
+            )
+            sessionMoves = SessionMoveLog.adding(move, to: sessionMoves)
+            UserDefaults.standard.set(SessionMoveLog.encode(sessionMoves), forKey: Self.sessionMovesKey)
         }
         if let record, let recordsFolder {
             // Moved there before (or back and forth): the target's Code tab
@@ -1577,15 +1601,19 @@ final class AppModel {
             }
             let localID = UUID()
             do {
-                _ = try DesktopSessionHandoff.write(DesktopSessionHandoff.transplant(record.object, localID: localID, now: Date()), localID: localID, into: recordsFolder)
+                let written = try DesktopSessionHandoff.write(DesktopSessionHandoff.transplant(record.object, localID: localID, now: Date()), localID: localID, into: recordsFolder)
+                created.append(written.path)
             } catch {
+                remember(addedToCodeTab: false)
                 notice = Notice(kind: .error, message: String(localized: "Oturum \(target.name) hesabının Code sekmesine eklenemedi: \(error.localizedDescription)"))
                 return
             }
             Log.app.info("Added a Code tab session record to another account")
+            remember(addedToCodeTab: true)
             showInCodeTab(target)
             return
         }
+        remember(addedToCodeTab: false)
         if record != nil {
             notice = Notice(kind: .info, message: String(localized: "\(target.name) hesabının Claude uygulamasında Code sekmesi henüz hiç açılmamış. Oturum Terminal'de sürüyor. Code sekmesine bir kez girersen sonraki taşımalar orada açılır."))
         }
@@ -1597,7 +1625,7 @@ final class AppModel {
     /// part of the same conversation is replaced by the newer one; anything
     /// else there is the target's own session, which Lanes never
     /// overwrites. Returns whether the session is in place.
-    private func copySessionFiles(_ handoff: SessionHandoff, to target: Profile) -> Bool {
+    private func copySessionFiles(_ handoff: SessionHandoff, to target: Profile) -> [String]? {
         let manager = FileManager.default
         do {
             let attributes = try manager.attributesOfItem(atPath: handoff.sourceFile.path)
@@ -1612,7 +1640,7 @@ final class AppModel {
                 guard isUntouchedHandoffCopy(handoff.destinationFile, attributes: existing)
                     || SessionHandoff.isEarlierPart(handoff.destinationFile, of: handoff.sourceFile) else {
                     notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kaydı zaten var, değiştirilmedi. O hesapta Sürdür ile açabilirsin."))
-                    return false
+                    return nil
                 }
                 try manager.removeItem(at: handoff.destinationFile)
                 if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
@@ -1620,19 +1648,21 @@ final class AppModel {
                 }
             } else if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
                 notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kaydı zaten var, değiştirilmedi. O hesapta Sürdür ile açabilirsin."))
-                return false
+                return nil
             }
             try manager.copyItem(at: handoff.sourceFile, to: handoff.destinationFile)
+            var created = [handoff.destinationFile.path]
             var isDirectory: ObjCBool = false
             if manager.fileExists(atPath: handoff.sourceFolder.path, isDirectory: &isDirectory), isDirectory.boolValue,
                (try? manager.destinationOfSymbolicLink(atPath: handoff.sourceFolder.path)) == nil {
                 try manager.copyItem(at: handoff.sourceFolder, to: handoff.destinationFolder)
+                created.append(handoff.destinationFolder.path)
             }
             rememberHandoffCopy(handoff.destinationFile)
-            return true
+            return created
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Oturum \(target.name) hesabına kopyalanamadı: \(error.localizedDescription)"))
-            return false
+            return nil
         }
     }
 
@@ -1640,7 +1670,7 @@ final class AppModel {
     /// reads its Code session list when it starts, so a running app is
     /// restarted, after asking, since it may be busy.
     private func showInCodeTab(_ target: Profile) {
-        let done = String(localized: "Oturum \(target.name) hesabının Code sekmesinde, kendi projesinin altında.")
+        let done = String(localized: "Oturum \(target.name) hesabının Code sekmesinde, kendi projesinin altında. Geri almak için: Oturumlar > Son Taşımalar.")
         guard isRunning(target) else {
             notice = Notice(kind: .info, message: done)
             open(target)
@@ -1664,6 +1694,64 @@ final class AppModel {
             notice = Notice(kind: .info, message: done)
             await openAndWait(target)
         }
+    }
+
+    // MARK: Undoing a move
+
+    nonisolated static let sessionMovesKey = "sessionMoves"
+
+    /// Takes a move back: the files Lanes created in the target account go
+    /// to the Trash (never deleted outright), and the target app, which
+    /// keeps its Code session list while it runs, is restarted after
+    /// asking. The original session in the source account was never
+    /// changed, so nothing there needs undoing.
+    func undoMove(_ move: SessionMove) {
+        guard let target = profile(withID: move.targetID) else {
+            forgetMove(move)
+            return
+        }
+        let roots = [paths.claudeCodeConfigDirectory(for: target), paths.desktopDataDirectory(for: target)].compactMap { $0 }
+        let removable = move.removablePaths(allowedRoots: roots)
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Taşıma geri alınsın mı?")
+        alert.informativeText = move.addedToCodeTab && isRunning(target)
+            ? String(localized: "Lanes'in \(target.name) hesabına kopyaladığı oturum Çöp Sepeti'ne gider. O hesapta oturumda sonradan yazılanlar da onunla gider. \(target.name) kapatılıp yeniden açılır.")
+            : String(localized: "Lanes'in \(target.name) hesabına kopyaladığı oturum Çöp Sepeti'ne gider. O hesapta oturumda sonradan yazılanlar da onunla gider. Asıl oturum yerinde kalır.")
+        alert.addButton(withTitle: String(localized: "Geri Al"))
+        alert.addButton(withTitle: String(localized: "Vazgeç"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let wasRunning = isRunning(target)
+        Task {
+            // The app would write the record back if it ran meanwhile.
+            if move.addedToCodeTab && wasRunning {
+                quit(target)
+                for _ in 0..<20 where isRunning(target) {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    refreshInstances()
+                }
+            }
+            var failed = 0
+            for path in removable where FileManager.default.fileExists(atPath: path) {
+                do {
+                    try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
+                } catch {
+                    failed += 1
+                }
+            }
+            forgetMove(move)
+            Log.app.info("Undid a session move, \(failed, privacy: .public) items failed")
+            notice = failed == 0
+                ? Notice(kind: .info, message: String(localized: "Taşıma geri alındı. Kopya Çöp Sepeti'nde."))
+                : Notice(kind: .warning, message: String(localized: "Taşıma geri alındı ama \(failed) öğe Çöp Sepeti'ne taşınamadı."))
+            if move.addedToCodeTab && wasRunning {
+                await openAndWait(target)
+            }
+        }
+    }
+
+    func forgetMove(_ move: SessionMove) {
+        sessionMoves.removeAll { $0.id == move.id }
+        UserDefaults.standard.set(SessionMoveLog.encode(sessionMoves), forKey: Self.sessionMovesKey)
     }
 
     /// "Limite Takıldı, taşı": the account rests for Claude's usage window

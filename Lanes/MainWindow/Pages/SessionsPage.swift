@@ -94,6 +94,9 @@ struct SessionsPage: View {
                 .fixedSize()
             }
             ToolbarItem(placement: .primaryAction) {
+                MovesMenu()
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     Task { await load() }
                 } label: {
@@ -394,6 +397,38 @@ private struct MonogramStack: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(profiles.map(\.name).formatted(.list(type: .and))))
+    }
+}
+
+/// "Son Taşımalar": the recent moves to other accounts, each one with a
+/// way back.
+private struct MovesMenu: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Menu {
+            if model.sessionMoves.isEmpty {
+                Text("Henüz taşınan oturum yok.")
+            } else {
+                Section("Geri almak için seç") {
+                    ForEach(model.sessionMoves) { move in
+                        Button(label(for: move)) {
+                            model.undoMove(move)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label("Son Taşımalar", systemImage: "arrow.uturn.backward.circle")
+        }
+        .help("Başka hesaba taşınan oturumlar. Birini seçince taşıma geri alınır.")
+    }
+
+    private func label(for move: SessionMove) -> String {
+        let name = move.title ?? move.project
+        let target = model.profile(withID: move.targetID)?.name ?? "?"
+        let date = move.date.formatted(.relative(presentation: .named))
+        return String(localized: "\(name) → \(target) (\(date))")
     }
 }
 

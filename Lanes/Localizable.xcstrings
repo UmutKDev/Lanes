@@ -10465,26 +10465,6 @@
         }
       }
     },
-    "Oturum %@ hesabının Code sekmesinde, kendi projesinin altında.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The session is in %@'s Code tab, under its project."
-          }
-        }
-      }
-    },
-    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır. Oturumlar sayfası, Code sekmesinde başlayan oturumların başlığını uygulamanın kaydından alıp yalnız orada gösterir.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte. The Sessions page shows the title of sessions started in the Code tab, taken from the app's record and shown only there."
-          }
-        }
-      }
-    },
     "Hangi hesapta sürsün?": {
       "localizations": {
         "en": {
@@ -10541,6 +10521,136 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · Code tab · %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabının Code sekmesinde, kendi projesinin altında. Geri almak için: Oturumlar > Son Taşımalar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session is in %@'s Code tab, under its project. To undo: Sessions > Recent Moves."
+          }
+        }
+      }
+    },
+    "Taşıma geri alınsın mı?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo the move?"
+          }
+        }
+      }
+    },
+    "Lanes'in %@ hesabına kopyaladığı oturum Çöp Sepeti'ne gider. O hesapta oturumda sonradan yazılanlar da onunla gider. %@ kapatılıp yeniden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session Lanes copied to %1$@ goes to the Trash, along with anything added to it there since. %2$@ will quit and open again."
+          }
+        }
+      }
+    },
+    "Lanes'in %@ hesabına kopyaladığı oturum Çöp Sepeti'ne gider. O hesapta oturumda sonradan yazılanlar da onunla gider. Asıl oturum yerinde kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session Lanes copied to %@ goes to the Trash, along with anything added to it there since. The original session stays where it is."
+          }
+        }
+      }
+    },
+    "Geri Al": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo"
+          }
+        }
+      }
+    },
+    "Taşıma geri alındı. Kopya Çöp Sepeti'nde.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move undone. The copy is in the Trash."
+          }
+        }
+      }
+    },
+    "Taşıma geri alındı ama %lld öğe Çöp Sepeti'ne taşınamadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move undone, but %lld items couldn't be moved to the Trash."
+          }
+        }
+      }
+    },
+    "Henüz taşınan oturum yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sessions moved yet."
+          }
+        }
+      }
+    },
+    "Geri almak için seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose one to undo"
+          }
+        }
+      }
+    },
+    "Son Taşımalar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent Moves"
+          }
+        }
+      }
+    },
+    "Başka hesaba taşınan oturumlar. Birini seçince taşıma geri alınır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessions moved to another account. Choose one to undo its move."
+          }
+        }
+      }
+    },
+    "%@ → %@ (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ → %2$@ (%3$@)"
+          }
+        }
+      }
+    },
+    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır. Oturumlar sayfası, Code sekmesinde başlayan oturumların başlığını uygulamanın kaydından alıp yalnız orada gösterir. Geri almak için son 20 taşıma, başlıklarıyla birlikte yalnız bu Mac'te Lanes ayarlarında tutulur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte. The Sessions page shows the title of sessions started in the Code tab, taken from the app's record and shown only there. For undo, the last 20 moves are kept with their titles, only in Lanes's settings on this Mac."
           }
         }
       }
