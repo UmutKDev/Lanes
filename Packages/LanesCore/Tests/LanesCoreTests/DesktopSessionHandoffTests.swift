@@ -112,4 +112,14 @@ final class DesktopSessionHandoffTests: XCTestCase {
         let items = SharedSessionCopy.plan(sessionIDs: ids, sharedProjects: source, targetProjects: target)
         XCTAssertEqual(items.map(\.handoff.destinationFile.lastPathComponent), ["\(prior).jsonl"])
     }
+
+    func testReadsCodeTabTitles() throws {
+        let data = root.appendingPathComponent("Claude", isDirectory: true)
+        let folder = data.appendingPathComponent("claude-code-sessions/\(account)/\(org)", isDirectory: true)
+        try write(#"{"cliSessionId":"\#(cli.uppercased())","title":" Haftalık rapor ","isArchived":false}"#, to: folder.appendingPathComponent("local_a.json"))
+        try write(#"{"cliSessionId":"\#(prior)","title":"Eski","isArchived":true}"#, to: folder.appendingPathComponent("local_b.json"))
+        try write(#"{"cliSessionId":"12345678-1234-4234-8234-123456789012","title":""}"#, to: folder.appendingPathComponent("local_c.json"))
+        XCTAssertEqual(DesktopSessionHandoff.titles(inDesktopData: data), [cli: "Haftalık rapor"])
+        XCTAssertTrue(DesktopSessionHandoff.titles(inDesktopData: root.appendingPathComponent("missing")).isEmpty)
+    }
 }

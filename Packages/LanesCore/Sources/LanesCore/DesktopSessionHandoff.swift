@@ -94,6 +94,37 @@ public enum DesktopSessionHandoff {
         return nil
     }
 
+    /// The Code tab's title for each session the app has a record of, by
+    /// Claude Code session number (lowercased), so Lanes can show the same
+    /// name the Code tab shows. Only `cliSessionId` and `title` are kept;
+    /// archived sessions are left out. Titles stay in memory, never saved.
+    public static func titles(inDesktopData dataDirectory: URL) -> [String: String] {
+        let records = dataDirectory.appendingPathComponent(SharedSessionCopy.recordsFolderName, isDirectory: true)
+        guard let walker = FileManager.default.enumerator(
+            at: records,
+            includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [:] }
+        var titles: [String: String] = [:]
+        var read = 0
+        for case let url as URL in walker {
+            guard read < maxRecordCount else { break }
+            guard url.lastPathComponent.hasPrefix(recordPrefix), url.pathExtension.lowercased() == "json",
+                  let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey]),
+                  values.isRegularFile == true, values.isSymbolicLink != true,
+                  (values.fileSize ?? 0) <= maxRecordSize,
+                  let data = try? Data(contentsOf: url) else { continue }
+            read += 1
+            guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let id = object["cliSessionId"] as? String,
+                  object["isArchived"] as? Bool != true,
+                  let title = (object["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !title.isEmpty else { continue }
+            titles[id.lowercased()] = String(title.prefix(200))
+        }
+        return titles
+    }
+
     /// The folder the target app keeps its Code session records in:
     /// `claude-code-sessions/<account>/<org>`. The account folder is the
     /// one named after the app's signed-in account; of its organization

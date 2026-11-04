@@ -2,7 +2,9 @@ import LanesCore
 import SwiftUI
 
 /// Every account's Claude Code sessions in one list, newest first. Read
-/// from file names and dates only: the conversations stay unopened.
+/// from file names and dates only: the conversations stay unopened. A
+/// session started in the Claude app's Code tab shows the title the Code
+/// tab shows, from the app's own record of it.
 struct SessionsPage: View {
     @Environment(AppModel.self) private var model
     @State private var rows: [Row] = []
@@ -22,6 +24,8 @@ struct SessionsPage: View {
         /// The project's folder name, read back from Claude Code's encoded
         /// folder name ("-Users-u-my-app" shows as "my-app").
         var project: String
+        /// The Code tab's title, for a session started there.
+        var title: String?
         var id: String { "\(profile.id.rawValue)/\(session.id)" }
     }
 
@@ -69,7 +73,7 @@ struct SessionsPage: View {
                     : Text("Claude Code'u açtığın klasörler burada görünür.")
             )
         }
-        .searchable(text: $search, placement: .toolbar, prompt: "Projede ara")
+        .searchable(text: $search, placement: .toolbar, prompt: "Oturum ya da projede ara")
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Picker("Görünüm", selection: $mode) {
@@ -118,7 +122,9 @@ struct SessionsPage: View {
     private var visibleRows: [Row] {
         rows.filter { row in
             (filter == nil || row.profile.id == filter)
-                && (search.isEmpty || row.project.localizedCaseInsensitiveContains(search))
+                && (search.isEmpty
+                    || row.project.localizedCaseInsensitiveContains(search)
+                    || (row.title ?? "").localizedCaseInsensitiveContains(search))
         }
     }
 
@@ -140,14 +146,16 @@ struct SessionsPage: View {
             model.paths.effectiveClaudeCodeConfigDirectory(for: profile)
                 .appendingPathComponent("projects", isDirectory: true)
         }
+        let desktopFolders = profiles.map { model.paths.effectiveDesktopDataDirectory(for: $0) }
         let ids = profiles.map(\.id)
         let scanned = await Task.detached(priority: .userInitiated) {
-            SessionScan.scan(folders, ids: ids)
+            SessionScan.scan(folders, desktopFolders: desktopFolders, ids: ids)
         }.value
         var collected: [Row] = []
-        for (profile, sessions) in zip(profiles, scanned.items) {
+        for (index, (profile, sessions)) in zip(profiles, scanned.items).enumerated() {
+            let titles = scanned.titles[index]
             for item in sessions {
-                collected.append(Row(profile: profile, session: item.session, project: item.project))
+                collected.append(Row(profile: profile, session: item.session, project: item.project, title: titles[item.session.id.lowercased()]))
             }
         }
         rows = collected.sorted { $0.session.modifiedAt > $1.session.modifiedAt }
@@ -167,9 +175,11 @@ private enum SessionScan {
         /// One list per folder, in the same order as the folders.
         var items: [[Item]]
         var projects: [SessionsPage.ProjectRow]
+        /// Code tab titles per account, in the same order.
+        var titles: [[String: String]]
     }
 
-    static func scan(_ folders: [URL], ids: [ProfileID]) -> Result {
+    static func scan(_ folders: [URL], desktopFolders: [URL], ids: [ProfileID]) -> Result {
         var names: [String: String] = [:]
         var paths: [String: String?] = [:]
         func resolve(_ folderName: String) -> (name: String, path: String?) {
@@ -194,7 +204,7 @@ private enum SessionScan {
             let isRepository = resolved.path.map { GitWorktree.isMainCheckout(URL(fileURLWithPath: $0, isDirectory: true)) } ?? false
             return SessionsPage.ProjectRow(project: project, name: resolved.name, path: resolved.path, isGitRepository: isRepository)
         }
-        return Result(items: items, projects: projects)
+        return Result(items: items, projects: projects, titles: desktopFolders.map(DesktopSessionHandoff.titles(inDesktopData:)))
     }
 }
 
@@ -395,12 +405,18 @@ private struct SessionRow: View {
         HStack(alignment: .center, spacing: DS.Space.m) {
             MonogramView(profile: row.profile, size: DS.Monogram.row)
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                Text(row.project)
+                Text(row.title ?? row.project)
                     .font(DS.Typography.rowTitle.weight(.medium))
                     .lineLimit(1)
-                    .truncationMode(.middle)
-                    .help(row.project)
-                Text("\(row.profile.name) · \(row.session.modifiedAt.formatted(.relative(presentation: .named)))")
+                    .truncationMode(row.title == nil ? .middle : .tail)
+                    .help(row.title ?? row.project)
+                Group {
+                    if row.title == nil {
+                        Text("\(row.profile.name) · \(row.session.modifiedAt.formatted(.relative(presentation: .named)))")
+                    } else {
+                        Text("\(row.project) · Code sekmesi · \(row.profile.name) · \(row.session.modifiedAt.formatted(.relative(presentation: .named)))")
+                    }
+                }
                     .font(DS.Typography.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -413,6 +429,29 @@ private struct SessionRow: View {
                     .textSelection(.enabled)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            let others = model.library.activeProfiles.filter { $0.id != row.profile.id && !$0.isDefault }
+            if !others.isEmpty {
+                // Moving one chosen session to another account, in one
+                // click from its row.
+                Menu {
+                    Section("Hangi hesapta sürsün?") {
+                        ForEach(others) { target in
+                            Button(target.name) {
+                                model.continueSession(row.session, of: row.profile, with: target)
+                            }
+                        }
+                    }
+                } label: {
+                    Label("Taşı", systemImage: "arrow.right.circle")
+                }
+                .menuStyle(.button)
+                .buttonStyle(.glass)
+                .controlSize(.small)
+                .fixedSize()
+                .help(row.title == nil
+                    ? Text("Bu oturumu başka bir hesapta kaldığı yerden sürdür.")
+                    : Text("Bu oturumu başka bir hesabın Code sekmesine taşı."))
+            }
             Button("Sürdür") {
                 model.resume(row.session, of: row.profile)
             }

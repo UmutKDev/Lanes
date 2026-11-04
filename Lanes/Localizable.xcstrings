@@ -10465,22 +10465,82 @@
         }
       }
     },
-    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte."
-          }
-        }
-      }
-    },
     "Oturum %@ hesabının Code sekmesinde, kendi projesinin altında.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The session is in %@'s Code tab, under its project."
+          }
+        }
+      }
+    },
+    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır. Oturumlar sayfası, Code sekmesinde başlayan oturumların başlığını uygulamanın kaydından alıp yalnız orada gösterir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte. The Sessions page shows the title of sessions started in the Code tab, taken from the app's record and shown only there."
+          }
+        }
+      }
+    },
+    "Hangi hesapta sürsün?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue in which account?"
+          }
+        }
+      }
+    },
+    "Taşı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move"
+          }
+        }
+      }
+    },
+    "Bu oturumu başka bir hesapta kaldığı yerden sürdür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue this session where it left off in another account."
+          }
+        }
+      }
+    },
+    "Bu oturumu başka bir hesabın Code sekmesine taşı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move this session to another account's Code tab."
+          }
+        }
+      }
+    },
+    "Oturum ya da projede ara": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search sessions or projects"
+          }
+        }
+      }
+    },
+    "%@ · Code sekmesi · %@ · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · Code tab · %2$@ · %3$@"
           }
         }
       }
