@@ -129,6 +129,23 @@ public struct SessionHandoff: Equatable, Sendable {
         ["--resume", sessionID, "--fork-session"]
     }
 
+    /// Whether `earlier` holds the start of `later`, byte for byte: Claude
+    /// Code only appends to a session file, so this is an older state of the
+    /// same conversation. The bytes are only compared, never interpreted.
+    public static func isEarlierPart(_ earlier: URL, of later: URL) -> Bool {
+        guard let short = try? FileHandle(forReadingFrom: earlier) else { return false }
+        defer { try? short.close() }
+        guard let long = try? FileHandle(forReadingFrom: later) else { return false }
+        defer { try? long.close() }
+        let chunk = 1 << 20
+        while true {
+            let a = (try? short.read(upToCount: chunk)) ?? Data()
+            if a.isEmpty { return true }
+            let b = (try? long.read(upToCount: a.count)) ?? Data()
+            guard a == b else { return false }
+        }
+    }
+
     static func isPlainName(_ name: String) -> Bool {
         !name.isEmpty && name.count <= 255 && name != "." && name != ".."
             && !name.contains("/") && !name.contains("\0") && !name.hasPrefix(".")

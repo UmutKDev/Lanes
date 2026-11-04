@@ -11,6 +11,15 @@ struct LimitMenu: View {
         let resting = profile.isResting(at: Date())
         if !profile.isDefault {
             Menu(resting ? "Dinlenme" : "Limite Takıldı") {
+                // The one-click way out: rest for Claude's usage window and
+                // carry the newest session to the next account.
+                if let target = model.handoffTarget(for: profile) {
+                    Button(String(localized: "Son Oturumu \(target.name) Hesabına Taşı")) {
+                        model.continueAfterLimit(profile)
+                    }
+                    .help(String(localized: "En son Claude Code oturumu \(target.name) hesabında kaldığı yerden sürer. Code sekmesinde başladıysa orada açılır. \(profile.name) 5 saat dinlenir."))
+                    Divider()
+                }
                 if resting {
                     Button("Dinlenmeyi Bitir") {
                         model.setLimited(profile, until: nil)
