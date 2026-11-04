@@ -1508,10 +1508,12 @@ final class AppModel {
     }
 
     /// Continues another account's session with `target`: the session file
-    /// is copied into the target's Claude Code folder and resumed there as
-    /// a new session, so the original account's copy stays untouched. The
-    /// files are copied, never opened. Across account types, or between two
-    /// client accounts, Lanes asks first.
+    /// is copied into the target's Claude Code folder. A session started in
+    /// the Claude app's Code tab also gets a record in the target app, so it
+    /// continues in the target's Code tab; any other session is resumed in
+    /// Terminal as a new session, so the original account's copy stays
+    /// untouched. Session files are copied, never opened. Across account
+    /// types, or between two client accounts, Lanes asks first.
     func continueSession(_ session: ClaudeCodeSessionList.Session, of source: Profile, with target: Profile) {
         guard source.id != target.id else {
             resume(session, of: source)
@@ -1519,21 +1521,22 @@ final class AppModel {
         }
         let sourceProjects = paths.effectiveClaudeCodeConfigDirectory(for: source).appendingPathComponent("projects", isDirectory: true)
         let targetProjects = paths.effectiveClaudeCodeConfigDirectory(for: target).appendingPathComponent("projects", isDirectory: true)
-        // Two accounts sharing `~/.claude`: the session is already there,
-        // so nothing is copied (and nothing written into `~/.claude`).
-        if SessionHandoff.isSameFolder(sourceProjects, targetProjects) {
-            resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
-            return
-        }
+        let sharesFolder = SessionHandoff.isSameFolder(sourceProjects, targetProjects)
         // A target without its own folder uses `~/.claude`, which Lanes
         // never writes into.
-        guard paths.claudeCodeConfigDirectory(for: target) != nil else {
+        guard sharesFolder || paths.claudeCodeConfigDirectory(for: target) != nil else {
             notice = Notice(kind: .warning, message: String(localized: "\(target.name) ~/.claude kullanıyor, oturum oraya kopyalanmaz."))
             return
         }
-        guard let handoff = SessionHandoff(sessionID: session.id, projectFolderName: session.projectFolderName, fromProjects: sourceProjects, toProjects: targetProjects) else {
-            notice = Notice(kind: .error, message: String(localized: "Bu oturum başka bir hesaba aktarılamıyor."))
-            return
+        // Two accounts sharing `~/.claude` already have the session there,
+        // so nothing is copied (and nothing written into `~/.claude`).
+        var handoff: SessionHandoff?
+        if !sharesFolder {
+            handoff = SessionHandoff(sessionID: session.id, projectFolderName: session.projectFolderName, fromProjects: sourceProjects, toProjects: targetProjects)
+            guard handoff != nil else {
+                notice = Notice(kind: .error, message: String(localized: "Bu oturum başka bir hesaba aktarılamıyor."))
+                return
+            }
         }
         // The target's folder rules first, so nothing is copied into an
         // account that may not open this project.
@@ -1548,6 +1551,53 @@ final class AppModel {
             alert.addButton(withTitle: String(localized: "Vazgeç"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
+        // A Code tab session continues in the target's Code tab when the
+        // target app has a Code session folder to write into.
+        let record = DesktopSessionHandoff.findRecord(cliSessionID: session.id, inDesktopData: paths.effectiveDesktopDataDirectory(for: source))
+        let targetData = paths.desktopDataDirectory(for: target)
+        let recordsFolder: URL? = record == nil ? nil : targetData.flatMap {
+            DesktopSessionHandoff.recordsFolder(inDesktopData: $0, accountUuid: desktopAccountUuids[target.id])
+        }
+        if let handoff {
+            guard copySessionFiles(handoff, to: target) else { return }
+            if let record, recordsFolder != nil {
+                // Earlier parts of the same conversation, when the record
+                // names them, so the Code tab shows the whole history.
+                let related = DesktopSessionHandoff.relatedSessionIDs(record: record, mainSessionID: session.id)
+                SharedSessionCopy.copy(SharedSessionCopy.plan(sessionIDs: related, sharedProjects: sourceProjects, targetProjects: targetProjects))
+            }
+            Log.app.info("Copied a Claude Code session to another account")
+        }
+        if let record, let recordsFolder {
+            // Moved there before (or back and forth): the target's Code tab
+            // already lists the session, and its file is now up to date.
+            if let targetData, DesktopSessionHandoff.findRecord(cliSessionID: session.id, inDesktopData: targetData) != nil {
+                showInCodeTab(target)
+                return
+            }
+            let localID = UUID()
+            do {
+                _ = try DesktopSessionHandoff.write(DesktopSessionHandoff.transplant(record.object, localID: localID, now: Date()), localID: localID, into: recordsFolder)
+            } catch {
+                notice = Notice(kind: .error, message: String(localized: "Oturum \(target.name) hesabının Code sekmesine eklenemedi: \(error.localizedDescription)"))
+                return
+            }
+            Log.app.info("Added a Code tab session record to another account")
+            showInCodeTab(target)
+            return
+        }
+        if record != nil {
+            notice = Notice(kind: .info, message: String(localized: "\(target.name) hesabının Claude uygulamasında Code sekmesi henüz hiç açılmamış. Oturum Terminal'de sürüyor. Code sekmesine bir kez girersen sonraki taşımalar orada açılır."))
+        }
+        resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
+    }
+
+    /// Copies a session's file and side folder into the target account.
+    /// Only a copy Lanes made itself, still as Lanes left it, or an earlier
+    /// part of the same conversation is replaced by the newer one; anything
+    /// else there is the target's own session, which Lanes never
+    /// overwrites. Returns whether the session is in place.
+    private func copySessionFiles(_ handoff: SessionHandoff, to target: Profile) -> Bool {
         let manager = FileManager.default
         do {
             let attributes = try manager.attributesOfItem(atPath: handoff.sourceFile.path)
@@ -1555,13 +1605,14 @@ final class AppModel {
                 throw CocoaError(.fileReadUnknown)
             }
             try manager.createDirectory(at: handoff.destinationFile.deletingLastPathComponent(), withIntermediateDirectories: true)
-            // Only a copy Lanes made itself, still as Lanes left it, is
-            // replaced by a newer one. Anything else at that place is the
-            // target's own session, which Lanes never overwrites.
             if let existing = try? manager.attributesOfItem(atPath: handoff.destinationFile.path) {
-                guard isUntouchedHandoffCopy(handoff.destinationFile, attributes: existing) else {
+                // A Code tab session moved back and forth keeps one session
+                // number, so the target's file is an earlier part of the
+                // source's when nothing went on there since.
+                guard isUntouchedHandoffCopy(handoff.destinationFile, attributes: existing)
+                    || SessionHandoff.isEarlierPart(handoff.destinationFile, of: handoff.sourceFile) else {
                     notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kaydı zaten var, değiştirilmedi. O hesapta Sürdür ile açabilirsin."))
-                    return
+                    return false
                 }
                 try manager.removeItem(at: handoff.destinationFile)
                 if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
@@ -1569,7 +1620,7 @@ final class AppModel {
                 }
             } else if (try? manager.attributesOfItem(atPath: handoff.destinationFolder.path)) != nil {
                 notice = Notice(kind: .warning, message: String(localized: "\(target.name) hesabında bu oturumun kaydı zaten var, değiştirilmedi. O hesapta Sürdür ile açabilirsin."))
-                return
+                return false
             }
             try manager.copyItem(at: handoff.sourceFile, to: handoff.destinationFile)
             var isDirectory: ObjCBool = false
@@ -1578,12 +1629,65 @@ final class AppModel {
                 try manager.copyItem(at: handoff.sourceFolder, to: handoff.destinationFolder)
             }
             rememberHandoffCopy(handoff.destinationFile)
+            return true
         } catch {
             notice = Notice(kind: .error, message: String(localized: "Oturum \(target.name) hesabına kopyalanamadı: \(error.localizedDescription)"))
+            return false
+        }
+    }
+
+    /// Brings the target's Claude app up with the new Code session. The app
+    /// reads its Code session list when it starts, so a running app is
+    /// restarted, after asking, since it may be busy.
+    private func showInCodeTab(_ target: Profile) {
+        let done = String(localized: "Oturum \(target.name) hesabının Code sekmesinde, listenin en üstünde.")
+        guard isRunning(target) else {
+            notice = Notice(kind: .info, message: done)
+            open(target)
             return
         }
-        Log.app.info("Copied a Claude Code session to another account")
-        resume(session, with: target, arguments: SessionHandoff.resumeArguments(sessionID: session.id))
+        let alert = NSAlert()
+        alert.messageText = String(localized: "\(target.name) yeniden başlatılsın mı?")
+        alert.informativeText = String(localized: "Claude uygulaması Code sekmesindeki oturumları açılırken okur. Taşınan oturumun görünmesi için \(target.name) kapatılıp yeniden açılır.")
+        alert.addButton(withTitle: String(localized: "Yeniden Başlat"))
+        alert.addButton(withTitle: String(localized: "Sonra"))
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            notice = Notice(kind: .info, message: String(localized: "Oturum \(target.name) hesabına eklendi. Code sekmesinde görmek için uygulamayı yeniden başlat."))
+            return
+        }
+        quit(target)
+        Task {
+            for _ in 0..<20 where isRunning(target) {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                refreshInstances()
+            }
+            notice = Notice(kind: .info, message: done)
+            await openAndWait(target)
+        }
+    }
+
+    /// "Limite Takıldı, taşı": the account rests for Claude's usage window
+    /// and its newest Claude Code session continues with the next account.
+    func continueAfterLimit(_ profile: Profile) {
+        guard let target = handoffTarget(for: profile) else { return }
+        guard let session = claudeCodeSessions(for: profile).sessions.first else {
+            notice = Notice(kind: .info, message: String(localized: "\(profile.name) hesabında taşınacak Claude Code oturumu yok."))
+            return
+        }
+        if !profile.isResting(at: Date()) {
+            setLimited(profile, until: LimitWatch.until(hours: LimitWatch.handoffRestHours, from: Date()))
+        }
+        continueSession(session, of: profile, with: target)
+    }
+
+    /// The account that would continue this one's newest session after a
+    /// limit, or nil when there is no session or no account to take it.
+    func handoffTarget(for profile: Profile) -> Profile? {
+        let sourceProjects = paths.effectiveClaudeCodeConfigDirectory(for: profile).appendingPathComponent("projects", isDirectory: true)
+        return LimitWatch.handoffTarget(for: profile, in: library, now: Date()) { candidate in
+            self.paths.claudeCodeConfigDirectory(for: candidate) != nil
+                || SessionHandoff.isSameFolder(sourceProjects, self.paths.effectiveClaudeCodeConfigDirectory(for: candidate).appendingPathComponent("projects", isDirectory: true))
+        }
     }
 
     /// Copies the account's own Claude Code sessions from `~/.claude` into

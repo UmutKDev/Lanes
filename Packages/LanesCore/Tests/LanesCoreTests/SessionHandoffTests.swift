@@ -31,4 +31,25 @@ final class SessionHandoffTests: XCTestCase {
         XCTAssertTrue(SessionHandoff.isSameFolder(shared, URL(fileURLWithPath: "/Users/U/.Claude/projects")))
         XCTAssertFalse(SessionHandoff.isSameFolder(from, to))
     }
+
+    func testEarlierPartIsAPrefixOfTheNewerFile() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        func file(_ name: String, _ text: String) throws -> URL {
+            let url = root.appendingPathComponent(name)
+            try Data(text.utf8).write(to: url)
+            return url
+        }
+        let old = try file("old", "a\nb\n")
+        let new = try file("new", "a\nb\nc\n")
+        let other = try file("other", "a\nx\nc\n")
+        let empty = try file("empty", "")
+        XCTAssertTrue(SessionHandoff.isEarlierPart(old, of: new))
+        XCTAssertTrue(SessionHandoff.isEarlierPart(new, of: new))
+        XCTAssertTrue(SessionHandoff.isEarlierPart(empty, of: new))
+        XCTAssertFalse(SessionHandoff.isEarlierPart(new, of: old), "Longer than the source")
+        XCTAssertFalse(SessionHandoff.isEarlierPart(other, of: new), "Went on differently")
+        XCTAssertFalse(SessionHandoff.isEarlierPart(root.appendingPathComponent("missing"), of: new))
+    }
 }

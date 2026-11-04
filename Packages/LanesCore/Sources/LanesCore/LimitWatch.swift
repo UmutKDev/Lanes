@@ -15,6 +15,28 @@ public enum LimitWatch {
     /// account can stand in.
     public static func standIn(for profile: Profile, in library: ProfileLibrary, now: Date) -> Profile? {
         guard profile.isResting(at: now) else { return nil }
+        return next(after: profile, in: library, now: now) { $0.accountClass == profile.accountClass }
+    }
+
+    /// How long an account rests when its session moves to another account
+    /// after hitting the limit: Claude's usage window.
+    public static let handoffRestHours = 5
+
+    /// The account that continues `profile`'s Claude Code session after it
+    /// hit its limit: the next one of the same kind that is not resting,
+    /// otherwise the next of any kind (Lanes asks before a session crosses
+    /// kinds). Only accounts for which `usable` holds count, such as those
+    /// with a Claude Code folder Lanes may copy into. The account need not
+    /// be resting yet.
+    public static func handoffTarget(for profile: Profile, in library: ProfileLibrary, now: Date, usable: (Profile) -> Bool = { _ in true }) -> Profile? {
+        next(after: profile, in: library, now: now) { $0.accountClass == profile.accountClass && usable($0) }
+            ?? next(after: profile, in: library, now: now, where: usable)
+    }
+
+    /// The next active Lanes account after `profile` in the list, wrapping,
+    /// that is not resting and matches. Claude.app's own account is never
+    /// picked, since Lanes does not manage it.
+    static func next(after profile: Profile, in library: ProfileLibrary, now: Date, where matches: (Profile) -> Bool) -> Profile? {
         let candidates = library.profiles
         guard let start = candidates.firstIndex(where: { $0.id == profile.id }) else { return nil }
         for offset in 1..<max(candidates.count, 1) {
@@ -22,8 +44,8 @@ public enum LimitWatch {
             if candidate.id != profile.id,
                !candidate.isArchived,
                !candidate.isDefault,
-               candidate.accountClass == profile.accountClass,
-               !candidate.isResting(at: now) {
+               !candidate.isResting(at: now),
+               matches(candidate) {
                 return candidate
             }
         }

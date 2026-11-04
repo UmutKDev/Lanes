@@ -6833,16 +6833,6 @@
         }
       }
     },
-    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For the Sessions, Projects, and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays unchanged."
-          }
-        }
-      }
-    },
     "PDF Olarak Dışa Aktar…": {
       "localizations": {
         "en": {
@@ -10391,6 +10381,106 @@
           "stringUnit": {
             "state": "translated",
             "value": "Install from Store"
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabının Code sekmesine eklenemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't add the session to %1$@'s Code tab: %2$@"
+          }
+        }
+      }
+    },
+    "%@ hesabının Claude uygulamasında Code sekmesi henüz hiç açılmamış. Oturum Terminal'de sürüyor. Code sekmesine bir kez girersen sonraki taşımalar orada açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'s Claude app hasn't opened the Code tab yet, so the session continues in Terminal. Open the Code tab there once and later moves will open in it."
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabının Code sekmesinde, listenin en üstünde.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session is in %@'s Code tab, at the top of the list."
+          }
+        }
+      }
+    },
+    "%@ yeniden başlatılsın mı?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart %@?"
+          }
+        }
+      }
+    },
+    "Claude uygulaması Code sekmesindeki oturumları açılırken okur. Taşınan oturumun görünmesi için %@ kapatılıp yeniden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Claude app reads its Code tab sessions when it opens. %@ will quit and open again so the moved session shows up."
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabına eklendi. Code sekmesinde görmek için uygulamayı yeniden başlat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session was added to %@. Restart the app to see it in the Code tab."
+          }
+        }
+      }
+    },
+    "%@ hesabında taşınacak Claude Code oturumu yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ has no Claude Code session to move."
+          }
+        }
+      }
+    },
+    "Son Oturumu %@ Hesabına Taşı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Last Session to %@"
+          }
+        }
+      }
+    },
+    "En son Claude Code oturumu %@ hesabında kaldığı yerden sürer. Code sekmesinde başladıysa orada açılır. %@ 5 saat dinlenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The latest Claude Code session picks up where it left off in %1$@, in the Code tab if it started there. %2$@ rests for 5 hours."
+          }
+        }
+      }
+    },
+    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte."
           }
         }
       }

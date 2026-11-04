@@ -53,7 +53,7 @@ struct PrivacyPage: View {
                     systemImage: "doc.text",
                     title: "Claude Code oturum dosyalarının adı ve tarihi",
                     detail: "Yalnız değişme zamanlarına bakılır; sohbetler açılmaz.",
-                    help: "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez."
+                    help: "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır."
                 )
                 PrivacyItem(
                     systemImage: "doc.on.doc",

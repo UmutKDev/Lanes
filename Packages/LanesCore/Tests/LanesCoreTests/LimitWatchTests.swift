@@ -58,4 +58,16 @@ final class LimitWatchTests: XCTestCase {
         let decoded = try JSONDecoder().decode(Profile.self, from: JSONEncoder().encode(a))
         XCTAssertEqual(decoded.limitedUntil, now)
     }
+
+    func testHandoffTargetPrefersTheSameKindThenAnyUsableAccount() {
+        let a = Profile(name: "A", color: .blue, accountClass: .employer)
+        let personal = Profile(name: "P", color: .green, accountClass: .personal)
+        var tired = Profile(name: "T", color: .red, accountClass: .employer)
+        tired.limitedUntil = now.addingTimeInterval(60)
+        let b = Profile(name: "B", color: .orange, accountClass: .employer)
+        XCTAssertEqual(LimitWatch.handoffTarget(for: a, in: library([a, personal, tired, b]), now: now)?.id, b.id, "Not resting itself yet")
+        XCTAssertEqual(LimitWatch.handoffTarget(for: a, in: library([a, personal, tired]), now: now)?.id, personal.id, "Another kind when no other fits")
+        XCTAssertEqual(LimitWatch.handoffTarget(for: a, in: library([a, personal, b]), now: now, usable: { $0.id != b.id })?.id, personal.id)
+        XCTAssertNil(LimitWatch.handoffTarget(for: a, in: library([a, tired]), now: now))
+    }
 }
