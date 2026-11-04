@@ -131,7 +131,7 @@ public enum DesktopSessionHandoff {
     }
 
     /// The new record for the target account: the source record under a new
-    /// `local_<uuid>` number, not archived, moved to the top of the list,
+    /// `local_<uuid>` number, not archived, marked as just active,
     /// with the source account's own keys left out.
     public static func transplant(_ record: [String: Any], localID: UUID, now: Date) -> [String: Any] {
         var copy = record
