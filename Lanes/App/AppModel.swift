@@ -1640,7 +1640,7 @@ final class AppModel {
     /// reads its Code session list when it starts, so a running app is
     /// restarted, after asking, since it may be busy.
     private func showInCodeTab(_ target: Profile) {
-        let done = String(localized: "Oturum \(target.name) hesabının Code sekmesinde, listenin en üstünde.")
+        let done = String(localized: "Oturum \(target.name) hesabının Code sekmesinde, kendi projesinin altında.")
         guard isRunning(target) else {
             notice = Notice(kind: .info, message: done)
             open(target)

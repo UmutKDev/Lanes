@@ -10405,16 +10405,6 @@
         }
       }
     },
-    "Oturum %@ hesabının Code sekmesinde, listenin en üstünde.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The session is in %@'s Code tab, at the top of the list."
-          }
-        }
-      }
-    },
     "%@ yeniden başlatılsın mı?": {
       "localizations": {
         "en": {
@@ -10481,6 +10471,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte."
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabının Code sekmesinde, kendi projesinin altında.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session is in %@'s Code tab, under its project."
           }
         }
       }
