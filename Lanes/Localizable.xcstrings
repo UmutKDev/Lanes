@@ -10654,6 +10654,106 @@
           }
         }
       }
+    },
+    "%@ hesabına geç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to %@"
+          }
+        }
+      }
+    },
+    "Claude açılıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opening Claude…"
+          }
+        }
+      }
+    },
+    "Claude penceresini buraya yerleştirmek için Erişilebilirlik izni gerekiyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes needs the Accessibility permission to place the Claude window here."
+          }
+        }
+      }
+    },
+    "Claude penceresinin üstünde hesap sekmeleri durur. Öteki hesaplar gizlenir ama açık kalır. Tam ekrandaki ya da küçültülmüş pencerelere dokunulmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account tabs sit above the Claude window. Other accounts are hidden but keep running. Full-screen and minimized windows are left alone."
+          }
+        }
+      }
+    },
+    "Henüz hesap yok. Soldaki + ile ekleyebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No accounts yet. Add one with + on the left."
+          }
+        }
+      }
+    },
+    "Hesapları tek yerde topla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gather Accounts in One Place"
+          }
+        }
+      }
+    },
+    "Lanes penceresinin solunda hesaplar durur, sağında seçtiğin hesabın Claude penceresi açılır. İki pencere birlikte taşınır ve boyutlanır. Öteki hesaplar gizlenir ama açık kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts are listed on the left of the Lanes window, and the chosen account's Claude window opens on the right. The two windows move and resize together. Other accounts are hidden but keep running."
+          }
+        }
+      }
+    },
+    "Soldan bir hesap seç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an account on the left."
+          }
+        }
+      }
+    },
+    "Tek pencere": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Single window"
+          }
+        }
+      }
+    },
+    "Üstte sekme şeridi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tab strip on top"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

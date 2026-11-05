@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let router: WindowRouter
     private var statusItemController: StatusItemController?
     private var tabStripController: TabStripController?
+    private var singleWindowController: SingleWindowController?
     private var isWaitingToTerminate = false
 
     override init() {
@@ -49,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         observeShortcuts()
         tabStripController = TabStripController(model: model, router: router)
+        singleWindowController = SingleWindowController(model: model, router: router)
         model.openStartupScenes()
         model.reopenLastAccountsIfWanted()
         if !Preferences.onboardingDue {
@@ -127,6 +129,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Clicking Lanes in Finder or Launchpad while it runs opens the window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard Date() >= TerminalFocus.ignoreReopenUntil else { return false }
+        // In single-window mode the accounts' window is Lanes's window.
+        if let singleWindowController, singleWindowController.isOn {
+            singleWindowController.showWindow()
+            return false
+        }
         router.showMainWindow()
         return false
     }
@@ -155,6 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         model.flushFrontTime()
+        singleWindowController?.restoreAccounts()
     }
 
     private func replyToTerminate() {
