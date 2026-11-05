@@ -29,6 +29,9 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
     /// Set while Lanes hides the accounts because its window closed or went
     /// to the Dock, so that hiding does not count as the user's.
     @ObservationIgnored private var isClosing = false
+    /// Accounts whose windows Lanes minimized because macOS would not hide
+    /// them (clones kept out of the Dock can't be hidden like other apps).
+    @ObservationIgnored private var minimizedPIDs: Set<pid_t> = []
 
     private(set) var activeProfileID: ProfileID?
     /// True while an account is opening from the list.
@@ -113,7 +116,7 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
         // The mode hid the other accounts; without its window there would be
         // no way back to them, so they all come back.
         for instance in model.instances where instance.profileID != nil {
-            NSRunningApplication(processIdentifier: instance.pid)?.unhide()
+            bringBack(pid: instance.pid)
         }
         Log.app.info("Single-window mode off")
     }
@@ -226,7 +229,7 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
         if let runningPID {
             // Shown in place first, so bringing it forward later does not
             // switch to the Space where it was left.
-            NSRunningApplication(processIdentifier: runningPID)?.unhide()
+            bringBack(pid: runningPID)
             hideAccounts(except: profile)
             try? await Task.sleep(nanoseconds: 120_000_000)
             await bringToCurrentSpace(pid: runningPID)
@@ -259,7 +262,36 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
     /// Hides, never quits, the accounts' Claudes. `nil` hides them all.
     private func hideAccounts(except profile: Profile?) {
         for instance in model.instances where instance.profileID != nil && instance.profileID != profile?.id {
-            NSRunningApplication(processIdentifier: instance.pid)?.hide()
+            putAway(pid: instance.pid)
+        }
+    }
+
+    /// Hides an account's Claude. A clone kept out of the Dock runs as an
+    /// accessory app, which macOS does not hide on request, so its windows
+    /// go to the Dock instead.
+    private func putAway(pid: pid_t) {
+        guard let app = NSRunningApplication(processIdentifier: pid) else { return }
+        if app.activationPolicy == .regular, app.hide() { return }
+        if AccessibilityWindow.setHidden(true, pid: pid), app.isHidden { return }
+        guard AccessibilityPermission.isGranted else { return }
+        var minimized = false
+        for window in AccessibilityWindow.all(of: pid) where !window.isMinimized && !window.isFullScreen {
+            minimized = window.setMinimized(true) || minimized
+        }
+        if minimized {
+            minimizedPIDs.insert(pid)
+        }
+    }
+
+    /// Undoes `putAway`. Synchronous where it can be, so it also works
+    /// while Lanes quits.
+    private func bringBack(pid: pid_t) {
+        if !AccessibilityWindow.setHidden(false, pid: pid) {
+            NSRunningApplication(processIdentifier: pid)?.unhide()
+        }
+        guard minimizedPIDs.remove(pid) != nil else { return }
+        for window in AccessibilityWindow.all(of: pid) where window.isMinimized {
+            window.setMinimized(false)
         }
     }
 
@@ -345,6 +377,13 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
               let instance = model.instances.first(where: { $0.pid == pid }),
               let id = instance.profileID, let profile = model.profile(withID: id) else { return }
         guard let window else { return }
+        // Set first: bringing the window back from the Dock selects the
+        // active account, which must already be this one.
+        let switched = activeProfileID != id
+        activeProfileID = id
+        if minimizedPIDs.contains(pid) {
+            bringBack(pid: pid)
+        }
         if !window.isVisible || window.isMiniaturized {
             // The window was closed; the account brings it back, behind
             // Claude and without taking the focus.
@@ -353,8 +392,7 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
             window.orderFront(nil)
             startTimer()
         }
-        if activeProfileID != id {
-            activeProfileID = id
+        if switched {
             hideAccounts(except: profile)
         }
         snapActiveWindow()
@@ -411,7 +449,7 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
     func restoreAccounts() {
         guard window != nil else { return }
         for instance in model.instances where instance.profileID != nil {
-            NSRunningApplication(processIdentifier: instance.pid)?.unhide()
+            bringBack(pid: instance.pid)
         }
     }
 }
