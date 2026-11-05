@@ -9483,12 +9483,12 @@
         }
       }
     },
-    "İlk açılışta anahtarlık parolası sorulur; menüler ve kısayollar bozulabilir.": {
+    "İlk açılışta anahtarlık parolası sorulur. Hesabın kendi menüleri olmaz; tam ekran bir uygulamadan bu hesabın masaüstüne geçince macOS menü çubuğunu gizleyebilir.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Asks for the keychain password on first launch; menus and shortcuts may break."
+            "value": "Asks for the keychain password on first launch. The account has no menus of its own; after switching from a full-screen app to this account's desktop, macOS may hide the menu bar."
           }
         }
       }
