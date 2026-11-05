@@ -15,6 +15,7 @@ enum Preferences {
         static let recentClaudeCodeFolders = "recentClaudeCodeFolders"
         static let showsFrontAccountInMenuBar = "showsFrontAccountInMenuBar"
         static let tabModeEnabled = "tabModeEnabled"
+        static let tabLayout = "tabLayout"
         static let linkRules = "linkRules"
         static let tabContentHeight = "tabContentHeight"
         static let focusModeEnabled = "focusModeEnabled"
@@ -54,6 +55,19 @@ enum Preferences {
     /// because it needs the Accessibility permission.
     static var tabModeEnabled: Bool {
         UserDefaults.standard.bool(forKey: Key.tabModeEnabled)
+    }
+
+    /// How tab mode gathers the accounts: one Lanes window with the account
+    /// list beside Claude (the default), or the older strip above Claude.
+    enum TabLayout: String, CaseIterable, Identifiable {
+        case singleWindow
+        case strip
+
+        var id: String { rawValue }
+    }
+
+    static var tabLayout: TabLayout {
+        UserDefaults.standard.string(forKey: Key.tabLayout).flatMap(TabLayout.init(rawValue:)) ?? .singleWindow
     }
 
     /// The menu bar icon takes the colour and letter of the account whose

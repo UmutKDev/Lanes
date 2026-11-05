@@ -65,6 +65,11 @@ struct AccessibilityWindow {
         return (value as? Bool) ?? false
     }
 
+    @discardableResult
+    func setMinimized(_ minimized: Bool) -> Bool {
+        AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, minimized as CFBoolean) == .success
+    }
+
     /// Size, then position, then size again: a window that can't grow past
     /// the screen edge at its old position fits once it has moved.
     @discardableResult
