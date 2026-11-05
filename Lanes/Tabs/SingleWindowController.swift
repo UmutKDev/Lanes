@@ -45,7 +45,12 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
         self.router = router
         super.init()
         let defaults = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.applySetting() }
+            // Posted synchronously, even from inside AppKit while the window
+            // is being made (text measuring registers defaults), which ran
+            // turnOn() twice and crashed. Apply the setting a turn later.
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.applySetting() }
+            }
         }
         observers.append((NotificationCenter.default, defaults))
         let workspace = NSWorkspace.shared.notificationCenter
@@ -156,7 +161,9 @@ final class SingleWindowController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: SingleWindowView(controller: self)
             .environment(model)
             .environment(router))
-        hostingView.safeAreaRegions = []
+        // The window's size is Lanes's own (and Claude's); SwiftUI must not
+        // drive it, or AppKit loops on constraints and throws.
+        hostingView.sizingOptions = []
         window.contentView = hostingView
         window.delegate = self
         if !window.setFrameUsingName("LanesSingleWindow") {
