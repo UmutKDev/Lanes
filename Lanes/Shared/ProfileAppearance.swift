@@ -68,7 +68,7 @@ extension ProfileMode {
 extension ProfileMode {
     /// What "Dock'ta gösterme" costs, in one short line under the switch.
     static var dockHidingCost: String {
-        String(localized: "İlk açılışta anahtarlık parolası sorulur; menüler ve kısayollar bozulabilir.")
+        String(localized: "İlk açılışta anahtarlık parolası sorulur. Hesabın kendi menüleri olmaz; tam ekran bir uygulamadan bu hesabın masaüstüne geçince macOS menü çubuğunu gizleyebilir.")
     }
 
     /// The full cost, for the switch's `.help`.
