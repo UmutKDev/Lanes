@@ -68,7 +68,7 @@ jobs:
       - name: Install and uninstall
         run: |
           set -euo pipefail
-          # Releases before 1.1.4 have no Lanes.dmg yet.
+          # Releases before 1.3.1 have no Lanes.dmg yet.
           if ! curl -fsIL -o /dev/null https://github.com/UmutKDev/Lanes/releases/latest/download/Lanes.dmg; then
             echo "::warning::Son sürümde Lanes.dmg yok, kurulum denenmedi."
             exit 0
