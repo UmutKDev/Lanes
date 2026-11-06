@@ -1,0 +1,75 @@
+name: Windows
+
+on:
+  push:
+    branches: [main, claude/project-thread-wc4v5c]
+    paths: ["LanesWindows/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["LanesWindows/**", ".github/workflows/windows.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and run with Claude
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Core tests
+        run: dotnet test LanesWindows/Lanes.Core.Tests -c Release
+
+      - name: Publish Lanes.exe
+        shell: pwsh
+        run: |
+          foreach ($rid in 'win-x64', 'win-arm64') {
+            dotnet publish LanesWindows/Lanes.App -c Release -r $rid --self-contained true `
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true `
+              -o "out/$rid"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          Get-ChildItem out -Recurse -File | Format-Table FullName, Length
+
+      - name: Install Claude
+        shell: pwsh
+        run: |
+          winget install --id Anthropic.Claude -e --accept-source-agreements --accept-package-agreements --silent | Select-Object -Last 3
+          Test-Path "$env:LOCALAPPDATA\AnthropicClaude\claude.exe"
+          Start-Sleep 5
+          Get-Process claude -ErrorAction SilentlyContinue | Stop-Process -Force
+
+      - name: Self-test with three accounts
+        shell: pwsh
+        run: |
+          $out = "$env:RUNNER_TEMP\selftest"
+          # Start-Process -Wait would also wait for the Claude copies Lanes starts.
+          $p = Start-Process out/win-x64/Lanes.exe -ArgumentList '--self-test', $out -PassThru
+          if (-not $p.WaitForExit(300000)) { Write-Error 'Self-test did not finish in 5 minutes'; $p.Kill() }
+          Get-Content "$out\selftest.log"
+          Get-Content "$out\report.json" -ErrorAction SilentlyContinue
+          Get-Process claude -ErrorAction SilentlyContinue | Stop-Process -Force
+          if ($p.ExitCode -ne 0) { Write-Error "Self-test failed with $($p.ExitCode)"; exit 1 }
+
+      - name: Keep self-test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest
+          path: ${{ runner.temp }}/selftest/*.*
+
+      - name: Keep Lanes.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lanes-windows
+          path: |
+            out/win-x64/Lanes.exe
+            out/win-arm64/Lanes.exe

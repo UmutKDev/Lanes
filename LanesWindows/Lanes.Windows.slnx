@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Lanes.Core/Lanes.Core.csproj" />
+  <Project Path="Lanes.Core.Tests/Lanes.Core.Tests.csproj" />
+  <Project Path="Lanes.App/Lanes.App.csproj" />
+</Solution>
