@@ -4,6 +4,9 @@ Lanes/Info.plist
 Lanes/Lanes.entitlements
 LanesSafari/Info.plist
 LanesSafari/LanesSafari.entitlements
+LanesForSafari/Info.plist
+LanesForSafari/LanesForSafari.entitlements
+LanesForSafariExtension/
 
 # Personal signing settings
 Config/Local.xcconfig

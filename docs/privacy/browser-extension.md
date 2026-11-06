@@ -18,7 +18,8 @@ your device and sends nothing to us or anyone else.
 ## Where it is kept
 
 - Account list and settings: the browser's extension storage on your device.
-- Saved sessions: the macOS Keychain when the Lanes app is installed, otherwise
+- Saved sessions: the macOS Keychain when the Lanes app or the "Lanes for
+  Safari" app from the Mac App Store is installed, otherwise
   the browser's extension storage on your device.
 - The Lanes app shares its own account names, colors, e-mails and Claude
   user IDs with the extension so they match. That stays on your Mac too.

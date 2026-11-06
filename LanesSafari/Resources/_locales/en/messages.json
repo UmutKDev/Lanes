@@ -279,10 +279,10 @@
     "message": "Web accounts with the same e-mail take their name and color from Lanes."
   },
   "statusNoLanes": {
-    "message": "No Lanes account list"
+    "message": "Lanes desktop app not connected"
   },
   "statusNoLanesBody": {
-    "message": "Open Lanes. It shares its account list with the extension so names and colors match."
+    "message": "The extension works without it. When the Lanes desktop app is open, it shares its account list so names and colors match."
   },
   "statusSwitchOK": {
     "message": "Switching works"

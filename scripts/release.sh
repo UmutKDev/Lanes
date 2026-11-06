@@ -260,7 +260,13 @@ echo "$dmg"
 echo "$updates/appcast.xml"
 echo "$extension_zip"
 
-publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" "${notes_args[@]}" "$updates/$(basename "$dmg")" "$updates/appcast.xml" "$extension_zip")
+# The same DMG under a name that never changes, so the Homebrew cask
+# (Casks/lanes.rb) can always download .../releases/latest/download/Lanes.dmg.
+# Sparkle's feed keeps pointing at the versioned file.
+stable_dmg="$out/Lanes.dmg"
+cp "$dmg" "$stable_dmg"
+
+publish=(gh release create "$tag" --repo "$repo" --title "Lanes $version ($build)" "${notes_args[@]}" "$updates/$(basename "$dmg")" "$updates/appcast.xml" "$extension_zip" "$stable_dmg")
 if [ "${LANES_PUBLISH:-}" = 1 ]; then
   step "GitHub'da yayınlanıyor"
   command -v gh >/dev/null || fail "gh gerekli: brew install gh"

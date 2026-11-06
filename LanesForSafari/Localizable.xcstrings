@@ -1,0 +1,122 @@
+{
+  "sourceLanguage": "tr",
+  "strings": {
+    "%lld": {
+      "shouldTranslate": false
+    },
+    "Aşağıdaki düğmeyle Safari'nin Uzantılar ayarını aç ve Lanes'i işaretle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the button below to open Safari's Extensions settings and check Lanes."
+          }
+        }
+      }
+    },
+    "Birden çok claude.ai hesabını Safari'de tek tıkla değiştir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch between several claude.ai accounts in Safari with one click."
+          }
+        }
+      }
+    },
+    "Eklenti Safari'de açık": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The extension is on in Safari"
+          }
+        }
+      }
+    },
+    "Eklenti Safari'de kapalı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The extension is off in Safari"
+          }
+        }
+      }
+    },
+    "Eklenti denetleniyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the extension…"
+          }
+        }
+      }
+    },
+    "Lanes for Safari": {
+      "shouldTranslate": false
+    },
+    "Lanes masaüstü uygulaması da bu eklentiyi içeriyor. Safari'de iki Lanes düğmesi görmemek için ikisinden yalnız birini açık tut.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Lanes desktop app carries this extension too. Keep only one of them turned on, so Safari doesn't show two Lanes buttons."
+          }
+        }
+      }
+    },
+    "Safari Ayarlarını Aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Safari Settings"
+          }
+        }
+      }
+    },
+    "Safari ayarları açılamadı. Safari'yi bir kez açıp kapat, sonra yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari settings couldn't be opened. Open and quit Safari once, then try again."
+          }
+        }
+      }
+    },
+    "Safari eklentiyi henüz görmedi. Safari'yi bir kez aç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari hasn't seen the extension yet. Open Safari once."
+          }
+        }
+      }
+    },
+    "claude.ai için izni “Her zaman izin ver” yap.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set the permission for claude.ai to “Always Allow”."
+          }
+        }
+      }
+    },
+    "claude.ai'de giriş yap ve araç çubuğundaki Lanes düğmesinden hesabı ekle. Başka bir hesapla aynısını yap.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in on claude.ai and add the account from the Lanes button in the toolbar. Do the same with another account."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
