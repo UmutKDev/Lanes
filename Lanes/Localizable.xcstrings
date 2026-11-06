@@ -6833,16 +6833,6 @@
         }
       }
     },
-    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For the Sessions, Projects, and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays unchanged."
-          }
-        }
-      }
-    },
     "PDF Olarak Dışa Aktar…": {
       "localizations": {
         "en": {
@@ -9493,12 +9483,12 @@
         }
       }
     },
-    "İlk açılışta anahtarlık parolası sorulur; menüler ve kısayollar bozulabilir.": {
+    "İlk açılışta anahtarlık parolası sorulur. Hesabın kendi menüleri olmaz; tam ekran bir uygulamadan bu hesabın masaüstüne geçince macOS menü çubuğunu gizleyebilir.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Asks for the keychain password on first launch; menus and shortcuts may break."
+            "value": "Asks for the keychain password on first launch. The account has no menus of its own; after switching from a full-screen app to this account's desktop, macOS may hide the menu bar."
           }
         }
       }
@@ -10391,6 +10381,376 @@
           "stringUnit": {
             "state": "translated",
             "value": "Install from Store"
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabının Code sekmesine eklenemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't add the session to %1$@'s Code tab: %2$@"
+          }
+        }
+      }
+    },
+    "%@ hesabının Claude uygulamasında Code sekmesi henüz hiç açılmamış. Oturum Terminal'de sürüyor. Code sekmesine bir kez girersen sonraki taşımalar orada açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'s Claude app hasn't opened the Code tab yet, so the session continues in Terminal. Open the Code tab there once and later moves will open in it."
+          }
+        }
+      }
+    },
+    "%@ yeniden başlatılsın mı?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart %@?"
+          }
+        }
+      }
+    },
+    "Claude uygulaması Code sekmesindeki oturumları açılırken okur. Taşınan oturumun görünmesi için %@ kapatılıp yeniden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Claude app reads its Code tab sessions when it opens. %@ will quit and open again so the moved session shows up."
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabına eklendi. Code sekmesinde görmek için uygulamayı yeniden başlat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session was added to %@. Restart the app to see it in the Code tab."
+          }
+        }
+      }
+    },
+    "%@ hesabında taşınacak Claude Code oturumu yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ has no Claude Code session to move."
+          }
+        }
+      }
+    },
+    "Son Oturumu %@ Hesabına Taşı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Last Session to %@"
+          }
+        }
+      }
+    },
+    "En son Claude Code oturumu %@ hesabında kaldığı yerden sürer. Code sekmesinde başladıysa orada açılır. %@ 5 saat dinlenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The latest Claude Code session picks up where it left off in %1$@, in the Code tab if it started there. %2$@ rests for 5 hours."
+          }
+        }
+      }
+    },
+    "Hangi hesapta sürsün?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue in which account?"
+          }
+        }
+      }
+    },
+    "Taşı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move"
+          }
+        }
+      }
+    },
+    "Bu oturumu başka bir hesapta kaldığı yerden sürdür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue this session where it left off in another account."
+          }
+        }
+      }
+    },
+    "Bu oturumu başka bir hesabın Code sekmesine taşı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move this session to another account's Code tab."
+          }
+        }
+      }
+    },
+    "Oturum ya da projede ara": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search sessions or projects"
+          }
+        }
+      }
+    },
+    "%@ · Code sekmesi · %@ · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · Code tab · %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "Oturum %@ hesabının Code sekmesinde, kendi projesinin altında. Geri almak için: Oturumlar > Son Taşımalar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session is in %@'s Code tab, under its project. To undo: Sessions > Recent Moves."
+          }
+        }
+      }
+    },
+    "Taşıma geri alınsın mı?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo the move?"
+          }
+        }
+      }
+    },
+    "Lanes'in %@ hesabına kopyaladığı oturum Çöp Sepeti'ne gider. O hesapta oturumda sonradan yazılanlar da onunla gider. %@ kapatılıp yeniden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session Lanes copied to %1$@ goes to the Trash, along with anything added to it there since. %2$@ will quit and open again."
+          }
+        }
+      }
+    },
+    "Lanes'in %@ hesabına kopyaladığı oturum Çöp Sepeti'ne gider. O hesapta oturumda sonradan yazılanlar da onunla gider. Asıl oturum yerinde kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session Lanes copied to %@ goes to the Trash, along with anything added to it there since. The original session stays where it is."
+          }
+        }
+      }
+    },
+    "Geri Al": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo"
+          }
+        }
+      }
+    },
+    "Taşıma geri alındı. Kopya Çöp Sepeti'nde.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move undone. The copy is in the Trash."
+          }
+        }
+      }
+    },
+    "Taşıma geri alındı ama %lld öğe Çöp Sepeti'ne taşınamadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move undone, but %lld items couldn't be moved to the Trash."
+          }
+        }
+      }
+    },
+    "Henüz taşınan oturum yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sessions moved yet."
+          }
+        }
+      }
+    },
+    "Geri almak için seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose one to undo"
+          }
+        }
+      }
+    },
+    "Son Taşımalar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent Moves"
+          }
+        }
+      }
+    },
+    "Başka hesaba taşınan oturumlar. Birini seçince taşıma geri alınır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessions moved to another account. Choose one to undo its move."
+          }
+        }
+      }
+    },
+    "%@ → %@ (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ → %2$@ (%3$@)"
+          }
+        }
+      }
+    },
+    "Oturumlar, Projeler ve Kullanım sayfaları için. \"Başka Hesapla Sürdür\" oturum dosyasını açmadan öteki hesaba kopyalar, asıl dosya değişmez. Code sekmesinde başlayan bir oturumun Claude uygulamasındaki kaydı da öteki hesaba kopyalanır. Kayıttan kaynak hesabın bağlayıcıları ve izinleri çıkarılır. Gidip gelen bir oturumda iki kopya yalnız bayt bayt karşılaştırılır. Oturumlar sayfası, Code sekmesinde başlayan oturumların başlığını uygulamanın kaydından alıp yalnız orada gösterir. Geri almak için son 20 taşıma, başlıklarıyla birlikte yalnız bu Mac'te Lanes ayarlarında tutulur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For the Sessions, Projects and Usage pages. \"Continue in Another Account\" copies the session file to the other account without opening it; the original stays as it is. For a session started in the Code tab, the Claude app's record of it is copied too, without the source account's connectors and permissions. When a session moves back and forth, the two copies are only compared byte for byte. The Sessions page shows the title of sessions started in the Code tab, taken from the app's record and shown only there. For undo, the last 20 moves are kept with their titles, only in Lanes's settings on this Mac."
+          }
+        }
+      }
+    },
+    "%@ hesabına geç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to %@"
+          }
+        }
+      }
+    },
+    "Claude açılıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opening Claude…"
+          }
+        }
+      }
+    },
+    "Claude penceresini buraya yerleştirmek için Erişilebilirlik izni gerekiyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanes needs the Accessibility permission to place the Claude window here."
+          }
+        }
+      }
+    },
+    "Claude penceresinin üstünde hesap sekmeleri durur. Öteki hesaplar gizlenir ama açık kalır. Tam ekrandaki ya da küçültülmüş pencerelere dokunulmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account tabs sit above the Claude window. Other accounts are hidden but keep running. Full-screen and minimized windows are left alone."
+          }
+        }
+      }
+    },
+    "Henüz hesap yok. Soldaki + ile ekleyebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No accounts yet. Add one with + on the left."
+          }
+        }
+      }
+    },
+    "Hesapları tek yerde topla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gather Accounts in One Place"
+          }
+        }
+      }
+    },
+    "Lanes penceresinin solunda hesaplar durur, sağında seçtiğin hesabın Claude penceresi açılır. İki pencere birlikte taşınır ve boyutlanır. Öteki hesaplar gizlenir ama açık kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts are listed on the left of the Lanes window, and the chosen account's Claude window opens on the right. The two windows move and resize together. Other accounts are hidden but keep running."
+          }
+        }
+      }
+    },
+    "Soldan bir hesap seç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an account on the left."
+          }
+        }
+      }
+    },
+    "Tek pencere": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Single window"
+          }
+        }
+      }
+    },
+    "Üstte sekme şeridi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tab strip on top"
           }
         }
       }

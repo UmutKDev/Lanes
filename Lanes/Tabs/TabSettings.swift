@@ -5,21 +5,31 @@ import SwiftUI
 /// Settings > Sekmeler: turns tab mode on and explains what it does.
 struct TabSettings: View {
     @AppStorage(Preferences.Key.tabModeEnabled) private var isOn = false
+    @AppStorage(Preferences.Key.tabLayout) private var layout: Preferences.TabLayout = .singleWindow
     @State private var isGranted = AccessibilityPermission.isGranted
 
     var body: some View {
         Form {
             Section {
-                Toggle("Hesapları sekme olarak göster", isOn: $isOn)
+                Toggle("Hesapları tek yerde topla", isOn: $isOn)
                     .onChange(of: isOn) { _, on in
                         if on, !AccessibilityPermission.isGranted {
                             AccessibilityPermission.request()
                         }
                     }
+                Picker("Görünüm", selection: $layout) {
+                    Text("Tek pencere").tag(Preferences.TabLayout.singleWindow)
+                    Text("Üstte sekme şeridi").tag(Preferences.TabLayout.strip)
+                }
+                .disabled(!isOn)
             } header: {
                 Text("Sekmeler")
             } footer: {
-                Text("Öteki hesaplar gizlenir ama açık kalır. Tam ekrandaki ya da küçültülmüş pencerelere dokunulmaz.")
+                if layout == .singleWindow {
+                    Text("Lanes penceresinin solunda hesaplar durur, sağında seçtiğin hesabın Claude penceresi açılır. İki pencere birlikte taşınır ve boyutlanır. Öteki hesaplar gizlenir ama açık kalır.")
+                } else {
+                    Text("Claude penceresinin üstünde hesap sekmeleri durur. Öteki hesaplar gizlenir ama açık kalır. Tam ekrandaki ya da küçültülmüş pencerelere dokunulmaz.")
+                }
             }
             Section {
                 // One stable row: the state on the left, the request button

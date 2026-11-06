@@ -47,6 +47,23 @@ struct AccessibilityWindow {
         return (standard ?? windows.first).map(AccessibilityWindow.init(element:))
     }
 
+    /// All of the app's windows.
+    static func all(of pid: pid_t) -> [AccessibilityWindow] {
+        let app = AXUIElementCreateApplication(pid)
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
+              let windows = value as? [AXUIElement] else { return [] }
+        return windows.map(AccessibilityWindow.init(element:))
+    }
+
+    /// Shows or hides the whole app, like Cmd-H. Unlike
+    /// `NSRunningApplication.unhide()` it takes effect before it returns.
+    @discardableResult
+    static func setHidden(_ hidden: Bool, pid: pid_t) -> Bool {
+        let app = AXUIElementCreateApplication(pid)
+        return AXUIElementSetAttributeValue(app, kAXHiddenAttribute as CFString, hidden as CFBoolean) == .success
+    }
+
     /// Top-left origin, like every Accessibility frame.
     var frame: CGRect? {
         guard let position = pointValue(kAXPositionAttribute), let size = sizeValue(kAXSizeAttribute) else { return nil }
@@ -63,6 +80,11 @@ struct AccessibilityWindow {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXMinimizedAttribute as CFString, &value) == .success else { return false }
         return (value as? Bool) ?? false
+    }
+
+    @discardableResult
+    func setMinimized(_ minimized: Bool) -> Bool {
+        AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, minimized as CFBoolean) == .success
     }
 
     /// Size, then position, then size again: a window that can't grow past

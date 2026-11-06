@@ -59,7 +59,7 @@ final class TabStripController: NSObject, NSWindowDelegate {
 
     /// Shows or removes the strip to match the setting.
     private func applySetting() {
-        let wanted = Preferences.tabModeEnabled
+        let wanted = Preferences.tabModeEnabled && Preferences.tabLayout == .strip
         if wanted, panel == nil {
             showStrip()
         } else if !wanted, panel != nil {
