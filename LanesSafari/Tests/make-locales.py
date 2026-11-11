@@ -9,8 +9,8 @@ M = {
     "langCode": ("tr", "en"),
     "extensionName": ("Lanes", "Lanes"),
     "extensionDescription": (
-        "Birden fazla Claude hesabını Safari'de tek tıkla değiştir. Her hesap kendi rengini taşır, oturumlar Anahtar Zinciri'nde saklanır.",
-        "Switch between Claude accounts in Safari with one click. Each account has its own color, and sessions are kept in the Keychain.",
+        "Claude hesapları arasında Safari'de tek tıkla geç. Her hesabın rengi ayrı, oturumlar Anahtar Zinciri'nde.",
+        "Switch between Claude accounts in Safari with one click. Each has its own color; sessions stay in the Keychain.",
     ),
     "popupTitle": ("Claude hesapları", "Claude accounts"),
     "activeLabel": ("Şu an açık", "In use"),
@@ -180,6 +180,12 @@ COLOR_NAMES = {
 }
 for key, names in COLOR_NAMES.items():
     M["color_" + key] = names
+
+# The Mac App Store rejects a Safari extension whose description is longer
+# than 112 characters in any locale.
+for index, text in enumerate(M["extensionDescription"]):
+    if len(text) > 112:
+        raise SystemExit(f"extensionDescription ({['tr', 'en'][index]}) is {len(text)} characters, the App Store allows 112")
 
 root = pathlib.Path(__file__).resolve().parent.parent / "Resources" / "_locales"
 for index, lang in enumerate(["tr", "en"]):

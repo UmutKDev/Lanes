@@ -1,0 +1,26 @@
+{
+  "bundleId": "com.umutkdev.LanesForSafari",
+  "copyright": "2026 Umut Kızıloğlu",
+  "primaryCategory": "PRODUCTIVITY",
+  "secondaryCategory": "DEVELOPER_TOOLS",
+  "privacyPolicyUrl": "https://github.com/UmutKDev/Lanes/blob/main/docs/privacy/browser-extension.md",
+  "supportUrl": "https://github.com/UmutKDev/Lanes/issues",
+  "marketingUrl": "https://github.com/UmutKDev/Lanes",
+  "reviewNotes": "Lanes for Safari is a container app for a Safari Web Extension. The app window only shows whether the extension is enabled and opens Safari's Extensions settings.\n\nTo test: open the app, click \"Open Safari Settings\", enable Lanes and allow it on claude.ai. Sign in on https://claude.ai with any free Claude account and click the Lanes toolbar button > Add Account. Sign out, sign in with a second account and add it too. Clicking an account in the popup switches claude.ai between them without signing in again.\n\nThe extension only accesses claude.ai. It saves each account's claude.ai session cookies in the user's own Keychain so it can restore them on switch; nothing is sent to us or any third party. No demo account is needed beyond a free claude.ai account, which anyone can create.",
+  "locales": {
+    "tr": {
+      "name": "Lanes for Safari",
+      "subtitle": "claude.ai hesaplarını değiştir",
+      "promotionalText": "İş, kişisel ve müşteri claude.ai hesapların arasında Safari'de tek tıkla geç.",
+      "description": "Lanes for Safari, birden çok claude.ai hesabını Safari'de tek tıkla değiştirmeni sağlar. İş, kişisel ve müşteri hesapları arasında çıkış yapıp yeniden giriş yapmak zorunda kalmazsın.\n\n- Araç çubuğundaki Lanes düğmesinden hesabı seç, sayfa o hesapla yeniden açılır.\n- Her hesabın kendi adı ve rengi olur. Sayfanın üstündeki ince şerit ve sekme başlığı hangi hesapta olduğunu gösterir.\n- Yazmakta olduğun mesaj, istersen geçtiğin hesaba taşınır.\n- Her hesabın oturumu macOS Anahtar Zinciri'nde saklanır.\n- Klavye kısayollarıyla sıradaki ya da önceki hesaba geç.\n\nEklenti yalnız claude.ai'de çalışır. Hiçbir sunucuya veri göndermez, analiz ya da takip kodu içermez. Lanes masaüstü uygulaması da kuruluysa hesaplar oradaki adını ve rengini alır.\n\nLanes, Anthropic'in resmî bir ürünü değildir ve Anthropic ile bağlantılı değildir.",
+      "keywords": "claude,hesap,çoklu hesap,safari,oturum,geçiş,yapay zeka,profil,iş,kişisel"
+    },
+    "en-US": {
+      "name": "Lanes for Safari",
+      "subtitle": "Switch claude.ai accounts",
+      "promotionalText": "Switch between your work, personal and client claude.ai accounts in Safari with one click.",
+      "description": "Lanes for Safari lets you switch between several claude.ai accounts in Safari with one click, without signing out and back in between work, personal and client accounts.\n\n- Pick an account from the Lanes button in the toolbar and the page reopens with it.\n- Every account gets its own name and color. A thin bar at the top of the page and the tab title show which account you're in.\n- The message you're typing can move with you to the account you switch to.\n- Each account's session is kept in the macOS Keychain.\n- Switch to the next or previous account with keyboard shortcuts.\n\nThe extension runs only on claude.ai. It sends no data to any server and has no analytics or tracking. If the Lanes desktop app is installed too, accounts take their names and colors from it.\n\nLanes is not an official Anthropic product and is not affiliated with Anthropic.",
+      "keywords": "claude,accounts,multiple accounts,safari,switch,session,ai,profile,work,personal"
+    }
+  }
+}

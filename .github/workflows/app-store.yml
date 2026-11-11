@@ -15,7 +15,15 @@ on:
   workflow_dispatch:
     inputs:
       upload:
-        description: "App Store Connect'e yükle (kapalıysa yalnız paketi derleme çıktısı olarak bırakır)"
+        description: "Derleyip App Store Connect'e yükle (kapalıysa yalnız paketi derleme çıktısı olarak bırakır)"
+        type: boolean
+        default: true
+      build:
+        description: "Derle (kapalıysa yalnız mağaza sayfasını doldurur)"
+        type: boolean
+        default: true
+      metadata:
+        description: "Mağaza sayfasını doldur: metinler, ekran görüntüleri, fiyat, yaş sınırı, derleme (incelemeye göndermez)"
         type: boolean
         default: true
 
@@ -30,7 +38,7 @@ jobs:
   app-store:
     name: Build and upload Lanes for Safari
     runs-on: xcode-27
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
@@ -68,15 +76,28 @@ jobs:
           echo "ASC_KEY_FILE=$key" >>"$GITHUB_ENV"
 
       - name: Install XcodeGen
+        if: ${{ inputs.build }}
         run: brew install xcodegen
 
       - name: Build and upload
+        if: ${{ inputs.build }}
         env:
           LANES_UPLOAD: ${{ inputs.upload && '1' || '' }}
         run: scripts/app-store.sh
 
+      # Fills the store page from LanesForSafari/Store. After an upload it
+      # waits for Apple to process the build, then attaches it.
+      - name: Store page
+        if: ${{ inputs.metadata }}
+        env:
+          WAIT: ${{ (inputs.build && inputs.upload) && '1800' || '0' }}
+        run: |
+          python3 -m venv "$RUNNER_TEMP/asc"
+          "$RUNNER_TEMP/asc/bin/pip" install --quiet "pyjwt[crypto]"
+          "$RUNNER_TEMP/asc/bin/python" scripts/app-store-metadata.py --wait-build "$WAIT"
+
       - name: Keep the package
-        if: ${{ !inputs.upload }}
+        if: ${{ inputs.build && !inputs.upload }}
         uses: actions/upload-artifact@v4
         with:
           name: lanes-for-safari

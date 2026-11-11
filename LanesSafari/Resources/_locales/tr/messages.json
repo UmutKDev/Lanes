@@ -108,7 +108,7 @@
     "message": "Yeniden giriş gerekli"
   },
   "extensionDescription": {
-    "message": "Birden fazla Claude hesabını Safari'de tek tıkla değiştir. Her hesap kendi rengini taşır, oturumlar Anahtar Zinciri'nde saklanır."
+    "message": "Claude hesapları arasında Safari'de tek tıkla geç. Her hesabın rengi ayrı, oturumlar Anahtar Zinciri'nde."
   },
   "extensionName": {
     "message": "Lanes"

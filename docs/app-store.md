@@ -18,16 +18,17 @@ Mağazaya yalnız Safari eklentisi çıkıyor. Bunun için ayrı ve küçük bir
 2. **Paket kimliği:** Actions > App Store > Run workflow'u "App Store Connect'e yükle" kapalıyken bir kez çalıştır. Xcode iki paket kimliğini ve mağaza profillerini kendisi kaydediyor.
 3. **Uygulama kaydı:** App Store Connect > Uygulamalar > "+" > Yeni Uygulama. Platform macOS, ad "Lanes for Safari", ana dil Türkçe, paket kimliği `com.umutkdev.LanesForSafari`, SKU `lanes-for-safari`. API yeni uygulama kaydı açamıyor, bu adım elle yapılıyor.
 4. **Yükleme:** Run workflow'u bu kez "yükle" açıkken çalıştır. Derleme birkaç dakika içinde App Store Connect'te görünür.
-5. **Sayfa ve inceleme:** Aşağıdaki metinleri gir, derlemeyi sürüme ekle ve incelemeye gönder.
+5. **Sayfa:** İş akışı yüklemeden sonra mağaza sayfasını da kendisi dolduruyor (`scripts/app-store-metadata.py`, metinler ve ekran görüntüleri `LanesForSafari/Store/` içinde): içerik hakları, kategoriler, ad, alt başlık, gizlilik politikası, yaş sınırı, ücretsiz fiyat, bütün ülkeler, açıklama, anahtar kelimeler, ekran görüntüleri, inceleme notu ve derleme. Apple'ın API'si uygulama gizliliği sorularını ve inceleme iletişim bilgilerini desteklemiyor, bunlar App Store Connect'te elle giriliyor.
+6. **İnceleme:** "Veri toplanmıyor"u işaretle, iletişim bilgilerini gir ve incelemeye gönder.
 
-Sonraki sürümlerde yalnız 4. ve 5. adımlar var. Derleme numarası commit sayısı olduğu için her yeni commit'ten yapılan yükleme kabul ediliyor.
+Sonraki sürümlerde yalnız 4. ve 6. adımlar var. Derleme numarası commit sayısı olduğu için her yeni commit'ten yapılan yükleme kabul ediliyor.
 
 ## Sayfa bilgileri
 
 | Alan | Değer |
 | --- | --- |
 | Ad | Lanes for Safari |
-| Alt başlık (TR) | claude.ai hesapları arasında geçiş |
+| Alt başlık (TR) | claude.ai hesaplarını değiştir |
 | Alt başlık (EN) | Switch claude.ai accounts |
 | Kategori | Üretkenlik (ikincil: Geliştirici Araçları) |
 | Fiyat | Ücretsiz, tüm ülkeler |
