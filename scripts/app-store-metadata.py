@@ -25,6 +25,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import sys
 import time
 import urllib.error
@@ -122,24 +123,41 @@ def rel(kind, ident):
 
 
 def patch_tolerant(client, kind, ident, attributes):
-    """PATCH, dropping attributes the API says it doesn't know (the age rating
-    questions change between API versions)."""
+    """PATCH the age rating answers, which change between API versions: an
+    attribute the API doesn't know is dropped, and a new question it requires
+    is answered "no" (false, or NONE when it wants a level)."""
     attributes = dict(attributes)
-    for _ in range(len(attributes) + 1):
+    tried_none = set()
+    for _ in range(3 * len(attributes) + 20):
         try:
             return client.patch(kind, ident, attributes)
         except APIError as error:
-            unknown = []
-            for e in error.errors:
-                pointer = ((e.get("source") or {}).get("pointer") or "")
-                if pointer.startswith("/data/attributes/"):
-                    unknown.append(pointer.rsplit("/", 1)[-1])
-            unknown = [name for name in unknown if name in attributes]
-            if error.status not in (409, 422) or not unknown:
+            if error.status not in (409, 422):
                 raise
-            for name in unknown:
-                print(f"    (age rating: API doesn't take {name}, left out)")
-                attributes.pop(name)
+            changed = False
+            for e in error.errors:
+                text = f"{e.get('detail', '')} {e.get('title', '')}"
+                pointer = ((e.get("source") or {}).get("pointer") or "")
+                name = pointer.rsplit("/", 1)[-1] if pointer.startswith("/data/attributes/") else None
+                missing = re.search(r"attribute '([A-Za-z0-9]+)'", text)
+                if "missing a required attribute" in text and missing:
+                    name = missing.group(1)
+                    if name not in attributes:
+                        attributes[name] = False
+                        print(f"    (age rating: answering new question {name} with no)")
+                        changed = True
+                        continue
+                if name and name in attributes:
+                    if attributes[name] is False and name not in tried_none:
+                        attributes[name] = "NONE"
+                        tried_none.add(name)
+                        print(f"    (age rating: {name} wants a level, using NONE)")
+                    else:
+                        attributes.pop(name)
+                        print(f"    (age rating: API doesn't take {name}, left out)")
+                    changed = True
+            if not changed:
+                raise
     raise RuntimeError("could not save attributes")
 
 
