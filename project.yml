@@ -254,6 +254,9 @@ targets:
       Release: Config/Store.xcconfig
     sources:
       - path: LanesForSafari
+        excludes:
+          # Store page texts and screenshots (scripts/app-store-metadata.py).
+          - "Store/**"
       - path: Lanes/Assets.xcassets
     dependencies:
       - target: LanesForSafariExtension
